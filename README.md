@@ -7,10 +7,13 @@
   <br/>
 
   [![GitHub release](https://img.shields.io/github/v/release/Vinay7766/os-quickai?style=flat-square&color=6366f1)](https://github.com/Vinay7766/os-quickai/releases/latest)
-  [![License: MIT](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
+  [![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](LICENSE)
+  [![Privacy: Local Only](https://img.shields.io/badge/Privacy-Local%20Only-green?style=flat-square)](PRIVACY_POLICY.md)
   [![Built with Tauri](https://img.shields.io/badge/Built_with-Tauri_v2-blue?style=flat-square)](https://tauri.app)
   [![Platform: Windows](https://img.shields.io/badge/Platform-Windows_10%2F11-0078D4?style=flat-square&logo=windows)](https://github.com/Vinay7766/os-quickai/releases/latest)
   [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen?style=flat-square)](CONTRIBUTING.md)
+  [![Terms of Use](https://img.shields.io/badge/Terms-of%20Use-lightgrey?style=flat-square)](TERMS_OF_USE.md)
+  [![Code of Conduct](https://img.shields.io/badge/Code%20of-Conduct-ff69b4?style=flat-square)](CODE_OF_CONDUCT.md)
 </div>
 
 ---
