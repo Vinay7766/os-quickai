@@ -1,0 +1,68 @@
+{
+  "productName": "OS QuickAI",
+  "version": "1.0.1",
+  "identifier": "com.osquickai.app",
+  "bundle": {
+    "active": true,
+    "targets": ["msi"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "windows": {
+      "wix": {
+        "language": "en-US",
+        "upgradeCode": "B0A84D55-7B38-4E5C-8D9A-AD45F367A811"
+      }
+    }
+  },
+  "build": {
+    "beforeDevCommand": "npx pnpm dev",
+    "beforeBuildCommand": "npx pnpm build",
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:1420"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "overlay",
+        "title": "OS QuickAI",
+        "width": 680,
+        "height": 70,
+        "center": true,
+        "decorations": false,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "transparent": true,
+        "hiddenTitle": true,
+        "visible": false,
+        "resizable": false
+      },
+      {
+        "label": "settings",
+        "title": "Settings - OS QuickAI",
+        "width": 660,
+        "height": 600,
+        "visible": false,
+        "resizable": false,
+        "decorations": true
+      },
+      {
+        "label": "guide",
+        "title": "Welcome to OS QuickAI",
+        "width": 600,
+        "height": 520,
+        "center": true,
+        "visible": false,
+        "resizable": false,
+        "decorations": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  }
+}
