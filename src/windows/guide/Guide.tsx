@@ -20,7 +20,7 @@ export default function Guide() {
           ✦
         </div>
         <div>
-          <h1 className="text-xl font-bold">OS QuickAI — Successfully Installed! 🎉</h1>
+          <h1 className="text-xl font-bold">Quickno — Successfully Installed! 🎉</h1>
           <p className="text-sm" style={{ color: 'var(--clr-muted)' }}>
             Your AI assistant is running. Here's everything you need to know.
           </p>
@@ -34,9 +34,9 @@ export default function Guide() {
           { icon: '💬', title: 'Type & press Enter to ask AI', desc: 'Ask anything — code, writing, math, facts. Use Shift+Enter for multi-line. The built-in AI answers immediately.', color: '#8b5cf6' },
           { icon: '🌐', title: 'Search in Browser button', desc: 'Click the "Browser" button in the search bar to open your query in the browser you selected in Settings.', color: '#10b981' },
           { icon: '🤖', title: 'Open in AI model button', desc: 'Click the "AI" button to open your query directly in a new chat on ChatGPT, Claude, Gemini, or Grok.', color: '#f59e0b' },
-          { icon: '⚙️', title: 'Configure via System Tray', desc: 'Right-click the OS QuickAI icon in your taskbar (bottom-right) → Settings to set your API keys, model, and browser.', color: '#ef4444' },
+          { icon: '⚙️', title: 'Configure via System Tray', desc: 'Right-click the Quickno icon in your taskbar (bottom-right) → Settings to set your API keys, model, and browser.', color: '#ef4444' },
           { icon: '🔑', title: 'Free Models need no API key', desc: 'Minimax 2.5, Qwen 3.6 and Nvidia Nemotron work without any key. For ChatGPT, Claude, Gemini or Grok — add your key in Settings.', color: '#6366f1' },
-          { icon: '🚀', title: 'Auto-starts with Windows', desc: 'OS QuickAI is registered to run at startup. You\'ll always have it ready in your tray without launching manually.', color: '#14b8a6' },
+          { icon: '🚀', title: 'Auto-starts with Windows', desc: 'Quickno is registered to run at startup. You\'ll always have it ready in your tray without launching manually.', color: '#14b8a6' },
         ].map((step, i) => (
           <div
             key={i}

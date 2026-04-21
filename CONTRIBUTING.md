@@ -1,4 +1,4 @@
-# Contributing to OS QuickAI ✦
+# Contributing to Quickno ✦
 
 First off, thanks for taking the time to contribute! Contributions are what make the open source community such an amazing place.
 
@@ -7,7 +7,7 @@ First off, thanks for taking the time to contribute! Contributions are what make
 1. **Fork the repository** on GitHub.
 2. **Clone your fork** locally:
    ```bash
-   git clone https://github.com/YOUR_USERNAME/os-quickai.git
+   git clone https://github.com/YOUR_USERNAME/quickno.git
    ```
 3. **Set up the development environment**:
    - Install [Rust](https://www.rust-lang.org/tools/install).

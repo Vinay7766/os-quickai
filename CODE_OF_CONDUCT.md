@@ -2,7 +2,7 @@
 
 ## Our Pledge
 
-We as contributors and maintainers of OS QuickAI pledge to make
+We as contributors and maintainers of Quickno pledge to make
 participation in our project a harassment-free experience for everyone,
 regardless of age, body size, disability, ethnicity, gender identity,
 level of experience, nationality, personal appearance, race, religion,
@@ -33,8 +33,8 @@ or sexual identity and orientation.
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
 reported by:
 
-- 📧 Emailing the maintainer at: [your-email@example.com] ← replace this
-- 🔒 Opening a private security report: https://github.com/Vinay7766/os-quickai/security/advisories/new
+- 📧 Emailing the maintainer at: [your-email@example.com]
+- 🔒 Opening a private security report: https://github.com/Vinay7766/quickno/security/advisories/new
 
 All complaints will be reviewed and investigated promptly and fairly.
 The maintainer is obligated to maintain confidentiality with regard to the reporter.

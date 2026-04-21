@@ -1,16 +1,16 @@
 # Privacy Policy
 
 **Last updated:** April 2026
-**App name:** OS QuickAI
+**App name:** Quickno
 **Developer:** Vinay7766, India
-**Contact:** [your-email@example.com] ← replace this
-**GitHub:** https://github.com/Vinay7766/os-quickai
+**Contact:** [your-email@example.com]
+**GitHub:** https://github.com/Vinay7766/quickno
 
 ---
 
 ## 1. Overview
 
-OS QuickAI is a Windows desktop application that operates entirely on your
+Quickno is a Windows desktop application that operates entirely on your
 local machine. We do not operate any servers, we do not collect your data,
 and we do not transmit any information to ourselves.
 
@@ -23,7 +23,7 @@ what happens to it.
 
 We want to be completely clear. The following data is **never** collected,
 transmitted to us, stored on our servers, or shared with any third party
-by OS QuickAI:
+by Quickno:
 
 - Your queries or questions
 - Your AI responses
@@ -47,7 +47,7 @@ transmitted to us:
 | Data | Where Stored | Purpose |
 |------|-------------|---------|
 | API keys (BYOK) | Windows Credential Manager (OS keychain) | Used only for direct HTTPS calls to the LLM provider you configured |
-| App settings (hotkey, preferences) | Local config file (`%APPDATA%\com.osquickai.app\settings.json`) | Remembering your preferences between sessions |
+| App settings (hotkey, preferences) | Local config file (`%APPDATA%\com.quickno.app\settings.json`) | Remembering your preferences between sessions |
 
 You can delete all locally stored data at any time via **Settings → Data & Privacy → Delete API Key** or by uninstalling the application.
 
@@ -88,8 +88,8 @@ The clipboard paste feature works as follows:
 
 ## 6. Update Notifications
 
-OS QuickAI checks for updates by querying the **GitHub Releases API**
-(`api.github.com/repos/Vinay7766/os-quickai/releases/latest`). This is a
+Quickno checks for updates by querying the **GitHub Releases API**
+(`api.github.com/repos/Vinay7766/quickno/releases/latest`). This is a
 public, unauthenticated request. GitHub's privacy policy applies:
 https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement
 
@@ -125,11 +125,11 @@ the application after an update constitutes acceptance of the updated policy.
 ## 10. Contact
 
 For privacy questions or concerns:
-- 📧 Email: [your-email@example.com] ← replace this
-- 🐛 GitHub Issues: https://github.com/Vinay7766/os-quickai/issues
+- 📧 Email: [your-email@example.com]
+- 🐛 GitHub Issues: https://github.com/Vinay7766/quickno/issues
 
 ---
 
-*This Privacy Policy applies to OS QuickAI desktop application only. It does
+*This Privacy Policy applies to Quickno desktop application only. It does
 not apply to any third-party services or AI providers that you choose to
 connect to.*

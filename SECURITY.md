@@ -13,13 +13,13 @@
 
 **Please do NOT report security vulnerabilities as public GitHub Issues.**
 
-If you discover a security vulnerability in OS QuickAI, please report it
+If you discover a security vulnerability in Quickno, please report it
 privately so we can fix it before it becomes a public risk.
 
 ### How to Report
 
-**Email:** [your-email@example.com] ← replace this
-**Subject line:** `[SECURITY] OS QuickAI - Brief description`
+**Email:** [your-email@example.com]
+**Subject line:** `[SECURITY] Quickno - Brief description`
 
 Please include:
 1. A description of the vulnerability
@@ -39,7 +39,7 @@ We will credit you in the release notes (unless you prefer to remain anonymous).
 
 ## Security Architecture
 
-OS QuickAI is designed with a local-first, privacy-first architecture:
+Quickno is designed with a local-first, privacy-first architecture:
 
 - **No backend servers** — all processing happens on your machine
 - **API keys stored in Windows Credential Manager** — never in plain text files

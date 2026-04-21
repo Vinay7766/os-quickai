@@ -1,7 +1,7 @@
 {
-  "productName": "OS QuickAI",
+  "productName": "Quickno",
   "version": "1.0.1",
-  "identifier": "com.osquickai.app",
+  "identifier": "com.quickno.app",
   "bundle": {
     "active": true,
     "targets": ["msi"],
@@ -29,7 +29,7 @@
     "windows": [
       {
         "label": "overlay",
-        "title": "OS QuickAI",
+        "title": "Quickno",
         "width": 680,
         "height": 70,
         "center": true,
@@ -43,7 +43,7 @@
       },
       {
         "label": "settings",
-        "title": "Settings - OS QuickAI",
+        "title": "Settings - Quickno",
         "width": 660,
         "height": 600,
         "visible": false,
@@ -52,7 +52,7 @@
       },
       {
         "label": "guide",
-        "title": "Welcome to OS QuickAI",
+        "title": "Welcome to Quickno",
         "width": 600,
         "height": 520,
         "center": true,

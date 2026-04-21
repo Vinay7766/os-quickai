@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { saveApiKey, deleteApiKey, getApiKey, updateShortcut } from '../../lib/tauriCommands';
+import { open } from '@tauri-apps/plugin-shell';
 
 
 // Models config
@@ -35,7 +36,7 @@ const AI_SITES = [
   { value: 'perplexity', label: 'Perplexity' },
 ];
 
-type Section = 'models' | 'search' | 'hotkey' | 'danger';
+type Section = 'models' | 'search' | 'hotkey' | 'danger' | 'feedback';
 
 export default function Settings() {
   const { hotkey, llmModel, browser, llmSite, searchEngine, theme, settingsLoaded, loadSettings, updateHotkey, updateSetting, saveAll } = useSettingsStore();
@@ -108,6 +109,7 @@ export default function Settings() {
     { id: 'search', icon: '🌐', label: 'Interface & Browser' },
     { id: 'hotkey', icon: '⌨️', label: 'Shortcuts' },
     { id: 'danger', icon: '🗑️', label: 'Data' },
+    { id: 'feedback', icon: '📝', label: 'Feedback & Community' },
   ];
 
   const handleModelChange = async (val: string) => {
@@ -121,7 +123,7 @@ export default function Settings() {
         <div className="px-3 mb-4">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg flex items-center justify-center text-sm" style={{ background: 'linear-gradient(135deg,#3b82f6,#8b5cf6)' }}>✦</div>
-            <span className="font-semibold text-sm ">QuickAI</span>
+            <span className="font-semibold text-sm">Quickno</span>
           </div>
           <p className="text-xs mt-1" style={{ color: 'var(--clr-muted)' }}>Settings</p>
         </div>
@@ -437,9 +439,86 @@ export default function Settings() {
             <div className="p-4 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
               <h3 className="text-sm font-semibold  mb-1">Privacy</h3>
               <p className="text-xs" style={{ color: 'var(--clr-muted)', lineHeight: '1.6' }}>
-                OS QuickAI never logs your queries. Your API key is stored exclusively in the Windows Credential Manager (hardware-backed). 
+                Quickno never logs your queries. Your API key is stored exclusively in the Windows Credential Manager (hardware-backed).
                 Free model queries are routed through a public proxy — no personal data is attached.
               </p>
+            </div>
+          </div>
+        )}
+
+        {/* ── Feedback & Community Section ── */}
+        {activeSection === 'feedback' && (
+          <div className="space-y-6 max-w-lg">
+            <div>
+              <h2 className="text-lg font-bold">Feedback & Community</h2>
+              <p className="text-xs mt-1" style={{ color: 'var(--clr-muted)' }}>Help us improve Quickno. Every piece of feedback matters.</p>
+            </div>
+
+            {/* Discord */}
+            <div className="p-5 rounded-2xl" style={{ background: 'linear-gradient(135deg, rgba(88,101,242,0.15), rgba(88,101,242,0.05))', border: '1px solid rgba(88,101,242,0.4)' }}>
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ background: 'rgba(88,101,242,0.2)' }}>💬</div>
+                <div>
+                  <h3 className="text-sm font-bold">Join our Discord Community</h3>
+                  <p className="text-xs" style={{ color: 'var(--clr-muted)' }}>Chat with the team, share ideas, get help</p>
+                </div>
+              </div>
+              <button
+                onClick={() => open('https://discord.gg/29a3qkEsX')}
+                className="w-full py-2.5 rounded-xl text-sm font-semibold transition-all"
+                style={{ background: '#5865F2', color: 'white' }}
+              >
+                Open Discord Server →
+              </button>
+            </div>
+
+            {/* Feedback actions */}
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold">Send Feedback</h3>
+              {[
+                {
+                  icon: '🐛',
+                  title: 'Report a Bug',
+                  desc: 'Found something broken? Let us know so we can fix it.',
+                  url: 'https://github.com/Vinay7766/quickno/issues/new?template=bug_report.md',
+                  color: 'rgba(239,68,68,0.12)',
+                  border: 'rgba(239,68,68,0.3)',
+                },
+                {
+                  icon: '💡',
+                  title: 'Suggest a Feature',
+                  desc: 'Have an idea to make Quickno better? We want to hear it.',
+                  url: 'https://github.com/Vinay7766/quickno/issues/new?template=feature_request.md',
+                  color: 'rgba(99,102,241,0.1)',
+                  border: 'rgba(99,102,241,0.3)',
+                },
+                {
+                  icon: '⭐',
+                  title: 'Star on GitHub',
+                  desc: 'Show your support — helps others discover the project.',
+                  url: 'https://github.com/Vinay7766/quickno',
+                  color: 'rgba(234,179,8,0.1)',
+                  border: 'rgba(234,179,8,0.3)',
+                },
+              ].map(item => (
+                <button
+                  key={item.title}
+                  onClick={() => open(item.url)}
+                  className="w-full flex items-start gap-3 p-4 rounded-xl text-left transition-all hover:opacity-90"
+                  style={{ background: item.color, border: `1px solid ${item.border}` }}
+                >
+                  <span className="text-xl mt-0.5">{item.icon}</span>
+                  <div>
+                    <div className="text-sm font-semibold" style={{ color: 'var(--clr-text)' }}>{item.title}</div>
+                    <div className="text-xs mt-0.5" style={{ color: 'var(--clr-muted)' }}>{item.desc}</div>
+                  </div>
+                  <span className="ml-auto text-lg" style={{ color: 'var(--clr-muted)' }}>→</span>
+                </button>
+              ))}
+            </div>
+
+            <div className="text-xs text-center" style={{ color: 'var(--clr-muted)' }}>
+              Quickno v1.0.1 · Open Source · MIT License
             </div>
           </div>
         )}

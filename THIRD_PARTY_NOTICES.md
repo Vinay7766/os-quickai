@@ -1,6 +1,6 @@
 # Third-Party Notices
 
-OS QuickAI uses or supports the following third-party AI models and
+Quickno uses or supports the following third-party AI models and
 open-source components. Their licenses and required attributions are listed below.
 
 ---
@@ -46,8 +46,6 @@ open-source components. Their licenses and required attributions are listed belo
 | @tauri-apps/plugin-clipboard-manager | ^2 | Apache 2.0 / MIT |
 | @tauri-apps/plugin-global-shortcut | ^2 | Apache 2.0 / MIT |
 
-Full dependency list with exact versions is in `pnpm-lock.yaml`.
-
 ---
 
 ## Rust / Backend Dependencies
@@ -63,8 +61,7 @@ Full dependency list with exact versions is in `pnpm-lock.yaml`.
 | winreg | MIT |
 | thiserror | MIT / Apache 2.0 |
 | urlencoding | MIT |
-
-Full dependency list with exact versions is in `src-tauri/Cargo.lock`.
+| open | MIT |
 
 ---
 
@@ -76,9 +73,6 @@ This application uses the following Microsoft Windows APIs:
 - **Windows Global Hotkey API** — for the global shortcut
 - **WebView2 Runtime** — for rendering the UI (Microsoft Edge WebView2)
 
-These are standard public Microsoft APIs. WebView2 is subject to the
-[Microsoft Software License Terms for Microsoft Edge WebView2](https://developer.microsoft.com/en-us/microsoft-edge/webview2/).
-
 ---
 
 ## Attribution Requirements Summary
@@ -88,4 +82,4 @@ These are standard public Microsoft APIs. WebView2 is subject to the
 | MiniMax M2/M2.5 | Include MIT license notice in distributed copies |
 | Qwen3 | Include Apache 2.0 notice in distributed copies |
 | NVIDIA Nemotron | Include NVIDIA Nemotron Open Model License notice |
-| OS QuickAI source code | MIT (see LICENSE) |
+| Quickno source code | MIT (see LICENSE) |

@@ -27,21 +27,21 @@ fn set_autostart(exe_path: &str) {
         r"SOFTWARE\Microsoft\Windows\CurrentVersion\Run",
         KEY_SET_VALUE,
     ) {
-        let _ = run.set_value("OSQuickAI", &format!("\"{}\"", exe_path));
+        let _ = run.set_value("Quickno", &format!("\"{}\"", exe_path));
     }
 }
 
 fn is_first_run() -> bool {
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-    hkcu.open_subkey(r"SOFTWARE\OSQuickAI")
-        .and_then(|k| k.get_value::<String, _>("v3Installed"))
+    hkcu.open_subkey(r"SOFTWARE\Quickno")
+        .and_then(|k| k.get_value::<String, _>("v1Installed"))
         .is_err()
 }
 
 fn mark_installed() {
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-    if let Ok((key, _)) = hkcu.create_subkey(r"SOFTWARE\OSQuickAI") {
-        let _ = key.set_value("v3Installed", &"1");
+    if let Ok((key, _)) = hkcu.create_subkey(r"SOFTWARE\Quickno") {
+        let _ = key.set_value("v1Installed", &"1");
     }
 }
 
@@ -119,14 +119,16 @@ fn main() {
             });
 
             // ── Tray menu ────────────────────────────────────────────────
-            let quit_i     = MenuItem::with_id(app, "quit",     "✕  Quit",              true, None::<&str>)?;
-            let settings_i = MenuItem::with_id(app, "settings", "⚙  Settings",          true, None::<&str>)?;
-            let toggle_i   = MenuItem::with_id(app, "toggle",   "⌨  Toggle (Alt+A)", true, None::<&str>)?;
-            let guide_i    = MenuItem::with_id(app, "guide",    "📖  User Guide",         true, None::<&str>)?;
-            let menu = Menu::with_items(app, &[&toggle_i, &settings_i, &guide_i, &quit_i])?;
+            let quit_i     = MenuItem::with_id(app, "quit",     "✕  Quit",               true, None::<&str>)?;
+            let settings_i = MenuItem::with_id(app, "settings", "⚙  Settings",           true, None::<&str>)?;
+            let toggle_i   = MenuItem::with_id(app, "toggle",   "⌨  Toggle (Alt+A)",  true, None::<&str>)?;
+            let guide_i    = MenuItem::with_id(app, "guide",    "📖  User Guide",          true, None::<&str>)?;
+            let discord_i  = MenuItem::with_id(app, "discord",  "💬  Join Discord",        true, None::<&str>)?;
+            let feedback_i = MenuItem::with_id(app, "feedback", "📝  Feedback / Bug Report", true, None::<&str>)?;
+            let menu = Menu::with_items(app, &[&toggle_i, &settings_i, &guide_i, &discord_i, &feedback_i, &quit_i])?;
 
             TrayIconBuilder::new()
-                .tooltip("OS QuickAI — Alt+A")
+                .tooltip("Quickno — Alt+A")
                 .icon(app.default_window_icon().unwrap().clone())
                 .menu(&menu)
                 .show_menu_on_left_click(false)
@@ -142,6 +144,12 @@ fn main() {
                         if let Some(w) = app.get_webview_window("guide") {
                             let _ = w.show(); let _ = w.set_focus();
                         }
+                    }
+                    "discord" => {
+                        let _ = open::that("https://discord.gg/29a3qkEsX");
+                    }
+                    "feedback" => {
+                        let _ = open::that("https://github.com/Vinay7766/os-quickai/issues/new/choose");
                     }
                     _ => {}
                 })
