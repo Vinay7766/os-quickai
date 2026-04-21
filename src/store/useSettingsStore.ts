@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { createStore } from '@tauri-apps/plugin-store';
+import { emit } from '@tauri-apps/api/event';
 
 const storePromise = createStore('settings.json', { autoSave: false });
 
@@ -45,6 +46,14 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
       document.documentElement.classList.toggle('dark', isDark);
 
+      // Listen for system theme changes
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+        const currentTheme = get().theme;
+        if (currentTheme === 'system') {
+          document.documentElement.classList.toggle('dark', e.matches);
+        }
+      });
+
       set({ hotkey, llmModel, searchEngine, llmSite, browser, theme, settingsLoaded: true });
     } catch (e) {
       console.error('loadSettings failed:', e);
@@ -79,6 +88,9 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       const isDark = val === 'dark' || (val === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
       document.documentElement.classList.toggle('dark', isDark);
     }
+
+    // 4. Notify other windows
+    emit('settings-updated', { key, val });
   },
   
   saveAll: async () => {
@@ -92,6 +104,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       await store.set('browser', state.browser);
       await store.set('theme', state.theme);
       await store.save();
+      emit('settings-updated', { key: 'all' });
     } catch (e) {
       console.error('Manual save failed:', e);
     }

@@ -9,6 +9,7 @@ import { UpdateBanner } from '../../components/UpdateBanner';
 import { useUpdateCheck } from '../../hooks/useUpdateCheck';
 import { searchInBrowser } from '../../lib/tauriCommands';
 import { open } from '@tauri-apps/plugin-shell';
+import { listen } from '@tauri-apps/api/event';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 
 const SEARCH_URLS: Record<string, string> = {
@@ -57,7 +58,15 @@ export default function Overlay() {
     }
   }, [hasContent, answer, isLoading, error, resizeWindow]);
 
-  useEffect(() => { loadSettings(); }, []);
+  useEffect(() => { 
+    loadSettings();
+    // Listen for cross-window updates
+    let unlisten: (() => void) | undefined;
+    listen('settings-updated', () => {
+      loadSettings();
+    }).then(fn => { unlisten = fn; });
+    return () => unlisten?.();
+  }, []);
 
   useEffect(() => {
     let unlisten: (() => void) | undefined;
@@ -65,6 +74,8 @@ export default function Overlay() {
       .onFocusChanged(({ payload: focused }) => {
         if (focused) {
           loadSettings();
+          // Broadcast intent to focus to child components
+          window.dispatchEvent(new Event('focus-input'));
         } else if (!isDragging.current) {
           getCurrentWindow().hide();
         }
@@ -84,15 +95,24 @@ export default function Overlay() {
   const handleBrowserSearch = async () => {
     if (!query.trim()) return;
     const url = (SEARCH_URLS[searchEngine] ?? SEARCH_URLS.google) + encodeURIComponent(query);
-    try { await searchInBrowser(browser || 'chrome', url); }
+    try {
+      if (browser === 'default' || !browser) {
+        await open(url);
+      } else {
+        await searchInBrowser(browser, url);
+      }
+    }
     catch (e) { alert(String(e)); }
   };
 
   const handleAIOpen = async () => {
     if (!query.trim()) return;
-    let url = AI_URLS[llmSite] ?? AI_URLS.chatgpt;
-    if (llmSite === 'perplexity') url = `https://www.perplexity.ai/?q=${encodeURIComponent(query)}`;
-    if (llmSite === 'gemini') url = `https://gemini.google.com/app?q=${encodeURIComponent(query)}`;
+    let site = llmSite;
+    if (site === 'default') site = 'chatgpt';
+    
+    let url = AI_URLS[site] ?? AI_URLS.chatgpt;
+    if (site === 'perplexity') url = `https://www.perplexity.ai/?q=${encodeURIComponent(query)}`;
+    if (site === 'gemini') url = `https://gemini.google.com/app?q=${encodeURIComponent(query)}`;
     await open(url);
   };
 

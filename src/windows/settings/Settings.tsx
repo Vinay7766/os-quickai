@@ -20,6 +20,7 @@ const FREE_MODELS = [
 const ALL_MODELS = [...API_MODELS, ...FREE_MODELS];
 
 const BROWSERS = [
+  { value: 'default', label: 'System Default' },
   { value: 'chrome', label: 'Google Chrome' },
   { value: 'firefox', label: 'Firefox' },
   { value: 'brave', label: 'Brave' },
@@ -29,6 +30,7 @@ const BROWSERS = [
 ];
 
 const AI_SITES = [
+  { value: 'default', label: 'System Default (ChatGPT)' },
   { value: 'chatgpt', label: 'ChatGPT' },
   { value: 'claude', label: 'Claude' },
   { value: 'gemini', label: 'Gemini' },
@@ -39,7 +41,7 @@ const AI_SITES = [
 type Section = 'models' | 'search' | 'hotkey' | 'danger' | 'feedback';
 
 export default function Settings() {
-  const { hotkey, llmModel, browser, llmSite, searchEngine, theme, settingsLoaded, loadSettings, updateHotkey, updateSetting, saveAll } = useSettingsStore();
+  const { hotkey, llmModel, browser, llmSite, theme, settingsLoaded, loadSettings, updateHotkey, updateSetting, saveAll } = useSettingsStore();
   const [activeSection, setActiveSection] = useState<Section>('models');
   const [keyInput, setKeyInput] = useState('');
   const [keyStatus, setKeyStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
@@ -114,6 +116,19 @@ export default function Settings() {
 
   const handleModelChange = async (val: string) => {
     await updateSetting('llmModel', val);
+  };
+
+  const handleBrowserChange = async (val: string) => {
+    if (val !== 'default') {
+      const { checkBrowserExists } = await import('../../lib/tauriCommands');
+      const exists = await checkBrowserExists(val);
+      if (!exists) {
+        const browserName = BROWSERS.find(b => b.value === val)?.label || val;
+        alert(`Browser not found: ${browserName}. Please install it or choose another.`);
+        return;
+      }
+    }
+    await updateSetting('browser', val);
   };
 
   return (
@@ -312,51 +327,41 @@ export default function Settings() {
 
             <div className="space-y-2">
               <label className="text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--clr-muted)' }}>Target Browser</label>
-              <div className="grid grid-cols-2 gap-2">
+              <select
+                value={browser}
+                onChange={e => handleBrowserChange(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg text-sm"
+                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--clr-text)', outline: 'none' }}
+              >
                 {BROWSERS.map(b => (
-                  <button
-                    key={b.value}
-                    onClick={() => updateSetting('browser', b.value)}
-                    className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm transition-all text-left"
-                    style={{
-                      background: browser === b.value ? 'rgba(99,102,241,0.2)' : 'var(--clr-input-bg)',
-                      border: `1px solid ${browser === b.value ? 'rgba(99,102,241,0.5)' : 'var(--clr-border)'}`,
-                      color: browser === b.value ? 'var(--clr-indigo)' : 'var(--clr-text)',
-                    }}
-                  >
-                    <span>{b.label}</span>
-                  </button>
+                  <option key={b.value} value={b.value} style={{ background: '#1e293b' }}>{b.label}</option>
                 ))}
-              </div>
+              </select>
               <p className="text-xs" style={{ color: '#475569' }}>
-                If the chosen browser is not installed, you'll see a clear install prompt.
+                Quickno will try to use this browser to open web links.
               </p>
             </div>
 
+            {/*
             <div className="space-y-2">
               <label className="text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--clr-muted)' }}>Search Engine</label>
-              <div className="grid grid-cols-2 gap-2">
+              <select
+                value={searchEngine || 'google'}
+                onChange={e => updateSetting('searchEngine', e.target.value)}
+                className="w-full px-3 py-2 rounded-lg text-sm"
+                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--clr-text)', outline: 'none' }}
+              >
                 {[
                   { value: 'google', label: 'Google' },
                   { value: 'bing', label: 'Bing' },
                   { value: 'perplexity', label: 'Perplexity' },
                   { value: 'duckduckgo', label: 'DuckDuckGo' },
                 ].map(e => (
-                  <button
-                    key={e.value}
-                    onClick={() => updateSetting('searchEngine', e.value)}
-                    className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm transition-all text-left"
-                    style={{
-                      background: (searchEngine || 'google') === e.value ? 'rgba(99,102,241,0.2)' : 'var(--clr-input-bg)',
-                      border: `1px solid ${(searchEngine || 'google') === e.value ? 'rgba(99,102,241,0.5)' : 'var(--clr-border)'}`,
-                      color: (searchEngine || 'google') === e.value ? 'var(--clr-indigo)' : 'var(--clr-text)',
-                    }}
-                  >
-                    {e.label}
-                  </button>
+                  <option key={e.value} value={e.value} style={{ background: '#1e293b' }}>{e.label}</option>
                 ))}
-              </div>
+              </select>
             </div>
+            */}
           </div>
         )}
 

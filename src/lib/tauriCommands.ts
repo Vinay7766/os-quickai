@@ -27,3 +27,7 @@ export async function searchInBrowser(browser: string, url: string): Promise<voi
 export async function updateShortcut(newShortcut: string): Promise<void> {
   return await invoke<void>('update_shortcut', { newShortcut });
 }
+
+export async function checkBrowserExists(browser: string): Promise<boolean> {
+  return await invoke<boolean>('check_browser_exists', { browser });
+}
