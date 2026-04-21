@@ -3,7 +3,7 @@
 **Last updated:** April 2026
 **App name:** Quickno
 **Developer:** Vinay7766, India
-**Contact:** [your-email@example.com]
+**Contact:** highlowtemp2580@gmail.com
 **GitHub:** https://github.com/Vinay7766/quickno
 
 ---
@@ -125,8 +125,8 @@ the application after an update constitutes acceptance of the updated policy.
 ## 10. Contact
 
 For privacy questions or concerns:
-- 📧 Email: [your-email@example.com]
-- 🐛 GitHub Issues: https://github.com/Vinay7766/quickno/issues
+- Email: highlowtemp2580@gmail.com
+- GitHub Issues: https://github.com/Vinay7766/quickno/issues
 
 ---
 

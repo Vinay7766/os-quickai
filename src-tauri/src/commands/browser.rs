@@ -1,4 +1,5 @@
 use std::process::Command;
+use std::os::windows::process::CommandExt;
 
 #[tauri::command]
 pub async fn search_in_browser(browser: String, url: String) -> Result<(), String> {
@@ -47,7 +48,9 @@ if (Test-Path $reg1) {{
         url = safe_url
     );
 
+    const CREATE_NO_WINDOW: u32 = 0x08000000;
     let status = Command::new("powershell")
+        .creation_flags(CREATE_NO_WINDOW)
         .args(["-NoProfile", "-WindowStyle", "Hidden", "-Command", &ps_script])
         .status();
 

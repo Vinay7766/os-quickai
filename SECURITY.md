@@ -4,8 +4,8 @@
 
 | Version | Supported |
 |---------|-----------|
-| Latest release (v1.0.x) | ✅ Active support |
-| Older versions | ❌ Please upgrade |
+| Latest release (v1.0.x) | Active support |
+| Older versions | Please upgrade |
 
 ---
 
@@ -18,7 +18,7 @@ privately so we can fix it before it becomes a public risk.
 
 ### How to Report
 
-**Email:** [your-email@example.com]
+**Email:** highlowtemp2580@gmail.com
 **Subject line:** `[SECURITY] Quickno - Brief description`
 
 Please include:

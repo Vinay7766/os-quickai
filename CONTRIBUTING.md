@@ -1,8 +1,8 @@
-# Contributing to Quickno ✦
+# Contributing to Quickno
 
 First off, thanks for taking the time to contribute! Contributions are what make the open source community such an amazing place.
 
-## 🏁 Getting Started
+## Getting Started
 
 1. **Fork the repository** on GitHub.
 2. **Clone your fork** locally:
@@ -20,7 +20,7 @@ First off, thanks for taking the time to contribute! Contributions are what make
    pnpm tauri dev
    ```
 
-## 🛠 Project Structure
+## Project Structure
 
 - `src/`: React frontend (Vite + Tailwind).
   - `components/`: Reusable UI elements.
@@ -31,13 +31,13 @@ First off, thanks for taking the time to contribute! Contributions are what make
   - `src/main.rs`: Window management, shortcuts, and tray logic.
   - `tauri.conf.json`: App configuration.
 
-## 📝 Coding Standards
+## Coding Standards
 
 - **React**: Use functional components and hooks. Prefer CSS variables for theme colors.
 - **Rust**: Follow standard Rust naming conventions. Use `Clippy` to check for lints.
 - **PRs**: Keep pull requests focused on a single change. Reference any related issues.
 
-## 🐞 Bug Reports & Feature Requests
+## Bug Reports & Feature Requests
 
 If you find a bug or have a feature idea, please open an **Issue** first. This allows the community to discuss it before you start coding.
 
