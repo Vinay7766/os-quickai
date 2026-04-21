@@ -73,3 +73,36 @@ if (Test-Path $reg1) {{
         }
     }
 }
+
+#[tauri::command]
+pub async fn check_browser_exists(browser: String) -> bool {
+    let exe_name = match browser.as_str() {
+        "chrome" => "chrome.exe",
+        "firefox" => "firefox.exe",
+        "brave" => "brave.exe",
+        "bing" => "msedge.exe",
+        "opera" => "launcher.exe",
+        "comet" => "comet.exe",
+        _ => return true, // Default or unknown, assume exists or handled by explorer
+    };
+
+    use winreg::RegKey;
+    use winreg::enums::*;
+    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+    let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
+    let subkey = format!(r"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\{}", exe_name);
+
+    if hklm.open_subkey(&subkey).is_ok() || hkcu.open_subkey(&subkey).is_ok() {
+        return true;
+    }
+
+    // Special case for Opera
+    if browser == "opera" {
+        let subkey_opera = r"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\opera.exe";
+        if hklm.open_subkey(subkey_opera).is_ok() || hkcu.open_subkey(subkey_opera).is_ok() {
+            return true;
+        }
+    }
+
+    false
+}

@@ -89,6 +89,7 @@ fn main() {
             commands::window::close_overlay,
             commands::window::open_settings,
             commands::window::update_shortcut,
+            commands::browser::check_browser_exists,
         ])
         .setup(move |app| {
             // ── Force WebView2 transparent background ────────────────────
@@ -119,12 +120,13 @@ fn main() {
             });
 
             // ── Tray menu ────────────────────────────────────────────────
-            let quit_i     = MenuItem::with_id(app, "quit",     "Quit",               true, None::<&str>)?;
-            let settings_i = MenuItem::with_id(app, "settings", "Settings",           true, None::<&str>)?;
-            let guide_i    = MenuItem::with_id(app, "guide",    "User Guide",          true, None::<&str>)?;
-            let discord_i  = MenuItem::with_id(app, "discord",  "Join Discord",        true, None::<&str>)?;
-            let feedback_i = MenuItem::with_id(app, "feedback", "Feedback / Bug Report", true, None::<&str>)?;
-            let menu = Menu::with_items(app, &[&settings_i, &guide_i, &discord_i, &feedback_i, &quit_i])?;
+            let quit_i     = MenuItem::with_id(app, "quit",     "✕  Quit",               true, None::<&str>)?;
+            let settings_i = MenuItem::with_id(app, "settings", "⚙  Settings",           true, None::<&str>)?;
+            let toggle_i   = MenuItem::with_id(app, "toggle",   "⌨  Toggle (Alt+A)",  true, None::<&str>)?;
+            let guide_i    = MenuItem::with_id(app, "guide",    "📖  User Guide",          true, None::<&str>)?;
+            let discord_i  = MenuItem::with_id(app, "discord",  "💬  Join Discord",        true, None::<&str>)?;
+            let feedback_i = MenuItem::with_id(app, "feedback", "📝  Feedback / Bug Report", true, None::<&str>)?;
+            let menu = Menu::with_items(app, &[&toggle_i, &settings_i, &guide_i, &discord_i, &feedback_i, &quit_i])?;
 
             TrayIconBuilder::new()
                 .tooltip("Quickno — Alt+A")
@@ -133,6 +135,7 @@ fn main() {
                 .show_menu_on_left_click(false)
                 .on_menu_event(|app, event| match event.id.as_ref() {
                     "quit"     => app.exit(0),
+                    "toggle"   => toggle_overlay(app),
                     "settings" => {
                         if let Some(w) = app.get_webview_window("settings") {
                             let _ = w.show(); let _ = w.set_focus();

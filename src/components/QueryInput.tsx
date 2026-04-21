@@ -12,9 +12,29 @@ export function QueryInput() {
     }
   }, [query]);
 
-  // Auto-focus when overlay mounts
+  // Auto-focus when overlay mounts or when signaled by parent
   useEffect(() => {
-    textareaRef.current?.focus();
+    const focus = () => textareaRef.current?.focus();
+    
+    // Initial focus
+    focus();
+
+    // Listen for parent focus signals
+    window.addEventListener('focus-input', focus);
+    
+    // Listen for '/' key globally within this window
+    const handleGlobalKey = (e: any) => {
+      if (e.key === '/' && document.activeElement !== textareaRef.current) {
+        e.preventDefault();
+        focus();
+      }
+    };
+    window.addEventListener('keydown', handleGlobalKey);
+
+    return () => {
+      window.removeEventListener('focus-input', focus);
+      window.removeEventListener('keydown', handleGlobalKey);
+    };
   }, []);
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
