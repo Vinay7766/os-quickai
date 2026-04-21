@@ -1,7 +1,7 @@
 {
   "$schema": "../../node_modules/@tauri-apps/cli/schema.json",
   "identifier": "default",
-  "description": "Capabilities for OS QuickAI",
+  "description": "Capabilities for Quickno",
   "windows": ["overlay", "settings", "guide"],
   "permissions": [
     "core:default",

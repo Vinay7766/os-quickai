@@ -1,22 +1,22 @@
 # Terms of Use
 
 **Last updated:** April 2026
-**App name:** OS QuickAI
+**App name:** Quickno
 **Developer:** Vinay7766, India
-**GitHub:** https://github.com/Vinay7766/os-quickai
+**GitHub:** https://github.com/Vinay7766/quickno
 
 ---
 
 ## 1. Acceptance of Terms
 
-By downloading, installing, or using OS QuickAI, you agree to these Terms
+By downloading, installing, or using Quickno, you agree to these Terms
 of Use. If you do not agree, do not use the application.
 
 ---
 
 ## 2. What This App Is
 
-OS QuickAI is a Windows desktop AI assistant that:
+Quickno is a Windows desktop AI assistant that:
 - Provides a global hotkey-triggered command palette
 - Sends your queries to AI providers you configure
 - Optionally uses free open-source AI models via a public proxy
@@ -38,7 +38,7 @@ You may:
 
 ## 4. Prohibited Uses
 
-You must NOT use OS QuickAI to:
+You must NOT use Quickno to:
 
 1. **Violate any law** — including applicable Indian law (IT Act 2000, Indian Copyright Act 1957) and international law
 2. **Infringe copyright** — do not use this app to bulk-extract, reproduce, or distribute copyrighted content
@@ -104,7 +104,7 @@ FROM ACTING ON AI-GENERATED CONTENT.
 
 ## 9. Intellectual Property
 
-The source code of OS QuickAI is copyright © 2026 Vinay7766 and is
+The source code of Quickno is copyright © 2026 Vinay7766 and is
 licensed under the MIT License (see LICENSE file). The app name, logo, and
 branding are the property of Vinay7766.
 
@@ -130,5 +130,5 @@ changes constitutes acceptance.
 
 ## 12. Contact
 
-- 📧 Email: [your-email@example.com] ← replace this
-- 🐛 GitHub Issues: https://github.com/Vinay7766/os-quickai/issues
+- 📧 Email: [your-email@example.com]
+- 🐛 GitHub Issues: https://github.com/Vinay7766/quickno/issues

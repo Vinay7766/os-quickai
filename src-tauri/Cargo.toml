@@ -1,8 +1,8 @@
 [package]
-name = "os-quickai"
-version = "1.0.0"
-description = "Global OS AI Assistant"
-authors = ["You"]
+name = "quickno"
+version = "1.0.1"
+description = "Quickno - Lightning-fast AI assistant for Windows"
+authors = ["Vinay7766"]
 edition = "2021"
 
 [build-dependencies]
@@ -21,6 +21,7 @@ tokio = { version = "1.43.0", features = ["full"] }
 reqwest = { version = "0.12.12", features = ["json", "rustls-tls"] }
 thiserror = "2.0.11"
 keyring = { version = "3.6.1", features = ["windows-native"] }
+open = "5.3"
 urlencoding = "2.1"
 # winreg replaces spawning reg.exe — no terminal popup
 winreg = "0.52"

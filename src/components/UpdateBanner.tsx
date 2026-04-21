@@ -7,7 +7,7 @@ interface UpdateBannerProps {
 
 export function UpdateBanner({ version }: UpdateBannerProps) {
   const handleDownload = async () => {
-    await open('https://github.com/kalan/os-quickai/releases/latest');
+    await open('https://github.com/Vinay7766/quickno/releases/latest');
   };
 
   return (

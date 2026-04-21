@@ -1,19 +1,20 @@
 <div align="center">
-  <img src="app-icon.svg" width="80" alt="OS QuickAI Logo" />
-  <h1>OS QuickAI</h1>
+  <img src="app-icon.svg" width="80" alt="Quickno Logo" />
+  <h1>Quickno</h1>
   <p><strong>A lightning-fast, AI-powered global search assistant for Windows</strong></p>
   <p>Summon it from anywhere with a hotkey. Ask anything. Open results in your favourite browser or AI.</p>
 
   <br/>
 
-  [![GitHub release](https://img.shields.io/github/v/release/Vinay7766/os-quickai?style=flat-square&color=6366f1)](https://github.com/Vinay7766/os-quickai/releases/latest)
+  [![GitHub release](https://img.shields.io/github/v/release/Vinay7766/quickno?style=flat-square&color=6366f1)](https://github.com/Vinay7766/quickno/releases/latest)
   [![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](LICENSE)
   [![Privacy: Local Only](https://img.shields.io/badge/Privacy-Local%20Only-green?style=flat-square)](PRIVACY_POLICY.md)
   [![Built with Tauri](https://img.shields.io/badge/Built_with-Tauri_v2-blue?style=flat-square)](https://tauri.app)
-  [![Platform: Windows](https://img.shields.io/badge/Platform-Windows_10%2F11-0078D4?style=flat-square&logo=windows)](https://github.com/Vinay7766/os-quickai/releases/latest)
+  [![Platform: Windows](https://img.shields.io/badge/Platform-Windows_10%2F11-0078D4?style=flat-square&logo=windows)](https://github.com/Vinay7766/quickno/releases/latest)
   [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen?style=flat-square)](CONTRIBUTING.md)
   [![Terms of Use](https://img.shields.io/badge/Terms-of%20Use-lightgrey?style=flat-square)](TERMS_OF_USE.md)
   [![Code of Conduct](https://img.shields.io/badge/Code%20of-Conduct-ff69b4?style=flat-square)](CODE_OF_CONDUCT.md)
+  [![Join Tools Community](https://img.shields.io/badge/Discord-Join%20Now-7289da.svg?style=flat-square&logo=discord)](https://discord.gg/29a3qkEsX)
 </div>
 
 ---
@@ -40,16 +41,16 @@
 
 > No setup required. Works on Windows 10 and Windows 11 (64-bit).
 
-1. Go to the [**Latest Release**](https://github.com/Vinay7766/os-quickai/releases/latest)
-2. Download **`OS.QuickAI_x64_en-US.msi`**
+1. Go to the [**Latest Release**](https://github.com/Vinay7766/quickno/releases/latest)
+2. Download **`Quickno_x64_en-US.msi`**
 3. Double-click the MSI file and follow the installer
-4. OS QuickAI appears in your system tray — press **`Alt+A`** to start
+4. Quickno appears in your system tray — press **`Alt+A`** to start
 
 ### Option 2 — Updating from a Previous Version
 
 > The installer supports **silent in-place upgrades** — no need to uninstall first.
 
-1. Go to the [**Latest Release**](https://github.com/Vinay7766/os-quickai/releases/latest)
+1. Go to the [**Latest Release**](https://github.com/Vinay7766/quickno/releases/latest)
 2. Download the new **`.msi`** file
 3. Run it — the installer automatically updates your existing installation
 4. Restart the app from the system tray
@@ -60,8 +61,8 @@
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/Vinay7766/os-quickai.git
-cd os-quickai
+git clone https://github.com/Vinay7766/quickno.git
+cd quickno
 
 # 2. Install frontend dependencies
 pnpm install
@@ -78,7 +79,7 @@ pnpm tauri build
 
 ## 🚀 Getting Started
 
-1. **Launch** — OS QuickAI starts silently in the system tray (look for the icon near the clock)
+1. **Launch** — Quickno starts silently in the system tray (look for the icon near the clock)
 2. **Summon** — Press **`Alt+A`** anywhere on your PC
 3. **Ask** — Type your question and press `Enter` for an AI answer
 4. **Search** — Click **Web** or press `Alt+Enter` to search in your browser
@@ -128,8 +129,8 @@ Right-click the **system tray icon** → **Settings** to configure:
 We ❤️ contributions! See [**CONTRIBUTING.md**](CONTRIBUTING.md) to get started.
 
 Quick summary:
-- 🐛 **Bug reports** → [Open an Issue](https://github.com/Vinay7766/os-quickai/issues/new?template=bug_report.md)
-- 💡 **Feature requests** → [Open an Issue](https://github.com/Vinay7766/os-quickai/issues/new?template=feature_request.md)
+- 🐛 **Bug reports** → [Open an Issue](https://github.com/Vinay7766/quickno/issues/new?template=bug_report.md)
+- 💡 **Feature requests** → [Open an Issue](https://github.com/Vinay7766/quickno/issues/new?template=feature_request.md)
 - 🔧 **Code contributions** → Fork → branch → PR
 
 ---
