@@ -1,0 +1,30 @@
+# Node
+node_modules/
+dist/
+.pnpm-store/
+
+# Rust / Tauri build artifacts
+src-tauri/target/
+
+# Logs & temp files
+*.log
+*.bat
+typescript_errors.txt
+crash.log
+dev_output.log
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# IDE
+.vscode/
+.idea/
+*.suo
+*.user
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
