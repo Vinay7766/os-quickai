@@ -130,5 +130,5 @@ changes constitutes acceptance.
 
 ## 12. Contact
 
-- 📧 Email: [your-email@example.com]
-- 🐛 GitHub Issues: https://github.com/Vinay7766/quickno/issues
+- Email: highlowtemp2580@gmail.com
+- GitHub Issues: https://github.com/Vinay7766/quickno/issues

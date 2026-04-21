@@ -20,12 +20,12 @@ const FREE_MODELS = [
 const ALL_MODELS = [...API_MODELS, ...FREE_MODELS];
 
 const BROWSERS = [
-  { value: 'chrome', label: '🌐 Google Chrome' },
-  { value: 'firefox', label: '🦊 Firefox' },
-  { value: 'brave', label: '🦁 Brave' },
-  { value: 'bing', label: '💠 Bing (Edge)' },
-  { value: 'opera', label: '🔴 Opera' },
-  { value: 'comet', label: '☄️ Comet' },
+  { value: 'chrome', label: 'Google Chrome' },
+  { value: 'firefox', label: 'Firefox' },
+  { value: 'brave', label: 'Brave' },
+  { value: 'bing', label: 'Bing (Edge)' },
+  { value: 'opera', label: 'Opera' },
+  { value: 'comet', label: 'Comet' },
 ];
 
 const AI_SITES = [
@@ -105,11 +105,11 @@ export default function Settings() {
   const isFreeModel = FREE_MODELS.some(m => m.value === llmModel);
   const currentModelLabel = ALL_MODELS.find(m => m.value === llmModel)?.label ?? llmModel;
   const sideNav: { id: Section; icon: string; label: string }[] = [
-    { id: 'models', icon: '🤖', label: 'AI Models' },
-    { id: 'search', icon: '🌐', label: 'Interface & Browser' },
-    { id: 'hotkey', icon: '⌨️', label: 'Shortcuts' },
-    { id: 'danger', icon: '🗑️', label: 'Data' },
-    { id: 'feedback', icon: '📝', label: 'Feedback & Community' },
+    { id: 'models', icon: '', label: 'AI Models' },
+    { id: 'search', icon: '', label: 'Interface & Browser' },
+    { id: 'hotkey', icon: '', label: 'Shortcuts' },
+    { id: 'danger', icon: '', label: 'Data' },
+    { id: 'feedback', icon: '', label: 'Feedback & Community' },
   ];
 
   const handleModelChange = async (val: string) => {
@@ -154,7 +154,7 @@ export default function Settings() {
             boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
           }}
         >
-          {saveIndicator ? '✓ Saved Successfully' : '💾 Save All Changes'}
+          {saveIndicator ? 'Saved Successfully' : 'Save All Changes'}
         </button>
       </div>
 
@@ -174,7 +174,7 @@ export default function Settings() {
               <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--clr-border)' }}>
                 {/* Free models */}
                 <div className="px-3 py-1.5 text-xs font-semibold tracking-widest uppercase" style={{ background: 'rgba(16,185,129,0.08)', color: 'var(--clr-green)' }}>
-                  ✦ Free — No API Key Required
+                  Free — No API Key Required
                 </div>
                 {FREE_MODELS.map(m => (
                   <button
@@ -193,7 +193,7 @@ export default function Settings() {
                 ))}
                 {/* API models */}
                 <div className="px-3 py-1.5 text-xs font-semibold tracking-widest uppercase" style={{ background: 'rgba(99,102,241,0.08)', color: 'var(--clr-indigo)' }}>
-                  🔑 API Models — Key Required
+                  API Models — Key Required
                 </div>
                 {API_MODELS.map(m => (
                   <button
@@ -252,8 +252,8 @@ export default function Settings() {
                     {keyStatus === 'saving' ? '...' : 'Save'}
                   </button>
                 </div>
-                {keyStatus === 'success' && <p className="text-xs" style={{ color: '#34d399' }}>✔ API key saved securely in Windows Credential Manager</p>}
-                {keyStatus === 'error' && <p className="text-xs" style={{ color: '#f87171' }}>✘ Failed to save key. Try again.</p>}
+                {keyStatus === 'success' && <p className="text-xs" style={{ color: '#34d399' }}>API key saved securely in Windows Credential Manager</p>}
+                {keyStatus === 'error' && <p className="text-xs" style={{ color: '#f87171' }}>Failed to save key. Try again.</p>}
                 <p className="text-xs" style={{ color: 'var(--clr-muted)' }}>
                   Your key is stored in the Windows Credential Manager — never in plain text files.
                 </p>
@@ -290,9 +290,9 @@ export default function Settings() {
               <label className="text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--clr-muted)' }}>Theme</label>
               <div className="grid grid-cols-3 gap-2">
                 {[
-                  { value: 'light', label: '☀️ Light' },
-                  { value: 'dark', label: '🌙 Dark' },
-                  { value: 'system', label: '💻 System' },
+                  { value: 'light', label: 'Light' },
+                  { value: 'dark', label: 'Dark' },
+                  { value: 'system', label: 'System' },
                 ].map(t => (
                   <button
                     key={t.value}
@@ -337,10 +337,10 @@ export default function Settings() {
               <label className="text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--clr-muted)' }}>Search Engine</label>
               <div className="grid grid-cols-2 gap-2">
                 {[
-                  { value: 'google', label: '🔍 Google' },
-                  { value: 'bing', label: '💠 Bing' },
-                  { value: 'perplexity', label: '🤔 Perplexity' },
-                  { value: 'duckduckgo', label: '🦆 DuckDuckGo' },
+                  { value: 'google', label: 'Google' },
+                  { value: 'bing', label: 'Bing' },
+                  { value: 'perplexity', label: 'Perplexity' },
+                  { value: 'duckduckgo', label: 'DuckDuckGo' },
                 ].map(e => (
                   <button
                     key={e.value}
@@ -397,11 +397,11 @@ export default function Settings() {
               <h3 className="text-sm font-semibold mb-3">Keyboard Shortcuts (inside the assistant)</h3>
               <div className="space-y-2">
                 {[
-                  { keys: 'Ctrl + Enter', action: 'Open query in AI site', icon: '🤖' },
-                  { keys: 'Alt + Enter', action: 'Search in web browser', icon: '🌐' },
-                  { keys: 'Enter', action: 'Ask the built-in AI', icon: '💬' },
-                  { keys: 'Escape', action: 'Hide the assistant', icon: '✕' },
-                  { keys: 'Shift + Enter', action: 'New line in search bar', icon: '↵' },
+                  { keys: 'Ctrl + Enter', action: 'Open query in AI site', icon: '' },
+                  { keys: 'Alt + Enter', action: 'Search in web browser', icon: '' },
+                  { keys: 'Enter', action: 'Ask the built-in AI', icon: '' },
+                  { keys: 'Escape', action: 'Hide the assistant', icon: '' },
+                  { keys: 'Shift + Enter', action: 'New line in search bar', icon: '' },
                 ].map(s => (
                   <div key={s.keys} className="flex items-center justify-between px-4 py-2.5 rounded-xl" style={{ background: 'var(--clr-input-bg)', border: '1px solid var(--clr-border)' }}>
                     <div className="flex items-center gap-3">
@@ -457,7 +457,7 @@ export default function Settings() {
             {/* Discord */}
             <div className="p-5 rounded-2xl" style={{ background: 'linear-gradient(135deg, rgba(88,101,242,0.15), rgba(88,101,242,0.05))', border: '1px solid rgba(88,101,242,0.4)' }}>
               <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ background: 'rgba(88,101,242,0.2)' }}>💬</div>
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ background: 'rgba(88,101,242,0.2)' }}></div>
                 <div>
                   <h3 className="text-sm font-bold">Join our Discord Community</h3>
                   <p className="text-xs" style={{ color: 'var(--clr-muted)' }}>Chat with the team, share ideas, get help</p>
@@ -477,7 +477,7 @@ export default function Settings() {
               <h3 className="text-sm font-semibold">Send Feedback</h3>
               {[
                 {
-                  icon: '🐛',
+                  icon: '',
                   title: 'Report a Bug',
                   desc: 'Found something broken? Let us know so we can fix it.',
                   url: 'https://github.com/Vinay7766/quickno/issues/new?template=bug_report.md',
@@ -485,7 +485,7 @@ export default function Settings() {
                   border: 'rgba(239,68,68,0.3)',
                 },
                 {
-                  icon: '💡',
+                  icon: '',
                   title: 'Suggest a Feature',
                   desc: 'Have an idea to make Quickno better? We want to hear it.',
                   url: 'https://github.com/Vinay7766/quickno/issues/new?template=feature_request.md',
@@ -493,7 +493,7 @@ export default function Settings() {
                   border: 'rgba(99,102,241,0.3)',
                 },
                 {
-                  icon: '⭐',
+                  icon: '',
                   title: 'Star on GitHub',
                   desc: 'Show your support — helps others discover the project.',
                   url: 'https://github.com/Vinay7766/quickno',

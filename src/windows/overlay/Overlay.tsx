@@ -219,7 +219,7 @@ export default function Overlay() {
                     color: copied ? 'var(--clr-green)' : 'var(--clr-text)',
                     fontSize: 12, cursor: 'pointer', fontWeight: 600,
                   }}
-                >{copied ? '✓ Copied!' : '⎘ Copy'}</button>
+                >{copied ? 'Copied' : 'Copy'}</button>
                 <div style={{ flex: 1 }} />
                 <span style={{ fontSize: 11, color: 'var(--clr-muted)' }}>Esc to hide</span>
               </div>

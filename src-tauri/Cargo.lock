@@ -2453,26 +2453,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "04744f49eae99ab78e0d5c0b603ab218f515ea8cfe5a456d7629ad883a3b6e7d"
 
 [[package]]
-name = "os-quickai"
-version = "1.0.0"
-dependencies = [
- "keyring",
- "reqwest 0.12.28",
- "serde",
- "serde_json",
- "tauri",
- "tauri-build",
- "tauri-plugin-clipboard-manager",
- "tauri-plugin-global-shortcut",
- "tauri-plugin-shell",
- "tauri-plugin-store",
- "thiserror 2.0.18",
- "tokio",
- "urlencoding",
- "winreg 0.52.0",
-]
-
-[[package]]
 name = "os_pipe"
 version = "1.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2927,6 +2907,27 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "958f21e8e7ceb5a1aa7fa87fab28e7c75976e0bfe7e23ff069e0a260f894067d"
 dependencies = [
  "memchr",
+]
+
+[[package]]
+name = "quickno"
+version = "1.0.1"
+dependencies = [
+ "keyring",
+ "open",
+ "reqwest 0.12.28",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-clipboard-manager",
+ "tauri-plugin-global-shortcut",
+ "tauri-plugin-shell",
+ "tauri-plugin-store",
+ "thiserror 2.0.18",
+ "tokio",
+ "urlencoding",
+ "winreg 0.52.0",
 ]
 
 [[package]]
