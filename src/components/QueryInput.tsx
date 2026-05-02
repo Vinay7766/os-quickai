@@ -1,3 +1,14 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// QueryInput.tsx — Search input for the overlay
+// ─────────────────────────────────────────────────────────────────────────────
+// A textarea that auto-expands as the user types. Supports keyboard shortcuts:
+//   • Enter          → Submit query to AI
+//   • Ctrl+Enter     → Open query in AI site
+//   • Alt+Enter      → Open query in web browser
+//   • Shift+Enter    → New line (no submit)
+//   • /              → Focus this input (from anywhere in the window)
+// ─────────────────────────────────────────────────────────────────────────────
+
 import { KeyboardEvent, useEffect, useRef } from 'react';
 import { useAppStore } from '../store/useAppStore';
 
@@ -5,6 +16,7 @@ export function QueryInput() {
   const { query, setQuery, submitQuery, isLoading } = useAppStore();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  // ── Auto-resize textarea to fit content ────────────────────────────────
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
@@ -12,20 +24,23 @@ export function QueryInput() {
     }
   }, [query]);
 
-  // Auto-focus when overlay mounts or when signaled by parent
+  // ── Focus management ───────────────────────────────────────────────────
+  // Auto-focuses on mount and when the overlay gains focus.
+  // Also listens for the "/" key to focus from anywhere in the window.
   useEffect(() => {
     const focus = () => textareaRef.current?.focus();
-    
-    // Initial focus
+
+    // Initial focus when the overlay opens
     focus();
 
-    // Listen for parent focus signals
+    // Re-focus when parent signals (e.g., window regains focus)
     window.addEventListener('focus-input', focus);
-    
-    // Listen for '/' key globally within this window
-    const handleGlobalKey = (e: any) => {
-      if (e.key === '/' && document.activeElement !== textareaRef.current) {
-        e.preventDefault();
+
+    // "/" key focuses the input from anywhere in the window
+    const handleGlobalKey = (e: Event) => {
+      const ke = e as globalThis.KeyboardEvent;
+      if (ke.key === '/' && document.activeElement !== textareaRef.current) {
+        ke.preventDefault();
         focus();
       }
     };
@@ -37,25 +52,23 @@ export function QueryInput() {
     };
   }, []);
 
+  // ── Keyboard Shortcuts ─────────────────────────────────────────────────
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    // Escape is handled by Overlay.tsx
-    
     if (e.key === 'Enter') {
       if (e.ctrlKey) {
-        // AI Shortcut
+        // Ctrl+Enter → Open in AI site
         e.preventDefault();
-        const aiBtn = document.getElementById('ai-btn');
-        aiBtn?.click();
+        document.getElementById('ai-btn')?.click();
       } else if (e.altKey) {
-        // Web Shortcut
+        // Alt+Enter → Web search
         e.preventDefault();
-        const webBtn = document.getElementById('web-btn');
-        webBtn?.click();
+        document.getElementById('web-btn')?.click();
       } else if (!e.shiftKey) {
-        // Regular Enter -> Local AI Answer
+        // Enter (no modifier) → Submit AI query
         e.preventDefault();
         submitQuery();
       }
+      // Shift+Enter → Default behavior (new line)
     }
   };
 
@@ -71,11 +84,11 @@ export function QueryInput() {
       className="w-full bg-transparent border-none focus:outline-none resize-none scrollbar-none disabled:opacity-50"
       style={{
         color: 'var(--clr-text)',
-        fontSize: '15px',
-        fontFamily: 'system-ui, -apple-system, sans-serif',
+        fontSize: '14px',
+        fontFamily: 'inherit',
         fontWeight: 400,
         lineHeight: '1.5',
-        minHeight: '24px',
+        minHeight: '22px',
         maxHeight: '120px',
         paddingTop: '2px',
       }}

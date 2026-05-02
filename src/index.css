@@ -1,109 +1,214 @@
-/* ── CRITICAL: Must be BEFORE Tailwind to prevent Preflight override ── */
-/* Tailwind Preflight (inside @tailwind base) sets background-color on
-   html and body. Even !important sometimes loses to @layer specificity.
-   By placing our override AFTER the directives with very high specificity,
-   we guarantee transparency.                                              */
+/* ─────────────────────────────────────────────────────────────────────────────
+ * index.css — Global Styles & Design System for Quickno
+ * ─────────────────────────────────────────────────────────────────────────────
+ * This file defines:
+ *   • Tailwind directives
+ *   • CSS custom properties (theme variables) for light & dark modes
+ *   • Reusable component classes (buttons, scrollbars, animations)
+ *   • Transparency overrides for the overlay window
+ * ───────────────────────────────────────────────────────────────────────────── */
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Nuclear option: override everything Tailwind Preflight could set */
+/* ── Transparent Background Override ──────────────────────────────────────────
+ * The overlay window needs a fully transparent background so it floats
+ * above the desktop. We force transparency on all root elements, then
+ * selectively apply a solid background only to the main window. */
 html, html:root, body, #root, :root {
   background: transparent !important;
   background-color: transparent !important;
   background-image: none !important;
 }
 
-/* Apply solid background only to settings/guide windows via body class */
-body.settings-window,
-body.guide-window {
+/* Apply solid background to the main settings window */
+body.settings-window {
   background: var(--clr-surface) !important;
   background-color: var(--clr-surface) !important;
 }
 
-/* Light theme colour tokens */
+/* ── Light Theme Variables ────────────────────────────────────────────────────
+ * Clean, minimal palette with subtle grays and a single accent color. */
 :root {
-  --clr-surface: rgba(255, 255, 255, 0.98);
-  --clr-border:  rgba(99, 102, 241, 0.3);
-  --clr-indigo:  #4f46e5;
-  --clr-green:   #059669;
-  --clr-text:    #0f172a;
-  --clr-muted:   #64748b;
-  --clr-input-bg: #f8fafc;
+  /* Surface & Background */
+  --clr-surface: #ffffff;
+  --clr-surface-secondary: #f8f9fa;
+  --clr-input-bg: #f5f5f7;
+  --clr-border: rgba(0, 0, 0, 0.08);
+  --clr-hover: rgba(0, 0, 0, 0.04);
+
+  /* Accent Color */
+  --clr-accent: #2563eb;
+  --clr-accent-soft: rgba(37, 99, 235, 0.08);
+  --clr-accent-hover: #1d4ed8;
+
+  /* Status Colors */
+  --clr-success: #16a34a;
+  --clr-success-soft: rgba(22, 163, 74, 0.08);
+  --clr-danger: #dc2626;
+  --clr-danger-soft: rgba(220, 38, 38, 0.06);
+
+  /* Typography */
+  --clr-text: #111827;
+  --clr-text-secondary: #6b7280;
+  --clr-text-tertiary: #9ca3af;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.1);
+  --shadow-overlay: 0 16px 48px rgba(0, 0, 0, 0.16);
+
+  /* Transition */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 200ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Dark theme colour tokens */
+/* ── Dark Theme Variables ─────────────────────────────────────────────────────
+ * Applied when the <html> element has the 'dark' class. */
 .dark {
-  --clr-surface: rgba(13, 13, 22, 0.96);
-  --clr-border:  rgba(99, 102, 241, 0.5);
-  --clr-indigo:  #818cf8;
-  --clr-green:   #34d399;
-  --clr-text:    #f8fafc;
-  --clr-muted:   #94a3b8;
-  --clr-input-bg: rgba(255, 255, 255, 0.05);
+  --clr-surface: #0f0f13;
+  --clr-surface-secondary: #18181f;
+  --clr-input-bg: rgba(255, 255, 255, 0.04);
+  --clr-border: rgba(255, 255, 255, 0.08);
+  --clr-hover: rgba(255, 255, 255, 0.06);
+
+  --clr-accent: #60a5fa;
+  --clr-accent-soft: rgba(96, 165, 250, 0.1);
+  --clr-accent-hover: #93bbfd;
+
+  --clr-success: #4ade80;
+  --clr-success-soft: rgba(74, 222, 128, 0.1);
+  --clr-danger: #f87171;
+  --clr-danger-soft: rgba(248, 113, 113, 0.08);
+
+  --clr-text: #f3f4f6;
+  --clr-text-secondary: #9ca3af;
+  --clr-text-tertiary: #6b7280;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.4);
+  --shadow-overlay: 0 16px 48px rgba(0, 0, 0, 0.5);
 }
 
-/* ── Pill action buttons ────────────────────────────────────────────── */
+/* ── Typography & Base ────────────────────────────────────────────────────────*/
+body {
+  font-family: 'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: var(--clr-text);
+}
+
+/* ── Pill Action Buttons ──────────────────────────────────────────────────────
+ * Small rounded buttons used in the overlay search bar. */
 .pill-btn {
   display: flex;
   align-items: center;
-  gap: 5px;
-  padding: 5px 11px;
-  border-radius: 999px;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 10px;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   border: 1px solid transparent;
-  transition: opacity 0.15s;
-}
-.pill-btn:hover { opacity: 0.85; }
-.pill-btn.green  {
-  background: rgba(16,185,129,0.14);
-  border-color: rgba(16,185,129,0.4);
-  color: #34d399;
-}
-.pill-btn.indigo {
-  background: rgba(99,102,241,0.16);
-  border-color: rgba(99,102,241,0.45);
-  color: #a5b4fc;
+  transition: all var(--transition-normal);
+  user-select: none;
 }
 
-/* ── Icon-only button ───────────────────────────────────────────────── */
+.pill-btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+}
+
+.pill-btn:active {
+  transform: translateY(0);
+}
+
+/* Green variant — used for "Web Search" button */
+.pill-btn.green {
+  background: var(--clr-success-soft);
+  border-color: rgba(22, 163, 74, 0.15);
+  color: var(--clr-success);
+}
+
+/* Blue variant — used for "AI Search" button */
+.pill-btn.blue {
+  background: var(--clr-accent-soft);
+  border-color: rgba(37, 99, 235, 0.15);
+  color: var(--clr-accent);
+}
+
+/* ── Icon Buttons ─────────────────────────────────────────────────────────────
+ * Small square buttons with just an icon (e.g., close button). */
 .icon-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
   background: transparent;
   border: none;
-  color: var(--clr-muted);
+  color: var(--clr-text-tertiary);
   cursor: pointer;
-  transition: background 0.15s;
+  transition: all var(--transition-fast);
 }
-.icon-btn:hover { background: rgba(255,255,255,0.08); }
 
-/* ── Loading dot animation ──────────────────────────────────────────── */
+.icon-btn:hover {
+  background: var(--clr-hover);
+  color: var(--clr-text);
+}
+
+/* ── Loading Dots Animation ───────────────────────────────────────────────────*/
 .loading-dot {
-  display: inline-block;
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
-  background: #818cf8;
-  animation: qdot 1s ease-in-out infinite;
-}
-@keyframes qdot {
-  0%, 100% { transform: translateY(0);    opacity: 0.4; }
-  50%       { transform: translateY(-4px); opacity: 1;   }
+  background: var(--clr-accent);
+  animation: bounce 1.2s ease-in-out infinite;
 }
 
-/* ── Custom scrollbar ───────────────────────────────────────────────── */
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); opacity: 0.3; }
+  50% { transform: translateY(-4px); opacity: 1; }
+}
+
+/* ── Custom Scrollbars ────────────────────────────────────────────────────────*/
 ::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255,255,255,0.18);
+  background: var(--clr-border);
   border-radius: 10px;
 }
-::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.35); }
+::-webkit-scrollbar-thumb:hover {
+  background: var(--clr-text-tertiary);
+}
+
+/* ── Utilities ────────────────────────────────────────────────────────────────*/
+.glass {
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+/* Smooth fade-in animation */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.3s ease-out both;
+}
+
+/* Stagger delay helper */
+.delay-1 { animation-delay: 50ms; }
+.delay-2 { animation-delay: 100ms; }
+.delay-3 { animation-delay: 150ms; }

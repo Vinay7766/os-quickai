@@ -1,4 +1,10 @@
-import { ExternalLink } from 'lucide-react';
+// ─────────────────────────────────────────────────────────────────────────────
+// UpdateBanner.tsx — New version notification
+// ─────────────────────────────────────────────────────────────────────────────
+// Shows a subtle banner at the top of the overlay when a newer version
+// of Quickno is available on GitHub. Clicking it opens the releases page.
+// ─────────────────────────────────────────────────────────────────────────────
+
 import { open } from '@tauri-apps/plugin-shell';
 
 interface UpdateBannerProps {
@@ -11,32 +17,33 @@ export function UpdateBanner({ version }: UpdateBannerProps) {
   };
 
   return (
-    <div className="w-full mb-3 animate-in fade-in slide-in-from-top-2 duration-500">
-      <div 
+    <div className="w-full animate-fade-in-up">
+      <button
         onClick={handleDownload}
-        className="group relative flex items-center justify-between px-4 py-2.5 rounded-xl cursor-pointer transition-all overflow-hidden"
+        className="w-full flex items-center justify-between px-4 py-2.5 text-left transition-all hover:brightness-110"
         style={{
-          background: 'linear-gradient(90deg, var(--clr-indigo), #9333ea)',
-          border: '1.5px solid rgba(255,255,255,0.1)',
-          boxShadow: '0 4px 15px rgba(99,102,241,0.3)',
+          background: 'var(--clr-accent)',
+          color: '#ffffff',
+          borderRadius: '0',
         }}
       >
-        {/* Shine effect */}
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-        
-        <div className="flex items-center gap-3 relative z-10">
-          <div className="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center text-xs animate-bounce mt-1">✨</div>
+        <div className="flex items-center gap-3">
+          <span className="text-sm">✨</span>
           <div>
-            <p className="text-white text-[13px] font-bold leading-tight">Version {version} Available!</p>
-            <p className="text-white/70 text-[11px]">Click to update manually from GitHub.</p>
+            <p className="text-[12px] font-semibold leading-tight">
+              Version {version} available
+            </p>
+            <p className="text-[10px] opacity-70">Click to download from GitHub</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 relative z-10 text-white/90 font-semibold text-xs bg-black/10 px-3 py-1.5 rounded-lg border border-white/10 group-hover:bg-black/20 transition-colors">
-          Download
-          <ExternalLink size={12} strokeWidth={2.5} />
+        <div className="text-[11px] font-semibold opacity-80 flex items-center gap-1.5">
+          Update
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+            <path d="M7 17L17 7M17 7H7M17 7V17" />
+          </svg>
         </div>
-      </div>
+      </button>
     </div>
   );
 }

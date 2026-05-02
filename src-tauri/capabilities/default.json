@@ -2,7 +2,7 @@
   "$schema": "../../node_modules/@tauri-apps/cli/schema.json",
   "identifier": "default",
   "description": "Capabilities for Quickno",
-  "windows": ["overlay", "settings", "guide"],
+  "windows": ["overlay", "settings"],
   "permissions": [
     "core:default",
     "core:event:default",
