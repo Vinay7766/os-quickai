@@ -1,3 +1,18 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// Overlay.tsx — The search bar assistant panel
+// ─────────────────────────────────────────────────────────────────────────────
+// This is the floating search overlay that appears when the user presses
+// the global hotkey (default: Alt+A). It provides:
+//   • A text input for querying AI models
+//   • Action buttons for web search and AI site redirect
+//   • A results panel showing the AI response
+//   • Drag-to-move support (click and drag on non-interactive areas)
+//   • Auto-hide when focus is lost
+//
+// The overlay reads settings (theme, browser, AI model, etc.) from the
+// shared settings store and syncs in real-time when they change.
+// ─────────────────────────────────────────────────────────────────────────────
+
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { LogicalSize } from '@tauri-apps/api/dpi';
@@ -9,42 +24,52 @@ import { UpdateBanner } from '../../components/UpdateBanner';
 import { useUpdateCheck } from '../../hooks/useUpdateCheck';
 import { searchInBrowser } from '../../lib/tauriCommands';
 import { open } from '@tauri-apps/plugin-shell';
-import { listen } from '@tauri-apps/api/event';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 
+// ── URL Mappings ─────────────────────────────────────────────────────────────
+// Maps search engine and AI site identifiers to their URLs.
+
 const SEARCH_URLS: Record<string, string> = {
-  google: 'https://www.google.com/search?q=',
-  bing: 'https://www.bing.com/search?q=',
+  google:     'https://www.google.com/search?q=',
+  bing:       'https://www.bing.com/search?q=',
   perplexity: 'https://www.perplexity.ai/?q=',
   duckduckgo: 'https://duckduckgo.com/?q=',
 };
+
 const AI_URLS: Record<string, string> = {
-  chatgpt: 'https://chatgpt.com/',
-  claude: 'https://claude.ai/',
-  gemini: 'https://gemini.google.com/',
-  grok: 'https://x.ai/grok',
+  chatgpt:    'https://chatgpt.com/',
+  claude:     'https://claude.ai/',
+  gemini:     'https://gemini.google.com/',
+  grok:       'https://x.ai/grok',
   perplexity: 'https://www.perplexity.ai/',
 };
 
-const PILL_HEIGHT = 62;
-const MAX_HEIGHT = 500;
+// ── Layout Constants ─────────────────────────────────────────────────────────
+const SEARCH_BAR_HEIGHT = 56;
+const MAX_WINDOW_HEIGHT = 100;
 
 export default function Overlay() {
+  // ── State & Refs ─────────────────────────────────────────────────────────
   const { answer, isLoading, error, clearAnswer, query } = useAppStore();
-  const { browser, llmSite, searchEngine, loadSettings } = useSettingsStore();
+  const { browser, llmSite, llmModel, searchEngine, loadSettings } = useSettingsStore();
   const updateVersion = useUpdateCheck();
   const [copied, setCopied] = useState(false);
   const hasContent = isLoading || !!error || !!answer;
   const isDragging = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // ── Window Resize ──────────────────────────────────────────────────────
+  // Dynamically resizes the overlay window to fit its content.
   const resizeWindow = useCallback(async (contentHeight: number) => {
     try {
-      const h = Math.min(Math.max(contentHeight, PILL_HEIGHT), MAX_HEIGHT);
-      await getCurrentWindow().setSize(new LogicalSize(680, h));
-    } catch { /* ignore */ }
+      const h = Math.min(Math.max(contentHeight, SEARCH_BAR_HEIGHT), MAX_WINDOW_HEIGHT);
+      await getCurrentWindow().setSize(new LogicalSize(700, h));
+    } catch {
+      /* Ignore resize errors (e.g., during window transitions) */
+    }
   }, []);
 
+  // Resize whenever content changes
   useEffect(() => {
     if (hasContent) {
       const timer = setTimeout(() => {
@@ -54,68 +79,101 @@ export default function Overlay() {
       }, 100);
       return () => clearTimeout(timer);
     } else {
-      resizeWindow(PILL_HEIGHT);
+      resizeWindow(SEARCH_BAR_HEIGHT);
     }
   }, [hasContent, answer, isLoading, error, resizeWindow]);
 
-  useEffect(() => { 
+  // ── Load Settings on Mount ─────────────────────────────────────────────
+  useEffect(() => {
     loadSettings();
-    // Listen for cross-window updates
-    let unlisten: (() => void) | undefined;
-    listen('settings-updated', () => {
-      loadSettings();
-    }).then(fn => { unlisten = fn; });
-    return () => unlisten?.();
   }, []);
 
+  // ── Focus & Blur Handling ──────────────────────────────────────────────
+  // When the overlay gains focus, reload settings to pick up any changes
+  // from the main page. When it loses focus, auto-hide (unless dragging).
   useEffect(() => {
     let unlisten: (() => void) | undefined;
     getCurrentWindow()
       .onFocusChanged(({ payload: focused }) => {
         if (focused) {
           loadSettings();
-          // Broadcast intent to focus to child components
           window.dispatchEvent(new Event('focus-input'));
         } else if (!isDragging.current) {
           getCurrentWindow().hide();
         }
       })
-      .then(fn => { unlisten = fn; });
+      .then((fn) => { unlisten = fn; });
     return () => unlisten?.();
   }, []);
 
+  // ── Escape Key Handler ─────────────────────────────────────────────────
   useEffect(() => {
-    const fn = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { getCurrentWindow().hide(); }
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        getCurrentWindow().hide();
+      }
     };
-    window.addEventListener('keydown', fn);
-    return () => window.removeEventListener('keydown', fn);
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
   }, []);
 
+  // ── Action Handlers ────────────────────────────────────────────────────
+
+  /** Opens the query in the user's preferred web browser */
   const handleBrowserSearch = async () => {
     if (!query.trim()) return;
-    const url = (SEARCH_URLS[searchEngine] ?? SEARCH_URLS.google) + encodeURIComponent(query);
+    const searchUrl = (SEARCH_URLS[searchEngine] ?? SEARCH_URLS.google) + encodeURIComponent(query);
+
+    try {
+      if (browser === 'default' || !browser) {
+        // Use the system's default browser
+        await open(searchUrl);
+      } else {
+        // Use the user's selected browser
+        await searchInBrowser(browser, searchUrl);
+      }
+    } catch (e) {
+      alert(String(e));
+    }
+  };
+
+  /** Opens the query in the user's preferred AI site.
+   *  For sites that support URL params (Perplexity, Gemini), the query is appended.
+   *  For others (ChatGPT, Claude, Grok), the query is copied to clipboard first. */
+  const handleAIOpen = async () => {
+    if (!query.trim()) return;
+
+    // Determine which AI site to use
+    const site = llmSite === 'default' ? 'claude' : llmSite;
+    let url = AI_URLS[site] ?? AI_URLS.claude;
+
+    // Some sites support query parameters for auto-filling the input
+    if (site === 'perplexity') {
+      url = `https://www.perplexity.ai/?q=${encodeURIComponent(query)}`;
+    } else if (site === 'gemini') {
+      url = `https://gemini.google.com/app?q=${encodeURIComponent(query)}`;
+    } else {
+      // For sites without query param support, copy query to clipboard
+      try {
+        await writeText(query);
+      } catch {
+        /* Clipboard write failed — user can still paste manually */
+      }
+    }
+
+    // Open in the user's preferred browser
     try {
       if (browser === 'default' || !browser) {
         await open(url);
       } else {
         await searchInBrowser(browser, url);
       }
+    } catch (e) {
+      alert(String(e));
     }
-    catch (e) { alert(String(e)); }
   };
 
-  const handleAIOpen = async () => {
-    if (!query.trim()) return;
-    let site = llmSite;
-    if (site === 'default') site = 'chatgpt';
-    
-    let url = AI_URLS[site] ?? AI_URLS.chatgpt;
-    if (site === 'perplexity') url = `https://www.perplexity.ai/?q=${encodeURIComponent(query)}`;
-    if (site === 'gemini') url = `https://gemini.google.com/app?q=${encodeURIComponent(query)}`;
-    await open(url);
-  };
-
+  /** Copies the AI response to the clipboard */
   const handleCopy = async () => {
     if (!answer) return;
     try {
@@ -133,119 +191,162 @@ export default function Overlay() {
     }
   };
 
-  const handlePillMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-    const t = e.target as HTMLElement;
-    if (t.closest('button, input, textarea, select, a')) return;
+  /** Initiates window dragging when the user clicks on non-interactive areas */
+  const handleDrag = () => {
     isDragging.current = true;
     getCurrentWindow().startDragging();
     setTimeout(() => { isDragging.current = false; }, 500);
   };
 
-  /* ── The entire window is filled by one solid-background container ── */
-  /* No transparent gaps. Rounded corners via CSS + transparent window.  */
+  // ── Render ─────────────────────────────────────────────────────────────
   return (
     <div
       ref={containerRef}
-      onMouseDown={handlePillMouseDown}
+      className="glass"
       style={{
         width: '100%',
         height: '100%',
-        minHeight: PILL_HEIGHT,
+        minHeight: SEARCH_BAR_HEIGHT,
         background: 'var(--clr-surface)',
         borderRadius: 16,
-        border: '1.5px solid var(--clr-border)',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+        border: '1px solid var(--clr-border)',
+        boxShadow: 'var(--shadow-overlay)',
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
-        cursor: 'move',
-        userSelect: 'none',
       }}
     >
+      {/* Update notification banner */}
       {updateVersion && <UpdateBanner version={updateVersion} />}
-      
-      {/* ── Search pill row ── */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 10,
-        padding: '0 14px',
-        height: 54,
-        flexShrink: 0,
-      }}>
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none"
-          stroke="var(--clr-indigo)" strokeWidth="2.2"
-          strokeLinecap="round" strokeLinejoin="round"
-          style={{ flexShrink: 0, pointerEvents: 'none' }}
-        >
-          <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
-        </svg>
 
-        <div style={{ flex: 1, minWidth: 0 }}>
+      {/* ── Search Bar Row ────────────────────────────────────────────── */}
+      <div
+        onMouseDown={(e) => {
+          // Only start dragging if the user didn't click a button or input
+          if ((e.target as HTMLElement).closest('button, input, textarea')) return;
+          handleDrag();
+        }}
+        className="flex items-center gap-3 px-4 shrink-0 cursor-move select-none"
+        style={{ height: `${SEARCH_BAR_HEIGHT}px` }}
+      >
+        {/* Search icon */}
+        <div
+          className="flex items-center justify-center w-7 h-7 rounded-lg shrink-0"
+          style={{ background: 'var(--clr-accent-soft)', color: 'var(--clr-accent)' }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+          </svg>
+        </div>
+
+        {/* Query input (auto-expanding textarea) */}
+        <div className="flex-1 min-w-0">
           <QueryInput />
         </div>
 
+        {/* Loading indicator */}
         {isLoading && (
-          <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
-            {[0, 1, 2].map(i => (
+          <div className="flex gap-1 shrink-0 px-1">
+            {[0, 1, 2].map((i) => (
               <span key={i} className="loading-dot" style={{ animationDelay: `${i * 0.15}s` }} />
             ))}
           </div>
         )}
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
-          <button id="web-btn" className="pill-btn green" onClick={handleBrowserSearch} title="Search in browser (Alt+Enter)">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-              <circle cx="12" cy="12" r="10" /><path d="M2 12h20" />
-              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+        {/* Action buttons */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          {/* Web Search button */}
+          <button
+            id="web-btn"
+            className="pill-btn green"
+            onClick={handleBrowserSearch}
+            title="Search in browser (Alt+Enter)"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <circle cx="12" cy="12" r="10" /><path d="M2 12h20" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
             </svg>
             Web
           </button>
-          <button id="ai-btn" className="pill-btn indigo" onClick={handleAIOpen} title="Open in AI (Ctrl+Enter)">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+
+          {/* AI Site button */}
+          <button
+            id="ai-btn"
+            className="pill-btn blue"
+            onClick={handleAIOpen}
+            title="Open in AI site (Ctrl+Enter)"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
             </svg>
             AI
           </button>
+
+          {/* Clear / Close button */}
           <button className="icon-btn" onClick={() => clearAnswer()} title="Clear (Esc)">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
               <path d="M18 6 6 18M6 6l12 12" />
             </svg>
           </button>
         </div>
       </div>
 
-      {/* ── Results area ── */}
+      {/* ── Results Area ──────────────────────────────────────────────── */}
       {hasContent && (
-        <>
-          <div style={{ height: 1, background: 'var(--clr-border)', flexShrink: 0 }} />
-          <div style={{ padding: '16px 20px', maxHeight: 340, overflowY: 'auto', flex: 1 }}>
+        <div className="flex flex-col flex-1 min-h-0 animate-fade-in-up">
+          {/* Divider */}
+          <div className="h-px mx-4 opacity-50" style={{ background: 'var(--clr-border)' }} />
+
+          {/* Scrollable results */}
+          <div className="flex-1 overflow-y-auto px-5 py-5">
             <ResultPanel />
           </div>
-          {answer && (
-            <>
-              <div style={{ height: 1, background: 'var(--clr-border)', flexShrink: 0 }} />
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                padding: '10px 16px', flexShrink: 0,
-              }}>
-                <button
-                  onClick={handleCopy}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 5,
-                    padding: '8px 14px', borderRadius: 10,
-                    background: 'var(--clr-input-bg)',
-                    border: '1px solid var(--clr-border)',
-                    color: copied ? 'var(--clr-green)' : 'var(--clr-text)',
-                    fontSize: 12, cursor: 'pointer', fontWeight: 600,
-                  }}
-                >{copied ? 'Copied' : 'Copy'}</button>
-                <div style={{ flex: 1 }} />
-                <span style={{ fontSize: 11, color: 'var(--clr-muted)' }}>Esc to hide</span>
-              </div>
-            </>
-          )}
-        </>
+
+          {/* Bottom bar with copy button and model info */}
+          <div className="h-px mx-4 opacity-50" style={{ background: 'var(--clr-border)' }} />
+          <div
+            onMouseDown={(e) => {
+              if ((e.target as HTMLElement).closest('button')) return;
+              handleDrag();
+            }}
+            className="flex items-center gap-3 px-5 shrink-0 cursor-move select-none"
+            style={{ height: '46px' }}
+          >
+            {/* Copy response button */}
+            {answer && (
+              <button
+                onClick={handleCopy}
+                className="px-4 py-1.5 rounded-lg text-[11px] font-semibold transition-all flex items-center gap-1.5 active:scale-95"
+                style={{
+                  background: copied ? 'var(--clr-success-soft)' : 'var(--clr-input-bg)',
+                  border: `1px solid ${copied ? 'var(--clr-success)' : 'var(--clr-border)'}`,
+                  color: copied ? 'var(--clr-success)' : 'var(--clr-text)',
+                }}
+              >
+                {copied ? (
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                ) : (
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                )}
+                {copied ? 'Copied' : 'Copy'}
+              </button>
+            )}
+
+            <div className="flex-1" />
+
+            {/* Active model indicator */}
+            <div className="flex items-center gap-1.5 opacity-40">
+              <div className="w-1 h-1 rounded-full" style={{ background: 'var(--clr-accent)' }} />
+              <span className="text-[9px] font-semibold uppercase tracking-wider" style={{ color: 'var(--clr-text-secondary)' }}>
+                {llmModel}
+              </span>
+            </div>
+
+            {/* Dismiss hint */}
+            <span className="text-[9px] font-medium uppercase tracking-wider opacity-30" style={{ color: 'var(--clr-text-tertiary)' }}>
+              Esc
+            </span>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -1,10 +1,23 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// main.rs — Application entry point for Quickno
+// ─────────────────────────────────────────────────────────────────────────────
+// This file handles:
+//   • Single-instance enforcement (via TCP port)
+//   • System tray icon and menu
+//   • Global hotkey registration for toggling the search overlay
+//   • First-run detection (shows the welcome screen in the main window)
+//   • Autostart registration (Windows registry)
+// ─────────────────────────────────────────────────────────────────────────────
+
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod commands;
 mod error;
-mod models;
 
-use std::sync::{atomic::{AtomicBool, Ordering}, Mutex};
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Mutex,
+};
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, TrayIconBuilder, TrayIconEvent},
@@ -14,13 +27,21 @@ use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
 use winreg::enums::*;
 use winreg::RegKey;
 
-// Tracks whether the overlay is currently visible
+// ── Shared State ─────────────────────────────────────────────────────────────
+
+/// Tracks whether the search overlay is currently visible.
 pub(crate) static OVERLAY_OPEN: AtomicBool = AtomicBool::new(false);
 
-// Managed state for the currently registered hotkey string
+/// Holds the currently registered global hotkey string (e.g. "alt+a").
+/// Wrapped in a Mutex so it can be updated at runtime when the user
+/// changes their shortcut preference.
 pub(crate) struct HotkeyState(pub Mutex<String>);
 
-// ── Registry helpers (winreg — no subprocess, no terminal popup) ──────────
+// ── Registry Helpers ─────────────────────────────────────────────────────────
+// These use the `winreg` crate to interact with the Windows registry directly,
+// avoiding any subprocess spawning (which would flash a terminal window).
+
+/// Registers Quickno to start automatically when the user logs in.
 fn set_autostart(exe_path: &str) {
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
     if let Ok(run) = hkcu.open_subkey_with_flags(
@@ -31,6 +52,8 @@ fn set_autostart(exe_path: &str) {
     }
 }
 
+/// Checks if this is the first time the app has been launched.
+/// Returns `true` if the "v1Installed" registry key does not exist.
 fn is_first_run() -> bool {
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
     hkcu.open_subkey(r"SOFTWARE\Quickno")
@@ -38,6 +61,8 @@ fn is_first_run() -> bool {
         .is_err()
 }
 
+/// Marks the app as "installed" by writing a registry flag.
+/// This prevents the welcome screen from showing on subsequent launches.
 fn mark_installed() {
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
     if let Ok((key, _)) = hkcu.create_subkey(r"SOFTWARE\Quickno") {
@@ -45,7 +70,10 @@ fn mark_installed() {
     }
 }
 
-// ── Toggle helper ────────────────────────────────────────────────────────
+// ── Overlay Toggle ───────────────────────────────────────────────────────────
+
+/// Toggles the search overlay window between visible and hidden.
+/// Called by the global hotkey handler and the tray icon click.
 fn toggle_overlay(app: &tauri::AppHandle) {
     if let Some(win) = app.get_webview_window("overlay") {
         if OVERLAY_OPEN.load(Ordering::Relaxed) {
@@ -59,11 +87,15 @@ fn toggle_overlay(app: &tauri::AppHandle) {
     }
 }
 
+// ── Main Entry Point ─────────────────────────────────────────────────────────
+
 fn main() {
-    // Single-instance via TCP port. If port is in use, we're the second instance.
+    // ── Single-instance guard ────────────────────────────────────────────
+    // We bind a TCP port to ensure only one instance of the app runs.
+    // If the port is already in use, we send a message to the existing
+    // instance to show its settings window, then exit.
     let listener = std::net::TcpListener::bind("127.0.0.1:14205");
     if listener.is_err() {
-        // We are the second instance. Send message to open settings.
         if let Ok(mut stream) = std::net::TcpStream::connect("127.0.0.1:14205") {
             use std::io::Write;
             let _ = stream.write_all(b"show_settings");
@@ -73,12 +105,15 @@ fn main() {
     let main_listener = listener.unwrap();
 
     tauri::Builder::default()
+        // ── Plugin Registration ──────────────────────────────────────────
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_clipboard_manager::init())
-        // Initialize global-shortcut plugin (no shortcuts registered yet — done in setup)
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
+        // ── Managed State ────────────────────────────────────────────────
         .manage(HotkeyState(Mutex::new("alt+a".to_string())))
+        // ── Tauri Command Handlers ───────────────────────────────────────
+        // These are the Rust functions that the frontend can call via `invoke()`.
         .invoke_handler(tauri::generate_handler![
             commands::llm::query_llm,
             commands::settings::save_api_key,
@@ -92,14 +127,16 @@ fn main() {
             commands::browser::check_browser_exists,
         ])
         .setup(move |app| {
-            // ── Force WebView2 transparent background ────────────────────
-            // On Windows, WebView2 has a default white background even when
-            // the window has transparent: true. We must explicitly clear it.
+            // ── Transparent overlay background ───────────────────────────
+            // WebView2 on Windows defaults to a white background even when
+            // the window has `transparent: true`. We must explicitly clear it.
             if let Some(overlay) = app.get_webview_window("overlay") {
-                // RGBA(0,0,0,0) = fully transparent
                 let _ = overlay.set_background_color(Some(tauri::window::Color(0, 0, 0, 0)));
             }
 
+            // ── Second-instance listener ─────────────────────────────────
+            // Listens for messages from a second instance trying to launch.
+            // When received, it shows and focuses the main settings window.
             let app_handle = app.handle().clone();
             std::thread::spawn(move || {
                 for stream in main_listener.incoming() {
@@ -119,14 +156,17 @@ fn main() {
                 }
             });
 
-            // ── Tray menu ────────────────────────────────────────────────
-            let quit_i     = MenuItem::with_id(app, "quit",     "✕  Quit",               true, None::<&str>)?;
-            let settings_i = MenuItem::with_id(app, "settings", "⚙  Settings",           true, None::<&str>)?;
-            let toggle_i   = MenuItem::with_id(app, "toggle",   "⌨  Toggle (Alt+A)",  true, None::<&str>)?;
-            let guide_i    = MenuItem::with_id(app, "guide",    "📖  User Guide",          true, None::<&str>)?;
-            let discord_i  = MenuItem::with_id(app, "discord",  "💬  Join Discord",        true, None::<&str>)?;
-            let feedback_i = MenuItem::with_id(app, "feedback", "📝  Feedback / Bug Report", true, None::<&str>)?;
-            let menu = Menu::with_items(app, &[&toggle_i, &settings_i, &guide_i, &discord_i, &feedback_i, &quit_i])?;
+            // ── System Tray ──────────────────────────────────────────────
+            let quit_i     = MenuItem::with_id(app, "quit",     "✕  Quit",             true, None::<&str>)?;
+            let settings_i = MenuItem::with_id(app, "settings", "⚙  Main Page",        true, None::<&str>)?;
+            let toggle_i   = MenuItem::with_id(app, "toggle",   "⌨  Toggle (Alt+A)",   true, None::<&str>)?;
+            let discord_i  = MenuItem::with_id(app, "discord",  "💬  Join Discord",     true, None::<&str>)?;
+            let feedback_i = MenuItem::with_id(app, "feedback", "📝  Feedback",         true, None::<&str>)?;
+
+            let menu = Menu::with_items(
+                app,
+                &[&toggle_i, &settings_i, &discord_i, &feedback_i, &quit_i],
+            )?;
 
             TrayIconBuilder::new()
                 .tooltip("Quickno — Alt+A")
@@ -134,23 +174,19 @@ fn main() {
                 .menu(&menu)
                 .show_menu_on_left_click(false)
                 .on_menu_event(|app, event| match event.id.as_ref() {
-                    "quit"     => app.exit(0),
-                    "toggle"   => toggle_overlay(app),
+                    "quit" => app.exit(0),
+                    "toggle" => toggle_overlay(app),
                     "settings" => {
                         if let Some(w) = app.get_webview_window("settings") {
-                            let _ = w.show(); let _ = w.set_focus();
-                        }
-                    }
-                    "guide" => {
-                        if let Some(w) = app.get_webview_window("guide") {
-                            let _ = w.show(); let _ = w.set_focus();
+                            let _ = w.show();
+                            let _ = w.set_focus();
                         }
                     }
                     "discord" => {
-                        let _ = open::that("https://discord.gg/29a3qkEsX");
+                        let _ = open::that("https://discord.gg/tJXcYePghn");
                     }
                     "feedback" => {
-                        let _ = open::that("https://github.com/Vinay7766/os-quickai/issues/new/choose");
+                        let _ = open::that("https://discord.gg/CpMW6AMsKC");
                     }
                     _ => {}
                 })
@@ -161,7 +197,7 @@ fn main() {
                 })
                 .build(app)?;
 
-            // ── Register default hotkey ──────────────────────────────────
+            // ── Default Global Hotkey ────────────────────────────────────
             let default_hotkey = "alt+a";
             app.global_shortcut().on_shortcut(default_hotkey, |app, _shortcut, event| {
                 if event.state == ShortcutState::Pressed {
@@ -174,15 +210,31 @@ fn main() {
                 set_autostart(&exe.to_string_lossy());
             }
 
-            // ── First-run → show guide ────────────────────────────────────
+            // ── First-Run: Show Main Window ──────────────────────────────
+            // On first launch, we show the main window which will internally
+            // display a welcome screen. The welcome screen logic is handled
+            // entirely in the frontend via a persisted flag in the store.
             if is_first_run() {
                 mark_installed();
-                if let Some(g) = app.get_webview_window("guide") {
-                    let _ = g.show(); let _ = g.set_focus();
+                if let Some(s) = app.get_webview_window("settings") {
+                    let _ = s.show();
+                    let _ = s.set_focus();
                 }
             }
 
             Ok(())
+        })
+        // ── Window Close Behavior ────────────────────────────────────────
+        // Instead of closing windows, we hide them. This keeps the app
+        // running in the system tray for instant access.
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                let _ = window.hide();
+                if window.label() == "overlay" {
+                    OVERLAY_OPEN.store(false, Ordering::Relaxed);
+                }
+                api.prevent_close();
+            }
         })
         .run(tauri::generate_context!())
         .expect("tauri error");

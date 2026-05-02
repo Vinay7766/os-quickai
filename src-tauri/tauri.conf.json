@@ -32,6 +32,8 @@
         "title": "Quickno",
         "width": 680,
         "height": 70,
+        "minWidth": 400,
+        "minHeight": 50,
         "center": true,
         "decorations": false,
         "alwaysOnTop": true,
@@ -39,25 +41,17 @@
         "transparent": true,
         "hiddenTitle": true,
         "visible": false,
-        "resizable": false
+        "resizable": true
       },
       {
         "label": "settings",
-        "title": "Settings - Quickno",
-        "width": 660,
-        "height": 600,
+        "title": "Quickno",
+        "width": 780,
+        "height": 620,
+        "minWidth": 520,
+        "minHeight": 450,
         "visible": false,
-        "resizable": false,
-        "decorations": true
-      },
-      {
-        "label": "guide",
-        "title": "Welcome to Quickno",
-        "width": 600,
-        "height": 520,
-        "center": true,
-        "visible": false,
-        "resizable": false,
+        "resizable": true,
         "decorations": true
       }
     ],
