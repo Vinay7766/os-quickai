@@ -71,20 +71,40 @@ export default function Settings() {
   useEffect(() => {
     document.body.classList.add('settings-window');
     
-    async function init() {
-      await loadSettings();
-      // Check if welcome screen was previously completed
-      const store = await createStore('settings.json', { autoSave: false });
-      const completed = await store.get<boolean>('hasCompletedWelcome');
-      setHasCompletedWelcome(!!completed);
+    // Fallback timeout to guarantee the loading screen never gets permanently stuck
+    const forceLoadTimer = setTimeout(() => {
+      console.warn("Initialization timed out. Forcing UI to load.");
+      if (!useSettingsStore.getState().settingsLoaded) {
+        useSettingsStore.setState({ settingsLoaded: true });
+      }
+      setHasCompletedWelcome(prev => prev === null ? false : prev);
+    }, 2000);
 
-      // Load existing API key display
-      const key = await getApiKey();
-      if (key) setKeyInput('••••••••••••');
-    }
-    init();
+    // Non-blocking initialization
+    loadSettings().finally(() => {
+      // Once settings are loaded (even if they fail), we check the welcome flag
+      createStore('settings.json', { autoSave: false })
+        .then(store => store.get<boolean>('hasCompletedWelcome'))
+        .then(completed => {
+          clearTimeout(forceLoadTimer);
+          setHasCompletedWelcome(!!completed);
+        })
+        .catch(e => {
+          clearTimeout(forceLoadTimer);
+          console.error('Failed to read welcome state', e);
+          setHasCompletedWelcome(false);
+        });
+    });
 
-    return () => document.body.classList.remove('settings-window');
+    // Fetch API key independently so it doesn't block rendering
+    getApiKey()
+      .then(key => { if (key) setKeyInput('••••••••••••'); })
+      .catch(e => console.error('Failed to get API key', e));
+
+    return () => {
+      clearTimeout(forceLoadTimer);
+      document.body.classList.remove('settings-window');
+    };
   }, []);
 
   // ── Handlers ───────────────────────────────────────────────────────────
