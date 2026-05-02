@@ -211,16 +211,16 @@ fn main() {
                 set_autostart(&exe.to_string_lossy());
             }
 
-            // ── First-Run: Show Main Window ──────────────────────────────
-            // On first launch, we show the main window which will internally
-            // display a welcome screen. The welcome screen logic is handled
-            // entirely in the frontend via a persisted flag in the store.
+            // ── Show Main Window on Every Launch ─────────────────────────
+            // Always show the main window when the app starts.
+            // The frontend handles first-run welcome screen logic internally
+            // via a persisted flag in the store (hasCompletedWelcome).
             if is_first_run() {
                 mark_installed();
-                if let Some(s) = app.get_webview_window("settings") {
-                    let _ = s.show();
-                    let _ = s.set_focus();
-                }
+            }
+            if let Some(s) = app.get_webview_window("settings") {
+                let _ = s.show();
+                let _ = s.set_focus();
             }
 
             Ok(())
