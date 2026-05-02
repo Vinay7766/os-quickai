@@ -120,6 +120,7 @@ fn main() {
             commands::settings::get_api_key,
             commands::settings::delete_api_key,
             commands::settings::test_api_key,
+            commands::settings::get_system_theme,
             commands::browser::search_in_browser,
             commands::window::close_overlay,
             commands::window::open_settings,

@@ -51,7 +51,20 @@ const MAX_WINDOW_HEIGHT = 100;
 export default function Overlay() {
   // ── State & Refs ─────────────────────────────────────────────────────────
   const { answer, isLoading, error, clearAnswer, query } = useAppStore();
-  const { browser, llmSite, llmModel, searchEngine, loadSettings } = useSettingsStore();
+
+  // Subscribe to ALL settings we need from the store.
+  // When any of these change (via cross-window event), the component re-renders.
+  const browser      = useSettingsStore((s) => s.browser);
+  const llmSite      = useSettingsStore((s) => s.llmSite);
+  const llmModel     = useSettingsStore((s) => s.llmModel);
+  const searchEngine = useSettingsStore((s) => s.searchEngine);
+  const loadSettings = useSettingsStore((s) => s.loadSettings);
+
+  // Subscribe to theme changes so CSS variables update when theme switches.
+  // The actual DOM class toggle is handled inside the store, but subscribing
+  // here ensures the overlay's React tree re-renders with updated CSS vars.
+  void useSettingsStore((s) => s.theme);
+
   const updateVersion = useUpdateCheck();
   const [copied, setCopied] = useState(false);
   const hasContent = isLoading || !!error || !!answer;
@@ -84,6 +97,9 @@ export default function Overlay() {
   }, [hasContent, answer, isLoading, error, resizeWindow]);
 
   // ── Load Settings on Mount ─────────────────────────────────────────────
+  // This runs once when the overlay is first created. It reads settings
+  // from disk AND registers the cross-window event listener so that
+  // future changes from the Settings window are applied instantly.
   useEffect(() => {
     loadSettings();
   }, []);
@@ -96,6 +112,8 @@ export default function Overlay() {
     getCurrentWindow()
       .onFocusChanged(({ payload: focused }) => {
         if (focused) {
+          // Re-read settings from disk when overlay is focused
+          // (backup sync in case an event was missed while hidden)
           loadSettings();
           window.dispatchEvent(new Event('focus-input'));
         } else if (!isDragging.current) {
@@ -207,9 +225,9 @@ export default function Overlay() {
         width: '100%',
         height: '100%',
         minHeight: SEARCH_BAR_HEIGHT,
-        background: 'var(--clr-surface)',
+        background: 'var(--clr-glass)',
         borderRadius: 16,
-        border: '1px solid var(--clr-border)',
+        border: '1px solid var(--clr-glass-border)',
         boxShadow: 'var(--shadow-overlay)',
         overflow: 'hidden',
         display: 'flex',

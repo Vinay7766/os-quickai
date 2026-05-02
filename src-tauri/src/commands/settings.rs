@@ -71,6 +71,33 @@ pub async fn delete_api_key() -> Result<(), AppError> {
 ///
 /// Note: This only validates OpenAI keys. Other providers' keys are
 /// validated on first actual use.
+/// Detects the current Windows system theme by reading the registry.
+///
+/// WebView2 does not reliably forward the OS `prefers-color-scheme` to CSS,
+/// so we read the registry key directly:
+///   HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize
+///     → AppsUseLightTheme: 0 = dark, 1 = light
+///
+/// Returns "dark" or "light".
+#[tauri::command]
+pub fn get_system_theme() -> String {
+    use winreg::enums::*;
+    use winreg::RegKey;
+
+    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+    let theme_key = hkcu.open_subkey(
+        r"SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize",
+    );
+
+    match theme_key {
+        Ok(key) => {
+            let uses_light: u32 = key.get_value("AppsUseLightTheme").unwrap_or(1);
+            if uses_light == 0 { "dark".to_string() } else { "light".to_string() }
+        }
+        Err(_) => "light".to_string(), // Fallback to light if registry read fails
+    }
+}
+
 #[tauri::command]
 pub async fn test_api_key(key: String) -> Result<bool, AppError> {
     let client = reqwest::Client::new();
