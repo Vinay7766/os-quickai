@@ -75,6 +75,10 @@ async fn query_pollinations(client: &Client, query: &str, model: &str) -> Option
         .replace("Powered by Pollinations.ai", "")
         .replace("Powered by Pollinations", "")
         .replace("pollinations.ai", "")
+        .replace("Pollinations.ai", "")
+        .replace("Check out Pollinations", "")
+        .replace("Visit text.pollinations.ai", "")
+        .replace("(Note: This answer was generated using Pollinations AI)", "")
         .trim()
         .to_string();
 

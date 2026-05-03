@@ -197,23 +197,24 @@ body {
 
 /* ── Scoped Custom Scrollbars (Overlay Only) ─────────────────────────────────*/
 .custom-scrollbar::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 12px;
+  height: 12px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.05);
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #666; /* Solid grey for guaranteed visibility */
+  background: rgba(200, 200, 200, 0.8); /* Solid-ish light grey for visibility on dark backgrounds */
   border-radius: 10px;
-  border: 2px solid transparent;
+  border: 3px solid transparent;
   background-clip: content-box;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #888;
+  background: rgba(255, 255, 255, 0.9);
 }
 
 .custom-scrollbar::-webkit-scrollbar-corner {
