@@ -83,7 +83,7 @@ export default function Settings() {
     loadSettings().finally(() => {
       // Once settings are loaded (even if they fail), we check the welcome flag
       // Once settings are loaded (even if they fail), we check the welcome flag
-      invoke<boolean>('get_setting', { key: 'hasCompletedWelcome' })
+      invoke<boolean>('get_setting', { key: 'hasCompletedWelcome_v1_2' })
         .then(completed => {
           clearTimeout(forceLoadTimer);
           setHasCompletedWelcome(!!completed);
@@ -110,7 +110,7 @@ export default function Settings() {
 
   const handleWelcomeComplete = async () => {
     try {
-      await invoke('save_setting', { key: 'hasCompletedWelcome', value: true });
+      await invoke('save_setting', { key: 'hasCompletedWelcome_v1_2', value: true });
       setHasCompletedWelcome(true);
     } catch (e) {
       console.error('Failed to save welcome state', e);
