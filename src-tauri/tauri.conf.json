@@ -41,7 +41,8 @@
         "transparent": true,
         "hiddenTitle": true,
         "visible": false,
-        "resizable": true
+        "resizable": true,
+        "shadow": false
       },
       {
         "label": "settings",
