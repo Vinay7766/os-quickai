@@ -53,11 +53,11 @@ fn set_autostart(exe_path: &str) {
 }
 
 /// Checks if this is the first time the app has been launched.
-/// Returns `true` if the "v1Installed" registry key does not exist.
+/// Returns `true` if the "v1_2Installed" registry key does not exist.
 fn is_first_run() -> bool {
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
     hkcu.open_subkey(r"SOFTWARE\Quickno")
-        .and_then(|k| k.get_value::<String, _>("v1Installed"))
+        .and_then(|k| k.get_value::<String, _>("v1_2Installed"))
         .is_err()
 }
 
@@ -66,7 +66,7 @@ fn is_first_run() -> bool {
 fn mark_installed() {
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
     if let Ok((key, _)) = hkcu.create_subkey(r"SOFTWARE\Quickno") {
-        let _ = key.set_value("v1Installed", &"1");
+        let _ = key.set_value("v1_2Installed", &"1");
     }
 }
 
@@ -214,20 +214,13 @@ fn main() {
             }
 
             // ── Show Main Window Logic ─────────────────────────
-            let is_autostart = std::env::args().any(|arg| arg == "--autostart");
-            
+            // We only show the settings/welcome window on the very first run.
+            // After that, the app starts silently in the tray.
             if is_first_run() {
-                mark_installed();
-                // Always show on first run
                 if let Some(s) = app.get_webview_window("settings") {
                     let _ = s.show();
                     let _ = s.set_focus();
-                }
-            } else if !is_autostart {
-                // Not first run, but user launched manually (no --autostart flag)
-                if let Some(s) = app.get_webview_window("settings") {
-                    let _ = s.show();
-                    let _ = s.set_focus();
+                    mark_installed();
                 }
             }
 
