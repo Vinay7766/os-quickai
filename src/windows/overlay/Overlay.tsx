@@ -76,7 +76,8 @@ export default function Overlay() {
   const resizeWindow = useCallback(async (contentHeight: number) => {
     try {
       const h = Math.min(Math.max(contentHeight, SEARCH_BAR_HEIGHT), MAX_WINDOW_HEIGHT);
-      await getCurrentWindow().setSize(new LogicalSize(700, h));
+      // Adding 12px padding/margin buffer to the window size so the shadow/border isn't clipped
+      await getCurrentWindow().setSize(new LogicalSize(700, h + 12));
     } catch {
       /* Ignore resize errors (e.g., during window transitions) */
     }
@@ -128,7 +129,7 @@ export default function Overlay() {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        getCurrentWindow().hide();
+        // getCurrentWindow().hide();
       }
     };
     window.addEventListener('keydown', handler);
@@ -222,13 +223,14 @@ export default function Overlay() {
       ref={containerRef}
       className="glass"
       style={{
-        width: '100%',
-        height: '100%',
+        margin: '6px', // Give the shadow and rounded corners some room
+        width: 'calc(100% - 12px)',
+        height: 'calc(100% - 12px)',
         minHeight: SEARCH_BAR_HEIGHT,
         background: 'var(--clr-glass)',
         borderRadius: hasContent ? 24 : 9999,
         border: '1.5px solid var(--clr-accent)',
-        boxShadow: 'var(--shadow-overlay)',
+        boxShadow: 'var(--shadow-overlay)', // Re-enabling with the margin fix
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
@@ -250,10 +252,10 @@ export default function Overlay() {
       >
         {/* Search icon */}
         <div
-          className="flex items-center justify-center w-7 h-7 rounded-lg shrink-0"
-          style={{ background: 'var(--clr-accent-soft)', color: 'var(--clr-accent)' }}
+          className="flex items-center justify-center w-7 h-7 shrink-0"
+          style={{ color: 'var(--clr-accent)' }}
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
             <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
           </svg>
         </div>
@@ -277,33 +279,26 @@ export default function Overlay() {
           {/* Web Search button */}
           <button
             id="web-btn"
-            className="pill-btn green"
+            className="w-8 h-8 rounded-full flex items-center justify-center transition-all hover:bg-green-500/20 active:scale-95"
+            style={{ color: 'var(--clr-success)', border: '1px solid rgba(34, 197, 94, 0.2)' }}
             onClick={handleBrowserSearch}
             title="Search in browser (Alt+Enter)"
           >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
               <circle cx="12" cy="12" r="10" /><path d="M2 12h20" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
             </svg>
-            Web
           </button>
 
           {/* AI Site button */}
           <button
             id="ai-btn"
-            className="pill-btn blue"
+            className="w-8 h-8 rounded-full flex items-center justify-center transition-all hover:bg-blue-500/20 active:scale-95"
+            style={{ color: 'var(--clr-accent)', border: '1px solid rgba(59, 130, 246, 0.2)' }}
             onClick={handleAIOpen}
             title="Open in AI site (Ctrl+Enter)"
           >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-            </svg>
-            AI
-          </button>
-
-          {/* Clear / Close button */}
-          <button className="icon-btn" onClick={() => clearAnswer()} title="Clear (Esc)">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-              <path d="M18 6 6 18M6 6l12 12" />
             </svg>
           </button>
         </div>
