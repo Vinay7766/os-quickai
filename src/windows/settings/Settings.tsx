@@ -3,12 +3,11 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useEffect, useState } from 'react';
-import { getCurrentWindow } from '@tauri-apps/api/window';
 import { useSettingsStore, FREE_MODELS } from '../../store/useSettingsStore';
 import { saveApiKey, deleteApiKey, getApiKey, updateShortcut, checkBrowserExists } from '../../lib/tauriCommands';
 import { open } from '@tauri-apps/plugin-shell';
 import WelcomeScreen from './WelcomeScreen';
-import { createStore } from '@tauri-apps/plugin-store';
+import { invoke } from '@tauri-apps/api/core';
 
 // ── Configuration Data ───────────────────────────────────────────────────────
 
@@ -83,8 +82,8 @@ export default function Settings() {
     // Non-blocking initialization
     loadSettings().finally(() => {
       // Once settings are loaded (even if they fail), we check the welcome flag
-      createStore('settings.json', { autoSave: false })
-        .then(store => store.get<boolean>('hasCompletedWelcome'))
+      // Once settings are loaded (even if they fail), we check the welcome flag
+      invoke<boolean>('get_setting', { key: 'hasCompletedWelcome' })
         .then(completed => {
           clearTimeout(forceLoadTimer);
           setHasCompletedWelcome(!!completed);
@@ -111,9 +110,7 @@ export default function Settings() {
 
   const handleWelcomeComplete = async () => {
     try {
-      const store = await createStore('settings.json', { autoSave: false });
-      await store.set('hasCompletedWelcome', true);
-      await store.save();
+      await invoke('save_setting', { key: 'hasCompletedWelcome', value: true });
       setHasCompletedWelcome(true);
     } catch (e) {
       console.error('Failed to save welcome state', e);
@@ -174,23 +171,11 @@ export default function Settings() {
     await updateSetting('browser', val);
   };
 
-  // ── Drag Window Handle ─────────────────────────────────────────────────
-  // Custom window titlebar to allow dragging the window around
-  const WindowDragHandle = () => (
-    <div 
-      onMouseDown={() => getCurrentWindow().startDragging()}
-      className="absolute top-0 left-0 right-0 h-8 flex items-center justify-center cursor-move z-50 select-none opacity-0 hover:opacity-100 transition-opacity"
-      style={{ background: 'var(--clr-hover)' }}
-    >
-      <div className="w-12 h-1 rounded-full" style={{ background: 'var(--clr-text-tertiary)' }} />
-    </div>
-  );
-
   // ── Rendering ──────────────────────────────────────────────────────────
 
   if (!settingsLoaded || hasCompletedWelcome === null) {
     return (
-      <div className="h-screen flex items-center justify-center" style={{ background: 'var(--clr-surface)' }}>
+      <div className="min-h-screen text-[var(--clr-text-primary)] flex flex-col font-sans" style={{ background: 'var(--clr-surface)' }}>
         <div className="loading-dot w-3 h-3" />
       </div>
     );
@@ -200,7 +185,6 @@ export default function Settings() {
   if (!hasCompletedWelcome) {
     return (
       <>
-        <WindowDragHandle />
         <WelcomeScreen onGetStarted={handleWelcomeComplete} />
       </>
     );
@@ -210,7 +194,6 @@ export default function Settings() {
 
   return (
     <div className="h-screen flex overflow-hidden" style={{ background: 'var(--clr-surface)', color: 'var(--clr-text)' }}>
-      <WindowDragHandle />
       
       {/* ── Sidebar ── */}
       <div 

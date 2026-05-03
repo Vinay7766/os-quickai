@@ -48,7 +48,7 @@ fn set_autostart(exe_path: &str) {
         r"SOFTWARE\Microsoft\Windows\CurrentVersion\Run",
         KEY_SET_VALUE,
     ) {
-        let _ = run.set_value("Quickno", &format!("\"{}\"", exe_path));
+        let _ = run.set_value("Quickno", &format!("\"{}\" --autostart", exe_path));
     }
 }
 
@@ -121,6 +121,8 @@ fn main() {
             commands::settings::delete_api_key,
             commands::settings::test_api_key,
             commands::settings::get_system_theme,
+            commands::settings::get_setting,
+            commands::settings::save_setting,
             commands::browser::search_in_browser,
             commands::window::close_overlay,
             commands::window::open_settings,
@@ -211,16 +213,22 @@ fn main() {
                 set_autostart(&exe.to_string_lossy());
             }
 
-            // ── Show Main Window on Every Launch ─────────────────────────
-            // Always show the main window when the app starts.
-            // The frontend handles first-run welcome screen logic internally
-            // via a persisted flag in the store (hasCompletedWelcome).
+            // ── Show Main Window Logic ─────────────────────────
+            let is_autostart = std::env::args().any(|arg| arg == "--autostart");
+            
             if is_first_run() {
                 mark_installed();
-            }
-            if let Some(s) = app.get_webview_window("settings") {
-                let _ = s.show();
-                let _ = s.set_focus();
+                // Always show on first run
+                if let Some(s) = app.get_webview_window("settings") {
+                    let _ = s.show();
+                    let _ = s.set_focus();
+                }
+            } else if !is_autostart {
+                // Not first run, but user launched manually (no --autostart flag)
+                if let Some(s) = app.get_webview_window("settings") {
+                    let _ = s.show();
+                    let _ = s.set_focus();
+                }
             }
 
             Ok(())

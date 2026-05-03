@@ -21,7 +21,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { create } from 'zustand';
-import { createStore } from '@tauri-apps/plugin-store';
+import { invoke } from '@tauri-apps/api/core';
 import { emit, listen } from '@tauri-apps/api/event';
 import { getSystemTheme } from '../lib/tauriCommands';
 
@@ -84,20 +84,16 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   // ── Load Settings from Disk ────────────────────────────────────────────
   loadSettings: async () => {
     try {
-      const store = await createStore('settings.json', { autoSave: false });
-      await store.load(); // Force re-read from disk
+      const hotkey       = await invoke<string | null>('get_setting', { key: 'hotkey' })       ?? 'alt+a';
+      const llmModel     = await invoke<string | null>('get_setting', { key: 'llmModel' })     ?? 'minimax-2.5';
+      const searchEngine = await invoke<string | null>('get_setting', { key: 'searchEngine' }) ?? 'google';
+      const llmSite      = await invoke<string | null>('get_setting', { key: 'llmSite' })      ?? 'claude';
+      const browser      = await invoke<string | null>('get_setting', { key: 'browser' })      ?? 'default';
 
-      const hotkey       = (await store.get<string>('hotkey'))       ?? 'alt+a';
-      const llmModel     = (await store.get<string>('llmModel'))     ?? 'minimax-2.5';
-      const searchEngine = (await store.get<string>('searchEngine')) ?? 'google';
-      const llmSite      = (await store.get<string>('llmSite'))      ?? 'claude';
-      const browser      = (await store.get<string>('browser'))      ?? 'default';
-
-      let theme = (await store.get<string>('theme')) as 'light' | 'dark' | 'system' | null;
+      let theme = await invoke<'light' | 'dark' | 'system' | null>('get_setting', { key: 'theme' });
       if (!theme) {
         theme = 'system';
-        await store.set('theme', theme);
-        await store.save();
+        await invoke('save_setting', { key: 'theme', value: theme });
       }
 
       // Detect the actual OS theme from the Windows registry
@@ -119,9 +115,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   updateHotkey: async (hk: string) => {
     set({ hotkey: hk });
     try {
-      const store = await createStore('settings.json', { autoSave: false });
-      await store.set('hotkey', hk);
-      await store.save();
+      await invoke('save_setting', { key: 'hotkey', value: hk });
     } catch (e) {
       console.error('[Settings] Failed to save hotkey:', e);
     }
@@ -141,9 +135,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 
     try {
       // 3. Persist to disk
-      const store = await createStore('settings.json', { autoSave: false });
-      await store.set(key, val);
-      await store.save();
+      await invoke('save_setting', { key, value: val });
 
       // 4. Broadcast to ALL windows so the overlay picks it up instantly
       await emit('settings-updated', { key, val });
@@ -155,15 +147,13 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   // ── Save All Settings ──────────────────────────────────────────────────
   saveAll: async () => {
     try {
-      const store = await createStore('settings.json', { autoSave: false });
       const state = get();
-      await store.set('hotkey', state.hotkey);
-      await store.set('llmModel', state.llmModel);
-      await store.set('searchEngine', state.searchEngine);
-      await store.set('llmSite', state.llmSite);
-      await store.set('browser', state.browser);
-      await store.set('theme', state.theme);
-      await store.save();
+      await invoke('save_setting', { key: 'hotkey', value: state.hotkey });
+      await invoke('save_setting', { key: 'llmModel', value: state.llmModel });
+      await invoke('save_setting', { key: 'searchEngine', value: state.searchEngine });
+      await invoke('save_setting', { key: 'llmSite', value: state.llmSite });
+      await invoke('save_setting', { key: 'browser', value: state.browser });
+      await invoke('save_setting', { key: 'theme', value: state.theme });
 
       // Broadcast full reload to overlay
       await emit('settings-updated', { key: 'all', val: '' });

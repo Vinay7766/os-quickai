@@ -109,3 +109,45 @@ pub async fn test_api_key(key: String) -> Result<bool, AppError> {
         .map_err(|e| AppError::NetworkError(e.to_string()))?;
     Ok(response.status().is_success())
 }
+
+use tauri::Manager;
+use std::fs;
+use std::path::PathBuf;
+
+fn get_settings_path(app: &tauri::AppHandle) -> Result<PathBuf, AppError> {
+    let app_dir = app.path().app_data_dir().map_err(|e| AppError::StorageError(e.to_string()))?;
+    if !app_dir.exists() {
+        fs::create_dir_all(&app_dir).map_err(|e| AppError::StorageError(e.to_string()))?;
+    }
+    Ok(app_dir.join("settings.json"))
+}
+
+#[tauri::command]
+pub async fn get_setting(app: tauri::AppHandle, key: String) -> Result<serde_json::Value, AppError> {
+    let path = get_settings_path(&app)?;
+    if !path.exists() {
+        return Ok(serde_json::Value::Null);
+    }
+    let content = fs::read_to_string(path).map_err(|e| AppError::StorageError(e.to_string()))?;
+    let json: serde_json::Value = serde_json::from_str(&content).unwrap_or(serde_json::json!({}));
+    Ok(json.get(&key).cloned().unwrap_or(serde_json::Value::Null))
+}
+
+#[tauri::command]
+pub async fn save_setting(app: tauri::AppHandle, key: String, value: serde_json::Value) -> Result<(), AppError> {
+    let path = get_settings_path(&app)?;
+    let mut json = if path.exists() {
+        let content = fs::read_to_string(&path).unwrap_or_else(|_| "{}".to_string());
+        serde_json::from_str(&content).unwrap_or(serde_json::json!({}))
+    } else {
+        serde_json::json!({})
+    };
+
+    if let Some(obj) = json.as_object_mut() {
+        obj.insert(key, value);
+    }
+
+    let content = serde_json::to_string_pretty(&json).map_err(|e| AppError::StorageError(e.to_string()))?;
+    fs::write(path, content).map_err(|e| AppError::StorageError(e.to_string()))?;
+    Ok(())
+}
