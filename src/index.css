@@ -196,17 +196,36 @@ body {
 }
 
 /* ── Custom Scrollbars ────────────────────────────────────────────────────────*/
-::-webkit-scrollbar { width: 5px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb {
-  background: var(--clr-border);
-  border-radius: 10px;
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
 }
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #666; /* Solid grey for maximum visibility */
+  border-radius: 10px;
+  border: 2px solid transparent; /* Buffer for aesthetics */
+  background-clip: content-box;
+}
+
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--clr-text-tertiary);
+  background: var(--clr-accent); /* Blue on hover for clear feedback */
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 /* ── Utilities ────────────────────────────────────────────────────────────────*/
+html, body {
+  cursor: default;
+  overflow: hidden; /* Prevent window-level scrollbars */
+}
+
 .glass {
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
