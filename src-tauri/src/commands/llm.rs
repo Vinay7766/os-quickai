@@ -65,10 +65,20 @@ async fn query_pollinations(client: &Client, query: &str, model: &str) -> Option
     }
 
     let body: Value = response.json().await.ok()?;
-    body["choices"][0]["message"]["content"]
+    let content = body["choices"][0]["message"]["content"]
         .as_str()
-        .filter(|s| !s.is_empty())
-        .map(|s| s.to_string())
+        .filter(|s| !s.is_empty())?;
+
+    // ── Clean Response ───────────────────────────────────────────────────
+    // Remove any attribution signatures or "ads" that the API might inject.
+    let cleaned = content
+        .replace("Powered by Pollinations.ai", "")
+        .replace("Powered by Pollinations", "")
+        .replace("pollinations.ai", "")
+        .trim()
+        .to_string();
+
+    if cleaned.is_empty() { None } else { Some(cleaned) }
 }
 
 // ── Main Query Handler ───────────────────────────────────────────────────────
