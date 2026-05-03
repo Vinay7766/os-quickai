@@ -46,8 +46,9 @@ fn browser_display_name(browser: &str) -> &str {
 pub async fn search_in_browser(browser: String, url: String) -> Result<(), String> {
     let exe_name = browser_exe(&browser);
 
-    // Escape double-quotes in the URL for safe PowerShell string embedding
-    let safe_url = url.replace("\"", "`\"");
+    // Escape single-quotes for safe PowerShell single-quoted string embedding
+    // In PowerShell, single quotes are escaped by doubling them ('')
+    let safe_url = url.replace("'", "''");
 
     // PowerShell script that:
     //   1. Checks HKLM and HKCU App Paths for the browser executable
@@ -55,13 +56,13 @@ pub async fn search_in_browser(browser: String, url: String) -> Result<(), Strin
     //   3. Launches the browser with the URL as an argument
     let ps_script = format!(
         r#"
-$exe = "{exe}"
-$url = "{url}"
+$exe = '{exe}'
+$url = '{url}'
 $reg1 = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\$exe"
 $reg2 = "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\$exe"
 
 # Opera sometimes registers as opera.exe instead of launcher.exe
-if ($exe -eq "launcher.exe" -and !(Test-Path $reg1) -and !(Test-Path $reg2)) {{
+if ($exe -eq 'launcher.exe' -and !(Test-Path $reg1) -and !(Test-Path $reg2)) {{
     $reg1 = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\opera.exe"
     $reg2 = "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\opera.exe"
 }}
