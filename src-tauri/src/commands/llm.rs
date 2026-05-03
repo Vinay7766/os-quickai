@@ -98,6 +98,13 @@ async fn query_pollinations(client: &Client, query: &str, model: &str) -> Option
 /// The AI model's response text, or an error if the request fails.
 #[tauri::command]
 pub async fn query_llm(query: String, model: String, api_key: String) -> Result<String, AppError> {
+    // Protection against oversized inputs (e.g. accidental massive paste)
+    if query.len() > 4000 {
+        return Err(AppError::NetworkError(
+            "Query is too long. Please limit your query to 4000 characters.".to_string()
+        ));
+    }
+
     let client = Client::builder()
         .timeout(std::time::Duration::from_secs(60))
         .user_agent("Quickno/1.0 (Desktop AI Assistant)")
