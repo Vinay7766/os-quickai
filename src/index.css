@@ -101,6 +101,18 @@ body.settings-window {
   --clr-glass-border: rgba(255, 255, 255, 0.08);
 }
 
+.dark select {
+  color-scheme: dark;
+  background-color: var(--clr-surface-alt);
+  color: var(--clr-text-primary);
+  border: 1px solid var(--clr-border);
+}
+
+.dark select option {
+  background-color: var(--clr-surface-alt);
+  color: var(--clr-text-primary);
+}
+
 /* ── Typography & Base ────────────────────────────────────────────────────────*/
 body {
   font-family: 'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
