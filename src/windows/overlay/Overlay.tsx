@@ -46,7 +46,7 @@ const AI_URLS: Record<string, string> = {
 
 // ── Layout Constants ─────────────────────────────────────────────────────────
 const SEARCH_BAR_HEIGHT = 56;
-const MAX_WINDOW_HEIGHT = 100;
+const MAX_WINDOW_HEIGHT = 600;
 
 export default function Overlay() {
   // ── State & Refs ─────────────────────────────────────────────────────────
@@ -117,7 +117,7 @@ export default function Overlay() {
           loadSettings();
           window.dispatchEvent(new Event('focus-input'));
         } else if (!isDragging.current) {
-          getCurrentWindow().hide();
+          // getCurrentWindow().hide();
         }
       })
       .then((fn) => { unlisten = fn; });
@@ -226,12 +226,13 @@ export default function Overlay() {
         height: '100%',
         minHeight: SEARCH_BAR_HEIGHT,
         background: 'var(--clr-glass)',
-        borderRadius: 16,
-        border: '1px solid var(--clr-glass-border)',
+        borderRadius: hasContent ? 24 : 9999,
+        border: '1.5px solid var(--clr-accent)',
         boxShadow: 'var(--shadow-overlay)',
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
+        transition: 'border-radius 0.2s ease',
       }}
     >
       {/* Update notification banner */}

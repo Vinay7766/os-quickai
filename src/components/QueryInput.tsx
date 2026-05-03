@@ -80,7 +80,7 @@ export function QueryInput() {
       value={query}
       onChange={(e) => setQuery(e.target.value)}
       onKeyDown={handleKeyDown}
-      placeholder="Ask anything..."
+      placeholder="Search the web"
       className="w-full bg-transparent border-none focus:outline-none resize-none scrollbar-none disabled:opacity-50"
       style={{
         color: 'var(--clr-text)',

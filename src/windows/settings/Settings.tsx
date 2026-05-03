@@ -230,7 +230,6 @@ export default function Settings() {
                 boxShadow: activeSection === n.id ? 'var(--shadow-sm)' : 'none',
               }}
             >
-              <span>{n.icon}</span>
               {n.label}
             </button>
           ))}
