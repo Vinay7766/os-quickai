@@ -103,14 +103,14 @@ body.settings-window {
 
 .dark select {
   color-scheme: dark;
-  background-color: var(--clr-surface-alt);
-  color: var(--clr-text-primary);
+  background-color: var(--clr-input-bg);
+  color: var(--clr-text);
   border: 1px solid var(--clr-border);
 }
 
 .dark select option {
-  background-color: var(--clr-surface-alt);
-  color: var(--clr-text-primary);
+  background-color: var(--clr-surface-secondary);
+  color: var(--clr-text);
 }
 
 /* ── Typography & Base ────────────────────────────────────────────────────────*/
