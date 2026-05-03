@@ -207,13 +207,12 @@ body {
 
 ::-webkit-scrollbar-thumb {
   background: #666; /* Solid grey for maximum visibility */
-  border-radius: 10px;
-  border: 2px solid transparent; /* Buffer for aesthetics */
-  background-clip: content-box;
+  border-radius: 5px;
+  transition: background 0.2s ease;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--clr-accent); /* Blue on hover for clear feedback */
+  background: #888; /* Slightly lighter on hover */
 }
 
 ::-webkit-scrollbar-corner {
