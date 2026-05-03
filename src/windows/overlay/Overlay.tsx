@@ -61,6 +61,11 @@ export default function Overlay() {
   }, []);
 
   useEffect(() => {
+    document.body.classList.add('overlay-window');
+    return () => document.body.classList.remove('overlay-window');
+  }, []);
+
+  useEffect(() => {
     if (hasContent) {
       const timer = setTimeout(() => {
         if (containerRef.current) {
@@ -237,7 +242,7 @@ export default function Overlay() {
       {hasContent && (
         <div className="flex flex-col flex-1 min-h-0 animate-fade-in-up">
           <div className="h-px mx-4 opacity-50" style={{ background: 'var(--clr-border)' }} />
-          <div className="flex-1 overflow-auto px-5 py-5">
+          <div className="flex-1 overflow-y-scroll overflow-x-auto px-5 py-5 custom-scrollbar">
             <ResultPanel />
           </div>
           <div className="h-px mx-4 opacity-50" style={{ background: 'var(--clr-border)' }} />

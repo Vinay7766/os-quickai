@@ -195,34 +195,44 @@ body {
   50% { transform: translateY(-4px); opacity: 1; }
 }
 
-/* ── Custom Scrollbars ────────────────────────────────────────────────────────*/
-::-webkit-scrollbar {
+/* ── Scoped Custom Scrollbars (Overlay Only) ─────────────────────────────────*/
+.custom-scrollbar::-webkit-scrollbar {
   width: 10px;
   height: 10px;
 }
 
-::-webkit-scrollbar-track {
-  background: transparent;
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
 }
 
-::-webkit-scrollbar-thumb {
-  background: #666; /* Solid grey for maximum visibility */
-  border-radius: 5px;
-  transition: background 0.2s ease;
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #666; /* Solid grey for guaranteed visibility */
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background-clip: content-box;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: #888; /* Slightly lighter on hover */
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #888;
 }
 
-::-webkit-scrollbar-corner {
+.custom-scrollbar::-webkit-scrollbar-corner {
   background: transparent;
 }
 
 /* ── Utilities ────────────────────────────────────────────────────────────────*/
 html, body {
   cursor: default;
-  overflow: hidden; /* Prevent window-level scrollbars */
+}
+
+/* Ensure only the overlay window is clipped to prevent ghost boxes */
+body.overlay-window {
+  overflow: hidden;
+}
+
+/* Allow settings page to scroll normally */
+body.settings-window {
+  overflow: auto;
 }
 
 .glass {
