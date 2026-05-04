@@ -50,6 +50,7 @@ export default function Overlay() {
   const hasContent = isLoading || !!error || !!answer;
   const isDragging = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   const resizeWindow = useCallback(async (contentHeight: number) => {
     try {
@@ -72,8 +73,8 @@ export default function Overlay() {
   useEffect(() => {
     if (hasContent) {
       const timer = setTimeout(() => {
-        if (containerRef.current) {
-          resizeWindow(containerRef.current.scrollHeight);
+        if (contentRef.current) {
+          resizeWindow(contentRef.current.scrollHeight);
         }
       }, 100);
       return () => clearTimeout(timer);
@@ -189,6 +190,7 @@ export default function Overlay() {
           transition: 'border-radius 0.2s ease',
         }}
       >
+        <div ref={contentRef} className="flex flex-col w-full">
       {updateVersion && <UpdateBanner version={updateVersion} />}
 
       {/* ── Search Bar Section ─────────────────────────────────────────── */}
@@ -293,6 +295,7 @@ export default function Overlay() {
           </div>
         </div>
       )}
+        </div>
       </div>
     </div>
   );
