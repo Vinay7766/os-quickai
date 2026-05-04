@@ -36,7 +36,7 @@
         "minHeight": 50,
         "center": true,
         "decorations": false,
-        "alwaysOnTop": true,
+        "alwaysOnTop": false,
         "skipTaskbar": true,
         "transparent": true,
         "hiddenTitle": true,

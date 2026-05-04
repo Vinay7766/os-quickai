@@ -10,6 +10,7 @@
 
 import ReactMarkdown from 'react-markdown';
 import rehypeHighlight from 'rehype-highlight';
+import remarkGfm from 'remark-gfm';
 import { useAppStore } from '../store/useAppStore';
 import { useSettingsStore } from '../store/useSettingsStore';
 import 'highlight.js/styles/github-dark.css';
@@ -66,7 +67,10 @@ export function ResultPanel() {
             className="prose prose-sm max-w-none dark:prose-invert leading-relaxed"
             style={{ color: 'var(--clr-text)' }}
           >
-            <ReactMarkdown rehypePlugins={[rehypeHighlight]}>
+            <ReactMarkdown 
+              remarkPlugins={[remarkGfm]} 
+              rehypePlugins={[rehypeHighlight]}
+            >
               {answer}
             </ReactMarkdown>
           </div>
