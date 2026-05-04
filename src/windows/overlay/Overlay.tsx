@@ -53,9 +53,12 @@ export default function Overlay() {
 
   const resizeWindow = useCallback(async (contentHeight: number) => {
     try {
-      // Add a small buffer (+8px) to ensure borders and scrollbars are not clipped by the window edge
-      const h = Math.min(Math.max(contentHeight + 8, SEARCH_BAR_HEIGHT), MAX_WINDOW_HEIGHT);
-      await getCurrentWindow().setSize(new LogicalSize(700, h));
+      const win = getCurrentWindow();
+      const size = await win.innerSize();
+      // Add buffer for padding (4px) and border (4px) = +8px
+      const h = Math.min(Math.max(contentHeight + 12, SEARCH_BAR_HEIGHT + 12), MAX_WINDOW_HEIGHT);
+      // Respect current width if user has resized manually
+      await win.setSize(new LogicalSize(size.width > 100 ? size.width : 700, h));
     } catch {
       /* Ignore resize errors */
     }
@@ -170,23 +173,22 @@ export default function Overlay() {
   };
 
   return (
-    <div
-      ref={containerRef}
-      className="glass"
-      style={{
-        width: '100vw',
-        height: '100%',
-        minHeight: SEARCH_BAR_HEIGHT,
-        background: 'var(--clr-glass)',
-        borderRadius: hasContent ? 24 : 9999,
-        border: '2px solid var(--clr-accent)',
-        boxShadow: '0 0 0 1px rgba(0,0,0,0.1)', // Subtle outer ring
-        overflow: 'hidden',
-        display: 'flex',
-        flexDirection: 'column',
-        transition: 'border-radius 0.2s ease',
-      }}
-    >
+    <div className="p-[2px] w-screen h-screen overflow-hidden">
+      <div
+        ref={containerRef}
+        className="glass h-full w-full"
+        style={{
+          minHeight: SEARCH_BAR_HEIGHT,
+          background: 'var(--clr-glass)',
+          borderRadius: hasContent ? 24 : 9999,
+          border: '2px solid var(--clr-accent)',
+          boxShadow: '0 0 0 1px rgba(0,0,0,0.1)',
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+          transition: 'border-radius 0.2s ease',
+        }}
+      >
       {updateVersion && <UpdateBanner version={updateVersion} />}
 
       {/* ── Search Bar Section ─────────────────────────────────────────── */}
@@ -291,6 +293,7 @@ export default function Overlay() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }
