@@ -245,8 +245,10 @@ export default function Overlay() {
       {/* ── Answer Section ────────────────────────────────────────────── */}
       {hasContent && (
         <div className="flex flex-col flex-1 min-h-0 animate-fade-in-up">
-          <div className="flex-1 overflow-auto custom-scrollbar px-6 py-4">
-            <ResultPanel />
+          <div className="flex-1 overflow-auto">
+            <div className="px-6 py-4">
+              <ResultPanel />
+            </div>
           </div>
           
           <div
@@ -255,7 +257,7 @@ export default function Overlay() {
               handleDrag();
             }}
             className="flex items-center gap-3 px-6 shrink-0 cursor-move select-none"
-            style={{ height: '48px', background: 'rgba(0,0,0,0.02)' }}
+            style={{ height: '48px', background: 'rgba(0,0,0,0.02)', borderTop: '1px solid var(--clr-border)' }}
           >
             {answer && (
               <button
