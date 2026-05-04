@@ -223,9 +223,10 @@ body {
 
 ::-webkit-scrollbar-thumb {
   background: #fbbf24 !important; /* Bright Amber/Yellow */
-  border: 2px solid #000 !important;
+  border: 2px solid rgba(0, 0, 0, 0.4) !important;
   border-radius: 10px !important;
   min-height: 50px !important;
+  min-width: 50px !important;
 }
 
 ::-webkit-scrollbar-thumb:hover {

@@ -53,7 +53,8 @@ export default function Overlay() {
 
   const resizeWindow = useCallback(async (contentHeight: number) => {
     try {
-      const h = Math.min(Math.max(contentHeight, SEARCH_BAR_HEIGHT), MAX_WINDOW_HEIGHT);
+      // Add a small buffer (+8px) to ensure borders and scrollbars are not clipped by the window edge
+      const h = Math.min(Math.max(contentHeight + 8, SEARCH_BAR_HEIGHT), MAX_WINDOW_HEIGHT);
       await getCurrentWindow().setSize(new LogicalSize(700, h));
     } catch {
       /* Ignore resize errors */
@@ -178,8 +179,8 @@ export default function Overlay() {
         minHeight: SEARCH_BAR_HEIGHT,
         background: 'var(--clr-glass)',
         borderRadius: hasContent ? 24 : 9999,
-        border: '1.5px solid var(--clr-accent)',
-        boxShadow: 'none',
+        border: '2px solid var(--clr-accent)',
+        boxShadow: '0 0 0 1px rgba(0,0,0,0.1)', // Subtle outer ring
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
@@ -197,7 +198,7 @@ export default function Overlay() {
         className={`flex items-center gap-3 px-4 shrink-0 cursor-move select-none transition-all duration-300 ${
           hasContent ? 'mt-1 mx-2 rounded-2xl border border-white/5' : ''
         }`}
-        style={{ height: `${SEARCH_BAR_HEIGHT}px` }}
+        style={{ height: `${SEARCH_BAR_HEIGHT}px`, marginBottom: hasContent ? '4px' : '0' }}
       >
         <div className="flex items-center justify-center w-7 h-7 shrink-0" style={{ color: 'var(--clr-accent)' }}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
