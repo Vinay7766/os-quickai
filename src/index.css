@@ -209,32 +209,33 @@ body {
 }
 
 /* ── Custom Scrollbars ────────────────────────────────────────────────────────
- * Premium, interactive scrollbars that appear on both axes. */
+ * High-visibility, interactive scrollbars for both axes. */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
 }
 
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--clr-border);
-  border-radius: 20px;
+  background: var(--clr-accent);
+  border-radius: 10px;
   border: 2px solid transparent;
   background-clip: padding-box;
-  transition: background var(--transition-fast);
+  min-height: 40px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--clr-text-tertiary);
-  background-clip: padding-box;
+  background: var(--clr-accent-hover);
+  filter: brightness(1.2);
 }
 
 ::-webkit-scrollbar-thumb:active {
   background: var(--clr-accent);
-  background-clip: padding-box;
+  filter: brightness(0.8);
 }
 
 ::-webkit-scrollbar-corner {
