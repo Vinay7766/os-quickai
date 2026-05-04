@@ -209,37 +209,31 @@ body {
 }
 
 /* ── Custom Scrollbars ────────────────────────────────────────────────────────
- * High-visibility, interactive scrollbars for both axes. */
+ * EMERGENCY VISIBILITY: High-contrast yellow scrollbars. */
 ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 12px !important;
+  height: 12px !important;
+  display: block !important;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.05);
-  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-radius: 10px !important;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--clr-accent);
-  border-radius: 10px;
-  border: 2px solid transparent;
-  background-clip: padding-box;
-  min-height: 40px;
+  background: #fbbf24 !important; /* Bright Amber/Yellow */
+  border: 2px solid #000 !important;
+  border-radius: 10px !important;
+  min-height: 50px !important;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--clr-accent-hover);
-  filter: brightness(1.2);
-}
-
-::-webkit-scrollbar-thumb:active {
-  background: var(--clr-accent);
-  filter: brightness(0.8);
+  background: #f59e0b !important;
 }
 
 ::-webkit-scrollbar-corner {
-  background: transparent;
+  background: transparent !important;
 }
 
 /* Ensure code blocks and long lines in prose can scroll horizontally */

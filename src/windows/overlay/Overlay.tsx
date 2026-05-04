@@ -195,7 +195,7 @@ export default function Overlay() {
           handleDrag();
         }}
         className={`flex items-center gap-3 px-4 shrink-0 cursor-move select-none transition-all duration-300 ${
-          hasContent ? 'mt-3 mx-3 rounded-2xl bg-black/5 dark:bg-white/5 border border-white/5' : ''
+          hasContent ? 'mt-1 mx-2 rounded-2xl border border-white/5' : ''
         }`}
         style={{ height: `${SEARCH_BAR_HEIGHT}px` }}
       >
@@ -245,7 +245,7 @@ export default function Overlay() {
       {/* ── Answer Section ────────────────────────────────────────────── */}
       {hasContent && (
         <div className="flex flex-col flex-1 min-h-0 animate-fade-in-up">
-          <div className="flex-1 overflow-auto">
+          <div className="flex-1 overflow-auto" style={{ maxHeight: '460px' }}>
             <div className="px-6 py-4">
               <ResultPanel />
             </div>
