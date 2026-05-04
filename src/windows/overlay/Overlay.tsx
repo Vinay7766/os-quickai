@@ -188,12 +188,15 @@ export default function Overlay() {
     >
       {updateVersion && <UpdateBanner version={updateVersion} />}
 
+      {/* ── Search Bar Section ─────────────────────────────────────────── */}
       <div
         onMouseDown={(e) => {
           if ((e.target as HTMLElement).closest('button, input, textarea')) return;
           handleDrag();
         }}
-        className="flex items-center gap-3 px-4 shrink-0 cursor-move select-none"
+        className={`flex items-center gap-3 px-4 shrink-0 cursor-move select-none transition-all duration-300 ${
+          hasContent ? 'mt-3 mx-3 rounded-2xl bg-black/5 dark:bg-white/5 border border-white/5' : ''
+        }`}
         style={{ height: `${SEARCH_BAR_HEIGHT}px` }}
       >
         <div className="flex items-center justify-center w-7 h-7 shrink-0" style={{ color: 'var(--clr-accent)' }}>
@@ -239,29 +242,29 @@ export default function Overlay() {
         </div>
       </div>
 
+      {/* ── Answer Section ────────────────────────────────────────────── */}
       {hasContent && (
         <div className="flex flex-col flex-1 min-h-0 animate-fade-in-up">
-          <div className="h-px mx-4 opacity-50" style={{ background: 'var(--clr-border)' }} />
-          <div className="flex-1 overflow-y-scroll overflow-x-auto px-5 py-5 custom-scrollbar">
+          <div className="flex-1 overflow-auto custom-scrollbar px-6 py-4">
             <ResultPanel />
           </div>
-          <div className="h-px mx-4 opacity-50" style={{ background: 'var(--clr-border)' }} />
+          
           <div
             onMouseDown={(e) => {
               if ((e.target as HTMLElement).closest('button')) return;
               handleDrag();
             }}
-            className="flex items-center gap-3 px-5 shrink-0 cursor-move select-none"
-            style={{ height: '46px' }}
+            className="flex items-center gap-3 px-6 shrink-0 cursor-move select-none"
+            style={{ height: '48px', background: 'rgba(0,0,0,0.02)' }}
           >
             {answer && (
               <button
                 onClick={handleCopy}
-                className="px-4 py-1.5 rounded-lg text-[11px] font-semibold transition-all flex items-center gap-1.5 active:scale-95"
+                className="px-4 py-1.5 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1.5 active:scale-95 hover:brightness-110"
                 style={{
-                  background: copied ? 'var(--clr-success-soft)' : 'var(--clr-input-bg)',
-                  border: `1px solid ${copied ? 'var(--clr-success)' : 'var(--clr-border)'}`,
-                  color: copied ? 'var(--clr-success)' : 'var(--clr-text)',
+                  background: copied ? 'var(--clr-success-soft)' : 'var(--clr-accent-soft)',
+                  border: `1px solid ${copied ? 'var(--clr-success)' : 'var(--clr-accent)'}`,
+                  color: copied ? 'var(--clr-success)' : 'var(--clr-accent)',
                 }}
               >
                 {copied ? (
@@ -269,17 +272,17 @@ export default function Overlay() {
                 ) : (
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
                 )}
-                {copied ? 'Copied' : 'Copy'}
+                {copied ? 'Copied' : 'Copy Response'}
               </button>
             )}
             <div className="flex-1" />
-            <div className="flex items-center gap-1.5 opacity-40">
-              <div className="w-1 h-1 rounded-full" style={{ background: 'var(--clr-accent)' }} />
-              <span className="text-[9px] font-semibold uppercase tracking-wider" style={{ color: 'var(--clr-text-secondary)' }}>
+            <div className="flex items-center gap-1.5 opacity-60">
+              <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: 'var(--clr-accent)' }} />
+              <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: 'var(--clr-text-secondary)' }}>
                 {llmModel}
               </span>
             </div>
-            <span className="text-[9px] font-medium uppercase tracking-wider opacity-30" style={{ color: 'var(--clr-text-tertiary)' }}>
+            <span className="text-[9px] font-bold uppercase tracking-widest opacity-40 px-2 py-0.5 rounded border border-current" style={{ color: 'var(--clr-text-tertiary)' }}>
               Esc
             </span>
           </div>

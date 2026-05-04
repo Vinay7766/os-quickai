@@ -16,7 +16,11 @@
  * The overlay window needs a fully transparent background so it floats
  * above the desktop. We force transparency on all root elements, then
  * selectively apply a solid background only to the main window. */
-html, html:root, body, #root, :root {
+html,
+html:root,
+body,
+#root,
+:root {
   background: transparent !important;
   background-color: transparent !important;
   background-image: none !important;
@@ -191,39 +195,74 @@ body {
 }
 
 @keyframes bounce {
-  0%, 100% { transform: translateY(0); opacity: 0.3; }
-  50% { transform: translateY(-4px); opacity: 1; }
+
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.3;
+  }
+
+  50% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
 }
 
-/* ── Scoped Custom Scrollbars (Overlay Only) ─────────────────────────────────*/
-.custom-scrollbar::-webkit-scrollbar {
-  width: 12px;
-  height: 12px;
+/* ── Custom Scrollbars ────────────────────────────────────────────────────────
+ * Premium, interactive scrollbars that appear on both axes. */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
 
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 10px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(200, 200, 200, 0.8); /* Solid-ish light grey for visibility on dark backgrounds */
-  border-radius: 10px;
-  border: 3px solid transparent;
-  background-clip: content-box;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.9);
-}
-
-.custom-scrollbar::-webkit-scrollbar-corner {
+::-webkit-scrollbar-track {
   background: transparent;
 }
 
+::-webkit-scrollbar-thumb {
+  background: var(--clr-border);
+  border-radius: 20px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  transition: background var(--transition-fast);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--clr-text-tertiary);
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: var(--clr-accent);
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Ensure code blocks and long lines in prose can scroll horizontally */
+.prose pre {
+  overflow-x: auto !important;
+  max-width: 100%;
+  scrollbar-width: thin;
+}
+
+.prose code {
+  white-space: pre-wrap;
+}
+
+.prose pre code {
+  white-space: pre;
+}
+
+
 /* ── Utilities ────────────────────────────────────────────────────────────────*/
-html, body {
+html,
+body {
   cursor: default;
+  overflow: hidden;
+  /* Prevent window-level scrollbars */
 }
 
 /* Ensure only the overlay window is clipped to prevent ghost boxes */
@@ -247,6 +286,7 @@ body.settings-window {
     opacity: 0;
     transform: translateY(8px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -258,6 +298,14 @@ body.settings-window {
 }
 
 /* Stagger delay helper */
-.delay-1 { animation-delay: 50ms; }
-.delay-2 { animation-delay: 100ms; }
-.delay-3 { animation-delay: 150ms; }
+.delay-1 {
+  animation-delay: 50ms;
+}
+
+.delay-2 {
+  animation-delay: 100ms;
+}
+
+.delay-3 {
+  animation-delay: 150ms;
+}
