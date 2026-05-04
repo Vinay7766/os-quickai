@@ -222,15 +222,17 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #fbbf24 !important; /* Bright Amber/Yellow */
-  border: 2px solid rgba(0, 0, 0, 0.4) !important;
+  background: var(--clr-accent) !important;
+  border: 3px solid transparent !important;
+  background-clip: padding-box !important;
   border-radius: 10px !important;
   min-height: 50px !important;
   min-width: 50px !important;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #f59e0b !important;
+  background: var(--clr-accent-hover) !important;
+  background-clip: padding-box !important;
 }
 
 ::-webkit-scrollbar-corner {
