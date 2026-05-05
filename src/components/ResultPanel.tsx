@@ -30,8 +30,8 @@ export function ResultPanel() {
     }
 
     if (openLinksInternal) {
-      // Open in the overlay's internal browser instead of a new window
-      useAppStore.setState({ internalUrl: url, answer: '', query: '' });
+      // Keep the answer so we can return to it!
+      useAppStore.setState({ internalUrl: url });
     } else {
       await open(url);
     }

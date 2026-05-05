@@ -50,7 +50,8 @@ export default function Overlay() {
 
   const updateVersion = useUpdateCheck();
   const [copied, setCopied] = useState(false);
-  const hasContent = (searchMode === 'search' && isLoading) || !!error || !!answer || !!internalUrl;
+  // Expand if we have an answer, an error, an internal URL, or if searching (show dots)
+  const hasContent = (searchMode === 'search' && (isLoading || !!answer)) || !!error || !!internalUrl;
   const isMenuOpen = isModeMenuOpen || isModelMenuOpen;
   const isDragging = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -249,7 +250,7 @@ export default function Overlay() {
   };
 
   return (
-    <div className="p-2 w-full h-screen overflow-hidden flex flex-col box-border">
+    <div className="p-2 w-full h-screen overflow-hidden flex flex-col items-center box-border">
       <div
         ref={containerRef}
         className="glass flex-1 flex flex-col shadow-2xl relative"
@@ -260,7 +261,7 @@ export default function Overlay() {
           border: '2px solid var(--clr-accent)',
           overflow: 'hidden',
           transition: 'border-radius 0.2s ease, height 0.2s ease',
-          width: '680px',
+          width: '100%',
           maxWidth: '680px',
         }}
       >
