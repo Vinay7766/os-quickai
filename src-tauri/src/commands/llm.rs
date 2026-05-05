@@ -87,18 +87,57 @@ async fn query_pollinations(client: &Client, query: &str, model: &str) -> Option
 
 // ── Main Query Handler ───────────────────────────────────────────────────────
 
+/// Lists available Gemini models using the provided API key.
+#[tauri::command]
+pub async fn list_gemini_models(api_key: String) -> Result<Vec<String>, AppError> {
+    if api_key.is_empty() {
+        return Err(AppError::InvalidApiKey);
+    }
+
+    let client = Client::new();
+    let url = format!(
+        "https://generativelanguage.googleapis.com/v1beta/models?key={}",
+        api_key
+    );
+
+    let response = client
+        .get(&url)
+        .send()
+        .await
+        .map_err(|e| AppError::NetworkError(e.to_string()))?;
+
+    if response.status().is_success() {
+        let body: Value = response.json().await.map_err(|e| AppError::NetworkError(e.to_string()))?;
+        let models = body["models"]
+            .as_array()
+            .ok_or_else(|| AppError::NetworkError("Failed to parse models list".to_string()))?
+            .iter()
+            .filter_map(|m| {
+                let name = m["name"].as_str()?;
+                // Only return models that support content generation
+                if m["supportedGenerationMethods"]
+                    .as_array()?
+                    .iter()
+                    .any(|g| g.as_str() == Some("generateContent"))
+                {
+                    Some(name.replace("models/", ""))
+                } else {
+                    None
+                }
+            })
+            .collect();
+        Ok(models)
+    } else {
+        Err(AppError::ProviderError {
+            status: response.status().as_u16(),
+            message: response.text().await.unwrap_or_default(),
+        })
+    }
+}
+
 /// The main Tauri command that the frontend calls to get AI responses.
-///
-/// # Arguments
-/// * `query`   - The user's question or prompt
-/// * `model`   - The selected model identifier (e.g., "minimax-2.5" or "gpt-4o")
-/// * `api_key` - The user's API key (empty string for free models)
-///
-/// # Returns
-/// The AI model's response text, or an error if the request fails.
 #[tauri::command]
 pub async fn query_llm(query: String, model: String, api_key: String) -> Result<String, AppError> {
-    // Protection against oversized inputs (e.g. accidental massive paste)
     if query.len() > 4000 {
         return Err(AppError::NetworkError(
             "Query is too long. Please limit your query to 4000 characters.".to_string()
@@ -111,44 +150,68 @@ pub async fn query_llm(query: String, model: String, api_key: String) -> Result<
         .build()
         .map_err(|e| AppError::NetworkError(e.to_string()))?;
 
-    // ── Free Models (Pollinations API) ───────────────────────────────────
+    // ── Free Models ──────────────────────────────────────────────────────
     if is_free_model(&model) {
         let target_model = free_model_id(&model);
-
-        // Try the requested model first
         if let Some(answer) = query_pollinations(&client, &query, target_model).await {
             return Ok(answer);
         }
-
-        // If the primary attempt fails, try alternative model IDs as fallback
         let fallback_models = ["openai-fast", "openai"];
         for fallback in fallback_models {
             if let Some(answer) = query_pollinations(&client, &query, fallback).await {
                 return Ok(answer);
             }
         }
-
         return Err(AppError::ProviderError {
             status: 503,
-            message: "Free model service is temporarily unavailable. Please try again in a moment, or use a premium model with your own API key.".into(),
+            message: "Free model service is unavailable. Please try again or use a premium model.".into(),
         });
     }
 
-    // ── Paid Models (Direct Provider APIs) ───────────────────────────────
-    // All paid models require the user to provide their own API key (BYOK).
+    // ── Paid Models ──────────────────────────────────────────────────────
+    if api_key.is_empty() {
+        return Err(AppError::InvalidApiKey);
+    }
 
-    // ── Claude (Anthropic) ───────────────────────────────────────────────
-    if model == "claude-3-opus" {
-        if api_key.is_empty() {
-            return Err(AppError::InvalidApiKey);
+    // Determine provider based on model name or external knowledge
+    // We try to be smart about routing based on the model ID prefix or name
+    let is_gemini = model.contains("gemini") || model.contains("learnlm");
+    let is_claude = model.contains("claude");
+    let is_grok = model.contains("grok");
+
+    if is_gemini {
+        let url = format!(
+            "https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent?key={}",
+            model, api_key
+        );
+        let response = client
+            .post(&url)
+            .json(&json!({"contents": [{"parts": [{"text": &query}]}]}))
+            .send()
+            .await
+            .map_err(|e| AppError::NetworkError(e.to_string()))?;
+
+        if response.status().is_success() {
+            let body: Value = response.json().await.map_err(|e| AppError::NetworkError(e.to_string()))?;
+            return Ok(body["candidates"][0]["content"]["parts"][0]["text"]
+                .as_str()
+                .unwrap_or("(no response)")
+                .to_string());
+        } else {
+            return Err(AppError::ProviderError {
+                status: response.status().as_u16(),
+                message: response.text().await.unwrap_or_default(),
+            });
         }
+    }
 
+    if is_claude {
         let response = client
             .post("https://api.anthropic.com/v1/messages")
             .header("x-api-key", &api_key)
             .header("anthropic-version", "2023-06-01")
             .json(&json!({
-                "model": "claude-3-opus-20240229",
+                "model": model,
                 "max_tokens": 2048,
                 "system": "You are a concise, helpful assistant. Use markdown for code.",
                 "messages": [{"role": "user", "content": &query}]
@@ -157,66 +220,29 @@ pub async fn query_llm(query: String, model: String, api_key: String) -> Result<
             .await
             .map_err(|e| AppError::NetworkError(e.to_string()))?;
 
-        return if response.status().is_success() {
+        if response.status().is_success() {
             let body: Value = response.json().await.map_err(|e| AppError::NetworkError(e.to_string()))?;
-            Ok(body["content"][0]["text"].as_str().unwrap_or("(no response)").to_string())
+            return Ok(body["content"][0]["text"].as_str().unwrap_or("(no response)").to_string());
         } else {
-            Err(AppError::ProviderError {
+            return Err(AppError::ProviderError {
                 status: response.status().as_u16(),
                 message: response.text().await.unwrap_or_default(),
-            })
-        };
-    }
-
-    // ── Gemini (Google) ──────────────────────────────────────────────────
-    if model == "gemini-1.5-pro" {
-        if api_key.is_empty() {
-            return Err(AppError::InvalidApiKey);
+            });
         }
-
-        let url = format!(
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key={}",
-            api_key
-        );
-
-        let response = client
-            .post(&url)
-            .json(&json!({"contents": [{"parts": [{"text": &query}]}]}))
-            .send()
-            .await
-            .map_err(|e| AppError::NetworkError(e.to_string()))?;
-
-        return if response.status().is_success() {
-            let body: Value = response.json().await.map_err(|e| AppError::NetworkError(e.to_string()))?;
-            Ok(body["candidates"][0]["content"]["parts"][0]["text"]
-                .as_str()
-                .unwrap_or("(no response)")
-                .to_string())
-        } else {
-            Err(AppError::ProviderError {
-                status: response.status().as_u16(),
-                message: response.text().await.unwrap_or_default(),
-            })
-        };
     }
 
-    // ── OpenAI (ChatGPT) / Grok (xAI) ───────────────────────────────────
-    // Both use OpenAI-compatible chat completions endpoints.
-    if api_key.is_empty() {
-        return Err(AppError::InvalidApiKey);
-    }
-
-    let (endpoint, actual_model) = if model.starts_with("grok") {
-        ("https://api.x.ai/v1/chat/completions", "grok-beta")
+    // Default to OpenAI-compatible (ChatGPT, Grok, etc.)
+    let endpoint = if is_grok {
+        "https://api.x.ai/v1/chat/completions"
     } else {
-        ("https://api.openai.com/v1/chat/completions", model.as_str())
+        "https://api.openai.com/v1/chat/completions"
     };
 
     let response = client
         .post(endpoint)
         .bearer_auth(&api_key)
         .json(&json!({
-            "model": actual_model,
+            "model": model,
             "messages": [
                 {"role": "system", "content": "You are a concise, helpful assistant. Use markdown for code."},
                 {"role": "user", "content": &query}

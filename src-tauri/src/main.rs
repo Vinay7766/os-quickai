@@ -128,6 +128,8 @@ fn main() {
             commands::window::open_settings,
             commands::window::update_shortcut,
             commands::browser::check_browser_exists,
+            commands::browser::launch_app,
+            commands::llm::list_gemini_models,
         ])
         .setup(move |app| {
             // ── Transparent overlay background ───────────────────────────

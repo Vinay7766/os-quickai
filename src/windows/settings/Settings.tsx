@@ -12,11 +12,10 @@ import { invoke } from '@tauri-apps/api/core';
 // ── Configuration Data ───────────────────────────────────────────────────────
 
 const API_MODELS = [
-  { value: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro', placeholder: 'AIzaSy...' },
-  { value: 'grok-1.5', label: 'Grok 1.5 (xAI)', placeholder: 'xai-...' },
-  { value: 'gpt-4o-mini', label: 'ChatGPT (GPT-4o Mini)', placeholder: 'sk-proj-...' },
-  { value: 'gpt-4o', label: 'ChatGPT (GPT-4o)', placeholder: 'sk-proj-...' },
-  { value: 'claude-3-opus', label: 'Claude 3 Opus', placeholder: 'sk-ant-api03-...' },
+  { value: 'gemini-1.5-pro', label: 'Gemini', placeholder: 'AIzaSy...' },
+  { value: 'grok-1.5', label: 'Grok', placeholder: 'xai-...' },
+  { value: 'gpt-4o', label: 'ChatGPT', placeholder: 'sk-proj-...' },
+  { value: 'claude-3-opus', label: 'Claude', placeholder: 'sk-ant-api03-...' },
 ];
 
 const FREE_MODEL_OPTIONS = [
@@ -56,6 +55,7 @@ const SIDEBAR_NAV: { id: Section; label: string; icon: string }[] = [
 export default function Settings() {
   const {
     hotkey, llmModel, browser, llmSite, theme, settingsLoaded,
+    enableSiteLauncher, enableAppLauncher, openLinksInternal,
     loadSettings, updateHotkey, updateSetting, saveAll
   } = useSettingsStore();
 
@@ -405,6 +405,50 @@ export default function Settings() {
                 <p className="text-xs" style={{ color: 'var(--clr-text-secondary)' }}>
                   This site will open when you click the "AI Search" button in the overlay.
                 </p>
+              </div>
+
+              {/* Launcher Toggles */}
+              <div className="space-y-4 pt-4 border-t" style={{ borderColor: 'var(--clr-border)' }}>
+                <h3 className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--clr-text-tertiary)' }}>Feature Toggles</h3>
+                
+                <div className="flex items-center justify-between p-4 rounded-xl border" style={{ background: 'var(--clr-input-bg)', borderColor: 'var(--clr-border)' }}>
+                  <div>
+                    <div className="text-sm font-bold">Site Launcher</div>
+                    <p className="text-[10px] opacity-60">Open URLs directly from the search bar.</p>
+                  </div>
+                  <button
+                    onClick={() => updateSetting('enableSiteLauncher', !enableSiteLauncher)}
+                    className={`w-10 h-5 rounded-full transition-all relative ${enableSiteLauncher ? 'bg-[var(--clr-accent)]' : 'bg-gray-600'}`}
+                  >
+                    <div className={`absolute top-1 w-3 h-3 rounded-full bg-white transition-all ${enableSiteLauncher ? 'right-1' : 'left-1'}`} />
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between p-4 rounded-xl border" style={{ background: 'var(--clr-input-bg)', borderColor: 'var(--clr-border)' }}>
+                  <div>
+                    <div className="text-sm font-bold">App Launcher</div>
+                    <p className="text-[10px] opacity-60">Launch Windows apps by typing their name.</p>
+                  </div>
+                  <button
+                    onClick={() => updateSetting('enableAppLauncher', !enableAppLauncher)}
+                    className={`w-10 h-5 rounded-full transition-all relative ${enableAppLauncher ? 'bg-[var(--clr-accent)]' : 'bg-gray-600'}`}
+                  >
+                    <div className={`absolute top-1 w-3 h-3 rounded-full bg-white transition-all ${enableAppLauncher ? 'right-1' : 'left-1'}`} />
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between p-4 rounded-xl border" style={{ background: 'var(--clr-input-bg)', borderColor: 'var(--clr-border)' }}>
+                  <div>
+                    <div className="text-sm font-bold">Internal Browser</div>
+                    <p className="text-[10px] opacity-60">Open links within the assistant panel when possible.</p>
+                  </div>
+                  <button
+                    onClick={() => updateSetting('openLinksInternal', !openLinksInternal)}
+                    className={`w-10 h-5 rounded-full transition-all relative ${openLinksInternal ? 'bg-[var(--clr-accent)]' : 'bg-gray-600'}`}
+                  >
+                    <div className={`absolute top-1 w-3 h-3 rounded-full bg-white transition-all ${openLinksInternal ? 'right-1' : 'left-1'}`} />
+                  </button>
+                </div>
               </div>
             </div>
           )}

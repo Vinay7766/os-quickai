@@ -137,6 +137,44 @@ pub async fn check_browser_exists(browser: String) -> bool {
             return true;
         }
     }
-
     false
+}
+    
+/// Launches an application by its name using Windows shell.
+#[tauri::command]
+pub async fn launch_app(name: String) -> Result<(), String> {
+    // Escape single quotes
+    let safe_name = name.replace("'", "''");
+    
+    // PowerShell script to find and launch the app
+    let ps_script = format!(
+        r#"
+$query = '{name}'
+# Try to find the app by name in the Start Menu or typical install locations
+$app = Get-StartApps | Where-Object {{ $_.Name -like "*$query*" }} | Select-Object -First 1
+if ($app) {{
+    Start-Process "shell:AppsFolder\$($app.AppId)"
+    exit 0
+}} else {{
+    # Fallback to direct execution if it's a known command (like notepad, calc)
+    if (Get-Command $query -ErrorAction SilentlyContinue) {{
+        Start-Process $query
+        exit 0
+    }}
+    exit 1
+}}
+"#,
+        name = safe_name
+    );
+
+    const CREATE_NO_WINDOW: u32 = 0x08000000;
+    let status = Command::new("powershell")
+        .creation_flags(CREATE_NO_WINDOW)
+        .args(["-NoProfile", "-WindowStyle", "Hidden", "-Command", &ps_script])
+        .status();
+
+    match status {
+        Ok(s) if s.success() => Ok(()),
+        _ => Err(format!("Could not find or launch application: {}", name)),
+    }
 }

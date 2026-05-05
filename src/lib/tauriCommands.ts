@@ -57,6 +57,21 @@ export async function getSystemTheme(): Promise<string> {
   return await invoke<string>('get_system_theme');
 }
 
+
+// ── Gemini & Models ──────────────────────────────────────────────────────────
+
+/** List available Gemini models using the API key. */
+export async function listGeminiModels(apiKey: string): Promise<string[]> {
+  return await invoke<string[]>('list_gemini_models', { apiKey });
+}
+
+// ── Application Launching ────────────────────────────────────────────────────
+
+/** Launch a Windows application by name. */
+export async function launchApp(name: string): Promise<void> {
+  return await invoke<void>('launch_app', { name });
+}
+
 // ── Window & Shortcuts ───────────────────────────────────────────────────────
 
 /** Change the global hotkey for toggling the search overlay. */
