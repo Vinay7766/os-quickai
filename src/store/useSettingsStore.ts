@@ -26,7 +26,7 @@ import { emit, listen } from '@tauri-apps/api/event';
 import { getSystemTheme } from '../lib/tauriCommands';
 
 // ── Free Model Identifiers ───────────────────────────────────────────────────
-export const FREE_MODELS = ['minimax-2.5', 'qwen-3.6', 'nemotron'];
+export const FREE_MODELS = ['minimax-2.5', 'gemini-1.5-flash-8b', 'qwen-2.5-72b', 'nemotron-70b', 'deepseek-v3', 'deepseek-r1'];
 
 // ── Store Interface ──────────────────────────────────────────────────────────
 

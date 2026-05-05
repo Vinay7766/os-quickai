@@ -59,11 +59,10 @@ export default function Overlay() {
   const resizeWindow = useCallback(async (contentHeight: number) => {
     try {
       const win = getCurrentWindow();
-      const size = await win.innerSize();
-      // Maintain current width, fallback to 700 only if invalid
-      const currentWidth = size.width > 0 ? size.width : 700;
+      // Force fixed width of 700 to prevent horizontal expansion
+      const FIXED_WIDTH = 700;
       
-      // If a menu is open, we need enough height to show it (e.g. 300px)
+      // If a menu is open, we need enough height to show it
       // Otherwise, use content height or search bar height
       let targetH = isMenuOpen ? 300 : (hasContent ? contentHeight + 16 : SEARCH_BAR_HEIGHT + 16);
       
@@ -73,7 +72,7 @@ export default function Overlay() {
       }
 
       const h = Math.min(Math.max(targetH, SEARCH_BAR_HEIGHT + 16), internalUrl ? 1200 : MAX_WINDOW_HEIGHT);
-      await win.setSize(new LogicalSize(currentWidth, h));
+      await win.setSize(new LogicalSize(FIXED_WIDTH, h));
     } catch { /* Ignore */ }
   }, [hasContent, isMenuOpen, internalUrl]);
 
@@ -85,16 +84,25 @@ export default function Overlay() {
   // ── Auto-resize logic ──────────────────────────────────────────────────
   useEffect(() => {
     if (hasContent || isMenuOpen) {
-      const timer = setTimeout(() => {
+      // Use requestAnimationFrame for smoother and more immediate resizing
+      const triggerResize = () => {
         if (contentRef.current) {
           resizeWindow(contentRef.current.scrollHeight);
         }
-      }, 100);
-      return () => clearTimeout(timer);
+      };
+      
+      triggerResize();
+      const timer = setTimeout(triggerResize, 100); // Backup for late rendering
+      const timer2 = setTimeout(triggerResize, 500); // Final backup
+      
+      return () => {
+        clearTimeout(timer);
+        clearTimeout(timer2);
+      };
     } else {
       resizeWindow(SEARCH_BAR_HEIGHT);
     }
-  }, [hasContent, isMenuOpen, answer, isLoading, error, resizeWindow]);
+  }, [hasContent, isMenuOpen, answer, isLoading, error, internalUrl, resizeWindow]);
 
   // ── Dynamic Model Fetching ─────────────────────────────────────────────
   const fetchModels = useCallback(async () => {
@@ -232,7 +240,7 @@ export default function Overlay() {
   };
 
   return (
-    <div className="p-2 w-screen h-screen overflow-hidden flex flex-col box-border">
+    <div className="p-2 w-full h-screen overflow-hidden flex flex-col box-border">
       <div
         ref={containerRef}
         className="glass flex-1 flex flex-col shadow-2xl relative"
@@ -242,7 +250,9 @@ export default function Overlay() {
           borderRadius: hasContent ? 24 : 9999,
           border: '2px solid var(--clr-accent)',
           overflow: 'hidden',
-          transition: 'border-radius 0.2s ease',
+          transition: 'border-radius 0.2s ease, height 0.2s ease',
+          width: '700px',
+          maxWidth: '700px',
         }}
       >
         <div ref={contentRef} className="flex flex-col w-full h-full">
