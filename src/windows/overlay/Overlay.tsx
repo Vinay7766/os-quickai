@@ -91,32 +91,29 @@ export default function Overlay() {
     return () => document.body.classList.remove('overlay-window');
   }, []);
 
-  // ── Auto-resize logic via ResizeObserver ──────────────────────────────────
+  // ── Auto-resize logic ──────────────────────────────────────────────────
   useEffect(() => {
-    if (!contentRef.current) return;
-
-    const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        const height = entry.contentRect.height;
-        if (hasContent || isMenuOpen) {
-          resizeWindow(height);
-        } else {
-          resizeWindow(SEARCH_BAR_HEIGHT);
-        }
+    const trigger = () => {
+      if (hasContent || isMenuOpen) {
+        // Use scrollHeight to get the full height of the content
+        const h = contentRef.current?.scrollHeight || 300;
+        resizeWindow(h);
+      } else {
+        resizeWindow(SEARCH_BAR_HEIGHT);
       }
-    });
+    };
 
-    observer.observe(contentRef.current);
+    trigger();
     
-    // Initial trigger
-    if (hasContent || isMenuOpen) {
-      resizeWindow(contentRef.current.scrollHeight);
-    } else {
-      resizeWindow(SEARCH_BAR_HEIGHT);
-    }
-
-    return () => observer.disconnect();
-  }, [hasContent, isMenuOpen, resizeWindow]);
+    // Backup for images/markdown rendering delays
+    const timer = setTimeout(trigger, 100);
+    const timer2 = setTimeout(trigger, 500);
+    
+    return () => {
+      clearTimeout(timer);
+      clearTimeout(timer2);
+    };
+  }, [hasContent, isMenuOpen, answer, error, isLoading, internalUrl, resizeWindow]);
 
   // ── Dynamic Model Fetching ─────────────────────────────────────────────
   const fetchModels = useCallback(async () => {
