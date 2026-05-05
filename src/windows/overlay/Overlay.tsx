@@ -267,7 +267,7 @@ export default function Overlay() {
           maxWidth: '680px',
         }}
       >
-        <div ref={contentRef} className="flex flex-col w-full h-full">
+        <div ref={contentRef} className="flex flex-col w-full min-h-full">
           {updateVersion && <UpdateBanner version={updateVersion} />}
 
           {/* ── Search Bar Section ─────────────────────────────────────────── */}
@@ -362,7 +362,7 @@ export default function Overlay() {
               ) : (
                 /* ── Standard AI Result View ── */
                 <>
-                  <div className="flex-1 overflow-auto scrollbar-thin scrollbar-thumb-[var(--clr-accent-soft)]">
+                  <div className="flex-1 min-h-[200px] overflow-auto scrollbar-thin scrollbar-thumb-[var(--clr-accent-soft)]">
                     <div className="px-6 py-4">
                       <ResultPanel />
                     </div>
