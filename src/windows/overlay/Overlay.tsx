@@ -91,28 +91,32 @@ export default function Overlay() {
     return () => document.body.classList.remove('overlay-window');
   }, []);
 
-  // ── Auto-resize logic ──────────────────────────────────────────────────
+  // ── Auto-resize logic via ResizeObserver ──────────────────────────────────
   useEffect(() => {
-    if (hasContent || isMenuOpen) {
-      // Use requestAnimationFrame for smoother and more immediate resizing
-      const triggerResize = () => {
-        if (contentRef.current) {
-          resizeWindow(contentRef.current.scrollHeight);
+    if (!contentRef.current) return;
+
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const height = entry.contentRect.height;
+        if (hasContent || isMenuOpen) {
+          resizeWindow(height);
+        } else {
+          resizeWindow(SEARCH_BAR_HEIGHT);
         }
-      };
-      
-      triggerResize();
-      const timer = setTimeout(triggerResize, 100); // Backup for late rendering
-      const timer2 = setTimeout(triggerResize, 500); // Final backup
-      
-      return () => {
-        clearTimeout(timer);
-        clearTimeout(timer2);
-      };
+      }
+    });
+
+    observer.observe(contentRef.current);
+    
+    // Initial trigger
+    if (hasContent || isMenuOpen) {
+      resizeWindow(contentRef.current.scrollHeight);
     } else {
       resizeWindow(SEARCH_BAR_HEIGHT);
     }
-  }, [hasContent, isMenuOpen, answer, isLoading, error, internalUrl, resizeWindow]);
+
+    return () => observer.disconnect();
+  }, [hasContent, isMenuOpen, resizeWindow]);
 
   // ── Dynamic Model Fetching ─────────────────────────────────────────────
   const fetchModels = useCallback(async () => {
