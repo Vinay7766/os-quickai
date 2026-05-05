@@ -175,7 +175,9 @@ export function QueryInput() {
                 <div className="px-3 py-1.5 text-[9px] uppercase tracking-widest opacity-40 font-bold border-b border-white/5">Free Models</div>
                 {[
                   { id: 'minimax-2.5', label: 'MiniMax' },
-                  { id: 'gemini-1.5-flash-8b', label: 'Gemini Flash' }
+                  { id: 'gemini-1.5-flash-8b', label: 'Gemini Flash' },
+                  { id: 'qwen-2.5-72b', label: 'Qwen 2.5' },
+                  { id: 'nemotron-70b', label: 'Nemotron' }
                 ].map(m => (
                   <button
                     key={m.id}

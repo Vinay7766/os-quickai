@@ -14,7 +14,6 @@ import remarkGfm from 'remark-gfm';
 import { useAppStore } from '../store/useAppStore';
 import { useSettingsStore } from '../store/useSettingsStore';
 import { open } from '@tauri-apps/plugin-shell';
-import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
 import 'highlight.js/styles/github-dark.css';
 
 export function ResultPanel() {
@@ -31,18 +30,8 @@ export function ResultPanel() {
     }
 
     if (openLinksInternal) {
-      // Open in a new internal window
-      const webview = new WebviewWindow('internal-browser', {
-        url,
-        title: 'Quickno Browser',
-        width: 1000,
-        height: 800,
-        center: true,
-      });
-      webview.once('tauri://error', (e) => {
-        console.error('Failed to open internal window:', e);
-        open(url); // Fallback
-      });
+      // Open in the overlay's internal browser instead of a new window
+      useAppStore.setState({ internalUrl: url, answer: '', query: '' });
     } else {
       await open(url);
     }
@@ -92,7 +81,7 @@ export function ResultPanel() {
       {!isLoading && !error && answer && (
         <div className="animate-fade-in-up">
           <div
-            className="prose prose-sm max-w-none dark:prose-invert leading-relaxed"
+            className="prose prose-sm max-w-none dark:prose-invert leading-relaxed break-words overflow-x-hidden"
             style={{ color: 'var(--clr-text)' }}
           >
             <ReactMarkdown 
