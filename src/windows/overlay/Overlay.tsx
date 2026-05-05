@@ -56,35 +56,23 @@ export default function Overlay() {
   const isDragging = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  const resultRef = useRef<HTMLDivElement>(null);
 
-  const resizeWindow = useCallback(async (contentHeight: number) => {
+  const resizeWindow = useCallback(async (h: number) => {
     try {
       const win = getCurrentWindow();
       const size = await win.innerSize();
-      // Force fixed width of 680 (original design) to prevent horizontal expansion
       const FIXED_WIDTH = 680;
       
-      // If a menu is open, we need enough height to show it
-      // Otherwise, use content height or search bar height
-      let targetH = isMenuOpen ? 300 : (hasContent ? contentHeight + 16 : SEARCH_BAR_HEIGHT + 16);
-      
-      // If internal browser is open, expand significantly
-      if (internalUrl) {
-        targetH = Math.max(targetH, 700);
-      }
-
-      const h = Math.min(Math.max(targetH, SEARCH_BAR_HEIGHT + 16), internalUrl ? 1200 : MAX_WINDOW_HEIGHT);
-      
       const factor = await win.scaleFactor();
-      const logicalH = size.height / factor;
-      const logicalW = size.width / factor;
+      const currentH = size.height / factor;
+      const currentW = size.width / factor;
 
-      // Only set size if it actually changed to avoid unnecessary re-paints and re-centering
-      if (Math.abs(logicalH - h) > 1 || Math.abs(logicalW - FIXED_WIDTH) > 1) {
+      if (Math.abs(currentH - h) > 1 || Math.abs(currentW - FIXED_WIDTH) > 1) {
          await win.setSize(new LogicalSize(FIXED_WIDTH, h));
       }
     } catch { /* Ignore */ }
-  }, [hasContent, isMenuOpen, internalUrl]);
+  }, []);
 
   useEffect(() => {
     document.body.classList.add('overlay-window');
@@ -97,22 +85,25 @@ export default function Overlay() {
       if (isMenuOpen) {
         resizeWindow(300);
       } else if (internalUrl) {
-        resizeWindow(600); // Use a standard large height for the internal browser
+        resizeWindow(600);
       } else if (hasContent) {
-        // Measure the content's natural height
-        const h = contentRef.current?.scrollHeight || 300;
-        // Add a bit of padding for safety
-        resizeWindow(h + 8);
+        // Calculate total height: Search Bar + Result Content + Footer
+        const searchH = SEARCH_BAR_HEIGHT + 24; // Including margins
+        const resultH = resultRef.current?.scrollHeight || 200;
+        const footerH = 48;
+        
+        let totalH = searchH + resultH + footerH + 16;
+        
+        // Cap the window height to prevent it from going off-screen
+        const targetH = Math.min(totalH, 750);
+        resizeWindow(targetH);
       } else {
         resizeWindow(SEARCH_BAR_HEIGHT);
       }
     };
 
     trigger();
-    
-    // Multiple checks to account for delayed rendering (images, mathjax, etc)
     const timers = [50, 200, 500, 1000].map(ms => setTimeout(trigger, ms));
-    
     return () => timers.forEach(t => clearTimeout(t));
   }, [hasContent, isMenuOpen, internalUrl, answer, error, isLoading, resizeWindow]);
 
@@ -362,7 +353,10 @@ export default function Overlay() {
               ) : (
                 /* ── Standard AI Result View ── */
                 <>
-                  <div className="flex-1 min-h-[200px] overflow-auto scrollbar-thin scrollbar-thumb-[var(--clr-accent-soft)]">
+                  <div 
+                    ref={resultRef}
+                    className="flex-1 min-h-[100px] overflow-auto scrollbar-thin scrollbar-thumb-[var(--clr-accent-soft)]"
+                  >
                     <div className="px-6 py-4">
                       <ResultPanel />
                     </div>
