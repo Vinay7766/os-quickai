@@ -257,9 +257,9 @@ export default function Overlay() {
         style={{
           minHeight: SEARCH_BAR_HEIGHT,
           background: 'var(--clr-glass)',
-          borderRadius: hasContent ? 24 : 9999,
+          borderRadius: (hasContent || isMenuOpen) ? 24 : 9999,
           border: '2px solid var(--clr-accent)',
-          overflow: 'hidden',
+          overflow: isMenuOpen ? 'visible' : 'hidden',
           transition: 'border-radius 0.2s ease, height 0.2s ease',
           width: '100%',
           maxWidth: '680px',
