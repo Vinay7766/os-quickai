@@ -65,6 +65,10 @@ export async function listGeminiModels(apiKey: string): Promise<string[]> {
   return await invoke<string[]>('list_gemini_models', { apiKey });
 }
 
+export async function listProviderModels(apiKey: string, provider: string): Promise<string[]> {
+  return await invoke<string[]>('list_provider_models', { apiKey, provider });
+}
+
 // ── Application Launching ────────────────────────────────────────────────────
 
 /** Launch a Windows application by name. */

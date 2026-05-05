@@ -12,16 +12,15 @@ import { invoke } from '@tauri-apps/api/core';
 // ── Configuration Data ───────────────────────────────────────────────────────
 
 const API_MODELS = [
-  { value: 'gemini-1.5-pro', label: 'Gemini', placeholder: 'AIzaSy...' },
-  { value: 'grok-1.5', label: 'Grok', placeholder: 'xai-...' },
-  { value: 'gpt-4o', label: 'ChatGPT', placeholder: 'sk-proj-...' },
-  { value: 'claude-3-opus', label: 'Claude', placeholder: 'sk-ant-api03-...' },
+  { value: 'gemini', label: 'Gemini', placeholder: 'AIzaSy...', provider: 'gemini' },
+  { value: 'grok', label: 'Grok', placeholder: 'xai-...', provider: 'grok' },
+  { value: 'chatgpt', label: 'ChatGPT', placeholder: 'sk-proj-...', provider: 'openai' },
+  { value: 'claude', label: 'Claude', placeholder: 'sk-ant-api03-...', provider: 'claude' },
 ];
 
 const FREE_MODEL_OPTIONS = [
   { value: 'minimax-2.5', label: 'Minimax 2.5 (Free)' },
-  { value: 'qwen-3.6', label: 'Qwen 3.6 (Free)' },
-  { value: 'nemotron', label: 'Nvidia Nemotron (Free)' },
+  { value: 'gemini-1.5-flash-8b', label: 'Gemini Flash (Free)' },
 ];
 
 const BROWSERS = [
@@ -56,7 +55,8 @@ export default function Settings() {
   const {
     hotkey, llmModel, browser, llmSite, theme, settingsLoaded,
     enableSiteLauncher, enableAppLauncher, openLinksInternal,
-    loadSettings, updateHotkey, updateSetting, saveAll
+    availableModels,
+    loadSettings, updateHotkey, updateSetting, saveAll, refreshModels
   } = useSettingsStore();
 
   const [hasCompletedWelcome, setHasCompletedWelcome] = useState<boolean | null>(null);
@@ -65,6 +65,7 @@ export default function Settings() {
   const [keyStatus, setKeyStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
   const [saveIndicator, setSaveIndicator] = useState(false);
   const [hotkeyStatus, setHotkeyStatus] = useState<'idle' | 'saving' | 'ok' | 'err'>('idle');
+  const [isRefreshingModels, setIsRefreshingModels] = useState(false);
 
   // ── Initialization ─────────────────────────────────────────────────────
   useEffect(() => {
@@ -81,8 +82,6 @@ export default function Settings() {
 
     // Non-blocking initialization
     loadSettings().finally(() => {
-      // Once settings are loaded (even if they fail), we check the welcome flag
-      // Once settings are loaded (even if they fail), we check the welcome flag
       invoke<boolean>('get_setting', { key: 'hasCompletedWelcome_v1_2' })
         .then(completed => {
           clearTimeout(forceLoadTimer);
@@ -95,16 +94,33 @@ export default function Settings() {
         });
     });
 
-    // Fetch API key independently so it doesn't block rendering
-    getApiKey()
-      .then(key => { if (key) setKeyInput('••••••••••••'); })
-      .catch(e => console.error('Failed to get API key', e));
+    // Fetch API key independently
+    getApiKey().then(key => {
+      if (key) {
+        setKeyInput('••••••••••••');
+        // Initial model refresh if on a premium provider
+        const currentProvider = API_MODELS.find(m => llmModel.startsWith(m.value))?.provider;
+        if (currentProvider) {
+          refreshModels(key, currentProvider);
+        }
+      }
+    });
 
     return () => {
       clearTimeout(forceLoadTimer);
       document.body.classList.remove('settings-window');
     };
   }, []);
+
+  // Auto-refresh when provider changes
+  useEffect(() => {
+    const apiModel = API_MODELS.find(m => m.value === llmModel);
+    if (apiModel) {
+      getApiKey().then(key => {
+        if (key) refreshModels(key, apiModel.provider);
+      });
+    }
+  }, [llmModel]);
 
   // ── Handlers ───────────────────────────────────────────────────────────
 
@@ -130,6 +146,15 @@ export default function Settings() {
     try {
       await saveApiKey(keyInput);
       setKeyStatus('success');
+      
+      // Refresh models immediately after saving key
+      const apiModel = API_MODELS.find(m => m.value === llmModel);
+      if (apiModel) {
+        setIsRefreshingModels(true);
+        await refreshModels(keyInput, apiModel.provider);
+        setIsRefreshingModels(false);
+      }
+
       setTimeout(() => setKeyStatus('idle'), 2500);
     } catch {
       setKeyStatus('error');
@@ -283,57 +308,95 @@ export default function Settings() {
                       {llmModel === m.value && <div className="w-2 h-2 rounded-full" style={{ background: 'var(--clr-accent)' }} />}
                     </button>
                   ))}
-                  
                   <div className="px-3 py-2 mt-2 text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--clr-text-secondary)' }}>Premium API Models (Bring Your Own Key)</div>
-                  {API_MODELS.map(m => (
-                    <button
-                      key={m.value}
-                      onClick={() => updateSetting('llmModel', m.value)}
-                      className="flex items-center justify-between px-4 py-3 rounded-xl text-sm transition-all"
-                      style={{
-                        background: llmModel === m.value ? 'var(--clr-surface)' : 'transparent',
-                        color: llmModel === m.value ? 'var(--clr-accent)' : 'var(--clr-text)',
-                        boxShadow: llmModel === m.value ? 'var(--shadow-sm)' : 'none',
-                      }}
-                    >
-                      <span className={llmModel === m.value ? 'font-bold' : ''}>{m.label}</span>
-                      {llmModel === m.value && <div className="w-2 h-2 rounded-full" style={{ background: 'var(--clr-accent)' }} />}
-                    </button>
-                  ))}
+                  {API_MODELS.map(m => {
+                    const isActiveProvider = llmModel === m.value || availableModels.includes(llmModel);
+                    return (
+                      <button
+                        key={m.value}
+                        onClick={() => updateSetting('llmModel', m.value)}
+                        className="flex items-center justify-between px-4 py-3 rounded-xl text-sm transition-all"
+                        style={{
+                          background: isActiveProvider ? 'var(--clr-surface)' : 'transparent',
+                          color: isActiveProvider ? 'var(--clr-accent)' : 'var(--clr-text)',
+                          boxShadow: isActiveProvider ? 'var(--shadow-sm)' : 'none',
+                        }}
+                      >
+                        <span className={isActiveProvider ? 'font-bold' : ''}>{m.label}</span>
+                        {isActiveProvider && <div className="w-2 h-2 rounded-full" style={{ background: 'var(--clr-accent)' }} />}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
               {!isFreeModel && (
-                <div 
-                  className="p-6 rounded-2xl border space-y-4"
-                  style={{ background: 'var(--clr-accent-soft)', borderColor: 'var(--clr-border)' }}
-                >
-                  <div>
-                    <h4 className="text-sm font-bold">API Key Manager</h4>
-                    <p className="text-xs mt-1" style={{ color: 'var(--clr-text-secondary)' }}>
-                      Stored securely in Windows Credential Manager. Never leaves your machine.
-                    </p>
+                <div className="space-y-4">
+                  <div 
+                    className="p-6 rounded-2xl border space-y-4"
+                    style={{ background: 'var(--clr-accent-soft)', borderColor: 'var(--clr-border)' }}
+                  >
+                    <div>
+                      <h4 className="text-sm font-bold">API Key Manager</h4>
+                      <p className="text-xs mt-1" style={{ color: 'var(--clr-text-secondary)' }}>
+                        Stored securely in Windows Credential Manager. Never leaves your machine.
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <input
+                        type="password"
+                        value={keyInput}
+                        onChange={e => setKeyInput(e.target.value)}
+                        placeholder={API_MODELS.find(m => m.value === llmModel)?.placeholder ?? 'Enter your secure API key...'}
+                        className="flex-1 px-4 py-2.5 rounded-xl text-sm border focus:outline-none transition-all"
+                        style={{ background: 'var(--clr-surface)', borderColor: 'var(--clr-border)', color: 'var(--clr-text)' }}
+                      />
+                      <button
+                        onClick={handleSaveKey}
+                        disabled={keyStatus === 'saving' || !keyInput || keyInput === '••••••••••••'}
+                        className="px-6 py-2.5 rounded-xl text-sm font-bold text-white disabled:opacity-50 transition-colors"
+                        style={{ background: 'var(--clr-accent)' }}
+                      >
+                        {keyStatus === 'saving' ? 'Saving...' : 'Save Key'}
+                      </button>
+                    </div>
+                    {keyStatus === 'success' && <p className="text-xs font-medium" style={{ color: 'var(--clr-success)' }}>✓ API Key encrypted and saved securely.</p>}
+                    {keyStatus === 'error' && <p className="text-xs font-medium" style={{ color: 'var(--clr-danger)' }}>Failed to store API Key.</p>}
                   </div>
-                  <div className="flex gap-2">
-                    <input
-                      type="password"
-                      value={keyInput}
-                      onChange={e => setKeyInput(e.target.value)}
-                      placeholder={API_MODELS.find(m => m.value === llmModel)?.placeholder ?? 'Enter your secure API key...'}
-                      className="flex-1 px-4 py-2.5 rounded-xl text-sm border focus:outline-none transition-all"
-                      style={{ background: 'var(--clr-surface)', borderColor: 'var(--clr-border)', color: 'var(--clr-text)' }}
-                    />
-                    <button
-                      onClick={handleSaveKey}
-                      disabled={keyStatus === 'saving' || !keyInput || keyInput === '••••••••••••'}
-                      className="px-6 py-2.5 rounded-xl text-sm font-bold text-white disabled:opacity-50 transition-colors"
-                      style={{ background: 'var(--clr-accent)' }}
-                    >
-                      {keyStatus === 'saving' ? 'Saving...' : 'Save Key'}
-                    </button>
-                  </div>
-                  {keyStatus === 'success' && <p className="text-xs font-medium" style={{ color: 'var(--clr-success)' }}>✓ API Key encrypted and saved securely.</p>}
-                  {keyStatus === 'error' && <p className="text-xs font-medium" style={{ color: 'var(--clr-danger)' }}>Failed to store API Key.</p>}
+
+                  {/* Discovered Models List */}
+                  {availableModels.length > 0 && (
+                    <div className="p-6 rounded-2xl border space-y-4" style={{ background: 'var(--clr-surface-secondary)', borderColor: 'var(--clr-border)' }}>
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-sm font-bold">Specific Model Selection</h4>
+                        <button 
+                          onClick={() => handleSaveKey()} 
+                          className="text-[10px] font-bold uppercase tracking-wider text-[var(--clr-accent)] hover:underline"
+                          disabled={isRefreshingModels}
+                        >
+                          {isRefreshingModels ? 'Refreshing...' : 'Refresh List'}
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-1 gap-1 max-h-60 overflow-y-auto pr-2 scrollbar-thin">
+                        {availableModels.map(m => (
+                          <button
+                            key={m}
+                            onClick={() => updateSetting('llmModel', m)}
+                            className="flex items-center justify-between px-3 py-2.5 rounded-lg text-xs transition-all hover:bg-white/5"
+                            style={{
+                              background: llmModel === m ? 'var(--clr-accent-soft)' : 'transparent',
+                              color: llmModel === m ? 'var(--clr-accent)' : 'var(--clr-text-secondary)',
+                            }}
+                          >
+                            <span className={llmModel === m ? 'font-bold' : ''}>
+                              {m.split('/').pop()?.replace('models/', '') || m}
+                            </span>
+                            {llmModel === m && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

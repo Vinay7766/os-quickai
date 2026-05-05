@@ -85,7 +85,9 @@ export function QueryInput() {
     }
   };
 
-  const currentModelLabel = llmModel.includes('gemini') ? 'Gemini' : 
+  const currentModelLabel = llmModel === 'minimax-2.5' ? 'MiniMax' :
+                           llmModel === 'gemini-1.5-flash-8b' ? 'Gemini Flash' :
+                           llmModel.includes('gemini') ? 'Gemini' : 
                            llmModel.includes('claude') ? 'Claude' : 
                            llmModel.includes('grok') ? 'Grok' : 
                            llmModel.includes('gpt') ? 'ChatGPT' : llmModel;
@@ -157,13 +159,16 @@ export function QueryInput() {
               <div className="max-h-48 overflow-y-auto scrollbar-thin">
                 {/* Free Models */}
                 <div className="px-3 py-1.5 text-[9px] uppercase tracking-widest opacity-40 font-bold border-b border-white/5">Free Models</div>
-                {['minimax-2.5', 'gemini-1.5-flash-8b'].map(m => (
+                {[
+                  { id: 'minimax-2.5', label: 'MiniMax' },
+                  { id: 'gemini-1.5-flash-8b', label: 'Gemini Flash' }
+                ].map(m => (
                   <button
-                    key={m}
-                    className={`w-full text-left px-3 py-2 text-[11px] font-bold transition-colors hover:bg-white/10 ${llmModel === m ? 'text-[var(--clr-accent)]' : 'text-[var(--clr-text-secondary)]'}`}
-                    onClick={() => { updateSetting('llmModel', m); setShowModelMenu(false); }}
+                    key={m.id}
+                    className={`w-full text-left px-3 py-2 text-[11px] font-bold transition-colors hover:bg-white/10 ${llmModel === m.id ? 'text-[var(--clr-accent)]' : 'text-[var(--clr-text-secondary)]'}`}
+                    onClick={() => { updateSetting('llmModel', m.id); setShowModelMenu(false); }}
                   >
-                    {m === 'minimax-2.5' ? 'MiniMax' : 'Gemini Flash'}
+                    {m.label}
                   </button>
                 ))}
                 

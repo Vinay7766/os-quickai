@@ -130,6 +130,7 @@ fn main() {
             commands::browser::check_browser_exists,
             commands::browser::launch_app,
             commands::llm::list_gemini_models,
+            commands::llm::list_provider_models,
         ])
         .setup(move |app| {
             // ── Transparent overlay background ───────────────────────────

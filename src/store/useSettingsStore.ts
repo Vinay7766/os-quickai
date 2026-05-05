@@ -44,10 +44,13 @@ interface SettingsState {
   enableAppLauncher: boolean;
   openLinksInternal: boolean;
 
+  availableModels: string[];
+  
   loadSettings: () => Promise<void>;
   updateHotkey: (hk: string) => Promise<void>;
   updateSetting: (key: string, val: string | boolean) => Promise<void>;
   saveAll: () => Promise<void>;
+  refreshModels: (apiKey: string, provider: string) => Promise<void>;
 }
 
 // ── Theme Helpers ────────────────────────────────────────────────────────────
@@ -78,16 +81,7 @@ function applyThemeToDom(theme: string) {
 // ── Zustand Store ────────────────────────────────────────────────────────────
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
-  settingsLoaded: false,
-  hotkey: 'alt+a',
-  llmModel: 'minimax-2.5',
-  searchEngine: 'google',
-  llmSite: 'claude',
-  browser: 'default',
-  theme: 'system',
-  enableSiteLauncher: true,
-  enableAppLauncher: true,
-  openLinksInternal: true,
+  availableModels: [],
 
   // ── Load Settings from Disk ────────────────────────────────────────────
   loadSettings: async () => {
@@ -124,6 +118,18 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     }
   },
 
+  // ── Refresh Available Models ───────────────────────────────────────────
+  refreshModels: async (apiKey: string, provider: string) => {
+    try {
+      const models = await invoke<string[]>('list_provider_models', { apiKey, provider });
+      set({ availableModels: models });
+      await emit('settings-updated', { key: 'availableModels', val: models });
+    } catch (e) {
+      console.error('[Settings] Failed to refresh models:', e);
+      set({ availableModels: [] });
+    }
+  },
+
   // ── Update Hotkey ──────────────────────────────────────────────────────
   updateHotkey: async (hk: string) => {
     set({ hotkey: hk });
@@ -135,7 +141,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   },
 
   // ── Update Any Setting ─────────────────────────────────────────────────
-  updateSetting: async (key: string, val: string | boolean) => {
+  updateSetting: async (key: string, val: string | boolean | string[]) => {
     // 1. Update local Zustand state immediately
     set({ [key]: val } as any);
 
@@ -169,8 +175,6 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 
       // Broadcast full reload to overlay
       await emit('settings-updated', { key: 'all', val: '' });
-    } catch (e) {
-      console.error('[Settings] Failed to save all:', e);
     }
   },
 }));
