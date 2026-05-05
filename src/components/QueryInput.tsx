@@ -107,7 +107,7 @@ export function QueryInput() {
                            llmModel.includes('gpt') ? 'ChatGPT' : llmModel;
 
   return (
-    <div ref={containerRef} className="flex items-center w-full gap-2">
+    <div ref={containerRef} className="flex items-center w-full gap-2 overflow-hidden">
       {/* Mode Switcher */}
       <div className="relative">
         <button
