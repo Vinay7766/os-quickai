@@ -7,7 +7,7 @@ import { QueryInput } from '../../components/QueryInput';
 import { ResultPanel } from '../../components/ResultPanel';
 import { UpdateBanner } from '../../components/UpdateBanner';
 import { useUpdateCheck } from '../../hooks/useUpdateCheck';
-import { searchInBrowser, listGeminiModels, getApiKey } from '../../lib/tauriCommands';
+import { searchInBrowser, getApiKey } from '../../lib/tauriCommands';
 import { open } from '@tauri-apps/plugin-shell';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 
@@ -33,21 +33,25 @@ const MAX_WINDOW_HEIGHT = 600;
 
 export default function Overlay() {
   const { 
-    answer, isLoading, error, clearAnswer, query, 
-    prevAnswer, prevQuery, setAvailableModels 
+    answer, isLoading, error, clearAnswer, query, setQuery,
+    prevAnswer, prevQuery, isModeMenuOpen, isModelMenuOpen,
+    internalUrl, setInternalUrl
   } = useAppStore();
   
-  const browser      = useSettingsStore((s) => s.browser);
-  const llmSite      = useSettingsStore((s) => s.llmSite);
-  const llmModel     = useSettingsStore((s) => s.llmModel);
-  const searchEngine = useSettingsStore((s) => s.searchEngine);
-  const loadSettings = useSettingsStore((s) => s.loadSettings);
+  const browser        = useSettingsStore((s) => s.browser);
+  const llmSite        = useSettingsStore((s) => s.llmSite);
+  const llmModel       = useSettingsStore((s) => s.llmModel);
+  const searchEngine   = useSettingsStore((s) => s.searchEngine);
+  const loadSettings        = useSettingsStore((s) => s.loadSettings);
+  const refreshModels       = useSettingsStore((s) => s.refreshModels);
+  const openLinksInternal   = useSettingsStore((s) => s.openLinksInternal);
   
   void useSettingsStore((s) => s.theme);
 
   const updateVersion = useUpdateCheck();
   const [copied, setCopied] = useState(false);
-  const hasContent = isLoading || !!error || !!answer;
+  const hasContent = isLoading || !!error || !!answer || !!internalUrl;
+  const isMenuOpen = isModeMenuOpen || isModelMenuOpen;
   const isDragging = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -56,11 +60,22 @@ export default function Overlay() {
     try {
       const win = getCurrentWindow();
       const size = await win.innerSize();
-      // Add buffer (16px) for borders and shadows
-      const h = Math.min(Math.max(contentHeight + 16, SEARCH_BAR_HEIGHT + 16), MAX_WINDOW_HEIGHT);
-      await win.setSize(new LogicalSize(size.width > 100 ? size.width : 700, h));
+      // Maintain current width, fallback to 700 only if invalid
+      const currentWidth = size.width > 0 ? size.width : 700;
+      
+      // If a menu is open, we need enough height to show it (e.g. 300px)
+      // Otherwise, use content height or search bar height
+      let targetH = isMenuOpen ? 300 : (hasContent ? contentHeight + 16 : SEARCH_BAR_HEIGHT + 16);
+      
+      // If internal browser is open, expand significantly
+      if (internalUrl) {
+        targetH = Math.max(targetH, 700);
+      }
+
+      const h = Math.min(Math.max(targetH, SEARCH_BAR_HEIGHT + 16), internalUrl ? 1200 : MAX_WINDOW_HEIGHT);
+      await win.setSize(new LogicalSize(currentWidth, h));
     } catch { /* Ignore */ }
-  }, []);
+  }, [hasContent, isMenuOpen, internalUrl]);
 
   useEffect(() => {
     document.body.classList.add('overlay-window');
@@ -69,7 +84,7 @@ export default function Overlay() {
 
   // ── Auto-resize logic ──────────────────────────────────────────────────
   useEffect(() => {
-    if (hasContent) {
+    if (hasContent || isMenuOpen) {
       const timer = setTimeout(() => {
         if (contentRef.current) {
           resizeWindow(contentRef.current.scrollHeight);
@@ -79,24 +94,31 @@ export default function Overlay() {
     } else {
       resizeWindow(SEARCH_BAR_HEIGHT);
     }
-  }, [hasContent, answer, isLoading, error, resizeWindow]);
+  }, [hasContent, isMenuOpen, answer, isLoading, error, resizeWindow]);
 
   // ── Dynamic Model Fetching ─────────────────────────────────────────────
   const fetchModels = useCallback(async () => {
     try {
       const key = await getApiKey();
       if (key) {
-        const models = await listGeminiModels(key);
-        setAvailableModels(models);
+        // Determine provider based on model ID or generic names
+        let provider = '';
+        if (llmModel.includes('gemini')) provider = 'gemini';
+        else if (llmModel.includes('gpt') || llmModel === 'chatgpt') provider = 'openai';
+        else if (llmModel.includes('claude')) provider = 'claude';
+        else if (llmModel.includes('grok')) provider = 'grok';
+
+        if (provider) {
+          await refreshModels(key, provider);
+        }
       }
     } catch (e) {
       console.warn('[Overlay] Model discovery failed:', e);
     }
-  }, [setAvailableModels]);
+  }, [llmModel, refreshModels]);
 
   useEffect(() => {
-    loadSettings();
-    fetchModels();
+    loadSettings().then(() => fetchModels());
   }, [loadSettings, fetchModels]);
 
   useEffect(() => {
@@ -104,8 +126,7 @@ export default function Overlay() {
     getCurrentWindow()
       .onFocusChanged(({ payload: focused }) => {
         if (focused) {
-          loadSettings();
-          fetchModels();
+          loadSettings().then(() => fetchModels());
           window.dispatchEvent(new Event('focus-input'));
         }
       })
@@ -144,10 +165,15 @@ export default function Overlay() {
     if (!query.trim()) return;
     const searchUrl = (SEARCH_URLS[searchEngine] ?? SEARCH_URLS.google) + encodeURIComponent(query);
     try {
-      if (browser === 'default' || !browser) {
-        await open(searchUrl);
+      if (openLinksInternal) {
+        useAppStore.setState({ internalUrl: searchUrl, query: '' });
       } else {
-        await searchInBrowser(browser, searchUrl);
+        if (browser === 'default' || !browser) {
+          await open(searchUrl);
+        } else {
+          await searchInBrowser(browser, searchUrl);
+        }
+        setQuery('');
       }
     } catch (e) {
       alert(String(e));
@@ -165,14 +191,20 @@ export default function Overlay() {
     } else {
       try { await writeText(query); } catch {}
     }
-    try {
-      if (browser === 'default' || !browser) {
-        await open(url);
-      } else {
-        await searchInBrowser(browser, url);
+    
+    if (openLinksInternal) {
+      useAppStore.setState({ internalUrl: url, query: '' });
+    } else {
+      try {
+        if (browser === 'default' || !browser) {
+          await open(url);
+        } else {
+          await searchInBrowser(browser, url);
+        }
+        setQuery('');
+      } catch (e) {
+        alert(String(e));
       }
-    } catch (e) {
-      alert(String(e));
     }
   };
 
@@ -223,7 +255,7 @@ export default function Overlay() {
               handleDrag();
             }}
             className={`flex items-center gap-3 px-4 shrink-0 cursor-move select-none transition-all duration-300 ${
-              hasContent ? 'mt-2 mx-2 rounded-2xl border border-white/5' : ''
+              hasContent ? 'mt-2 rounded-2xl border border-white/5' : ''
             }`}
             style={{ height: `${SEARCH_BAR_HEIGHT}px`, marginBottom: hasContent ? '6px' : '0' }}
           >
@@ -269,54 +301,70 @@ export default function Overlay() {
           {/* ── Answer Section ────────────────────────────────────────────── */}
           {hasContent && (
             <div className="flex flex-col flex-1 min-h-0 animate-fade-in-up overflow-hidden">
-              <div className="flex-1 overflow-auto scrollbar-thin scrollbar-thumb-[var(--clr-accent-soft)]">
-                <div className="px-6 py-4">
-                  <ResultPanel />
+              {internalUrl ? (
+                /* ── Internal Browser View ── */
+                <div className="flex-1 flex flex-col min-h-0 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                  <div className="flex items-center justify-between px-6 py-2 border-b border-white/5 bg-white/5">
+                    <div className="flex items-center gap-3 overflow-hidden">
+                      <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                      <span className="text-[10px] font-bold opacity-40 truncate uppercase tracking-widest">{internalUrl}</span>
+                    </div>
+                    <button 
+                      onClick={() => setInternalUrl(null)}
+                      className="px-2 py-1 rounded-md hover:bg-white/10 text-[10px] font-bold text-[var(--clr-danger)] uppercase tracking-widest transition-colors"
+                    >
+                      Close Browser
+                    </button>
+                  </div>
+                  <iframe 
+                    src={internalUrl} 
+                    className="flex-1 w-full border-none bg-white" 
+                    title="Internal Browser"
+                  />
                 </div>
-              </div>
-              
-              <div
-                onMouseDown={(e) => {
-                  if ((e.target as HTMLElement).closest('button')) return;
-                  handleDrag();
-                }}
-                className="flex items-center gap-3 px-6 shrink-0 cursor-move select-none"
-                style={{ height: '48px', background: 'rgba(0,0,0,0.02)', borderTop: '1px solid var(--clr-border)' }}
-              >
-                {answer && (
-                  <button
-                    onClick={handleCopy}
-                    className="px-4 py-1.5 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1.5 active:scale-95 hover:brightness-110"
-                    style={{
-                      background: copied ? 'var(--clr-success-soft)' : 'var(--clr-accent-soft)',
-                      border: `1px solid ${copied ? 'var(--clr-success)' : 'var(--clr-accent)'}`,
-                      color: copied ? 'var(--clr-success)' : 'var(--clr-accent)',
+              ) : (
+                /* ── Standard AI Result View ── */
+                <>
+                  <div className="flex-1 overflow-auto scrollbar-thin scrollbar-thumb-[var(--clr-accent-soft)]">
+                    <div className="px-6 py-4">
+                      <ResultPanel />
+                    </div>
+                  </div>
+                  
+                  <div
+                    onMouseDown={(e) => {
+                      if ((e.target as HTMLElement).closest('button')) return;
+                      handleDrag();
                     }}
+                    className="flex items-center gap-3 px-6 shrink-0 cursor-move select-none"
+                    style={{ height: '48px', background: 'rgba(0,0,0,0.02)', borderTop: '1px solid var(--clr-border)' }}
                   >
-                    {copied ? (
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                    ) : (
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                    {answer && (
+                      <button
+                        onClick={handleCopy}
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all hover:bg-white/5 active:scale-95"
+                        style={{ color: copied ? 'var(--clr-success)' : 'var(--clr-text-secondary)' }}
+                      >
+                        {copied ? (
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
+                        ) : (
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
+                        )}
+                        {copied ? 'Copied!' : 'Copy Answer'}
+                      </button>
                     )}
-                    {copied ? 'Copied' : 'Copy Response'}
-                  </button>
-                )}
-                <div className="flex-1" />
-                <div className="flex items-center gap-1.5 opacity-60">
-                  <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: 'var(--clr-accent)' }} />
-                  <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: 'var(--clr-text-secondary)' }}>
-                    {llmModel}
-                  </span>
-                </div>
-                <div className="flex gap-1">
-                  <span className="text-[9px] font-bold uppercase tracking-widest opacity-40 px-2 py-0.5 rounded border border-current" style={{ color: 'var(--clr-text-tertiary)' }} title="Back (Ctrl+Esc)">
-                    ^Esc
-                  </span>
-                  <span className="text-[9px] font-bold uppercase tracking-widest opacity-40 px-2 py-0.5 rounded border border-current" style={{ color: 'var(--clr-text-tertiary)' }} title="Collapse (Shift+Esc)">
-                    ⇧Esc
-                  </span>
-                </div>
-              </div>
+
+                    <div className="flex-1" />
+
+                    <button
+                      onClick={clearAnswer}
+                      className="px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest opacity-40 hover:opacity-100 hover:bg-red-500/10 hover:text-red-500 transition-all"
+                    >
+                      Clear State
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>

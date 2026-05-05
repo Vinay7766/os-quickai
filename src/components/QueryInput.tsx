@@ -9,19 +9,19 @@
 //   • /              → Focus this input (from anywhere in the window)
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { KeyboardEvent, useEffect, useRef, useState } from 'react';
+import { KeyboardEvent, useEffect, useRef } from 'react';
 import { useAppStore } from '../store/useAppStore';
 import { useSettingsStore } from '../store/useSettingsStore';
 
 export function QueryInput() {
   const { 
     query, setQuery, submitQuery, isLoading, 
-    searchMode, setMode, clearAnswer, availableModels 
+    searchMode, setMode, clearAnswer,
+    isModeMenuOpen, isModelMenuOpen, setModeMenuOpen, setModelMenuOpen
   } = useAppStore();
-  const { llmModel, updateSetting } = useSettingsStore();
+  const { llmModel, updateSetting, availableModels } = useSettingsStore();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const [showModeMenu, setShowModeMenu] = useState(false);
-  const [showModelMenu, setShowModelMenu] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // ── Auto-resize textarea ───────────────────────────────────────────────
   useEffect(() => {
@@ -30,6 +30,20 @@ export function QueryInput() {
       textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`;
     }
   }, [query]);
+
+  // ── Menu management ────────────────────────────────────────────────────
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setModeMenuOpen(false);
+        setModelMenuOpen(false);
+      }
+    };
+    if (isModeMenuOpen || isModelMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isModeMenuOpen, isModelMenuOpen, setModeMenuOpen, setModelMenuOpen]);
 
   // ── Focus management ───────────────────────────────────────────────────
   useEffect(() => {
@@ -93,25 +107,25 @@ export function QueryInput() {
                            llmModel.includes('gpt') ? 'ChatGPT' : llmModel;
 
   return (
-    <div className="flex items-center w-full gap-2">
+    <div ref={containerRef} className="flex items-center w-full gap-2">
       {/* Mode Switcher */}
       <div className="relative">
         <button
           className="flex items-center gap-1 px-1.5 py-1 rounded-md hover:bg-white/10 transition-colors"
           style={{ color: 'var(--clr-accent)' }}
-          onClick={() => setShowModeMenu(!showModeMenu)}
+          onClick={() => setModeMenuOpen(!isModeMenuOpen)}
         >
           {getModeIcon()}
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="6 9 12 15 18 9" /></svg>
         </button>
         
-        {showModeMenu && (
+        {isModeMenuOpen && (
           <div className="absolute top-full left-0 mt-2 w-32 glass rounded-xl border border-white/10 shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             {(['search', 'site', 'app'] as const).map(m => (
               <button
                 key={m}
                 className={`w-full text-left px-3 py-2 text-xs font-bold transition-colors hover:bg-white/10 ${searchMode === m ? 'text-[var(--clr-accent)]' : 'text-[var(--clr-text-secondary)]'}`}
-                onClick={() => { setMode(m); setShowModeMenu(false); }}
+                onClick={() => { setMode(m); setModeMenuOpen(false); }}
               >
                 {m.charAt(0).toUpperCase() + m.slice(1)}
               </button>
@@ -148,13 +162,13 @@ export function QueryInput() {
           <button
             className="flex items-center gap-1 px-2 py-1 rounded-md border border-white/10 hover:bg-white/5 transition-all"
             style={{ color: 'var(--clr-text-secondary)', fontSize: '10px', fontWeight: 'bold' }}
-            onClick={() => setShowModelMenu(!showModelMenu)}
+            onClick={() => setModelMenuOpen(!isModelMenuOpen)}
           >
             {currentModelLabel}
             <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4"><polyline points="6 9 12 15 18 9" /></svg>
           </button>
 
-          {showModelMenu && (
+          {isModelMenuOpen && (
             <div className="absolute top-full right-0 mt-2 w-48 glass rounded-xl border border-white/10 shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
               <div className="max-h-48 overflow-y-auto scrollbar-thin">
                 {/* Free Models */}
@@ -166,7 +180,7 @@ export function QueryInput() {
                   <button
                     key={m.id}
                     className={`w-full text-left px-3 py-2 text-[11px] font-bold transition-colors hover:bg-white/10 ${llmModel === m.id ? 'text-[var(--clr-accent)]' : 'text-[var(--clr-text-secondary)]'}`}
-                    onClick={() => { updateSetting('llmModel', m.id); setShowModelMenu(false); }}
+                    onClick={() => { updateSetting('llmModel', m.id); setModelMenuOpen(false); }}
                   >
                     {m.label}
                   </button>
@@ -180,7 +194,7 @@ export function QueryInput() {
                       <button
                         key={m}
                         className={`w-full text-left px-3 py-2 text-[11px] font-bold transition-colors hover:bg-white/10 ${llmModel === m ? 'text-[var(--clr-accent)]' : 'text-[var(--clr-text-secondary)]'}`}
-                        onClick={() => { updateSetting('llmModel', m); setShowModelMenu(false); }}
+                        onClick={() => { updateSetting('llmModel', m); setModelMenuOpen(false); }}
                       >
                         {m.split('/').pop()?.replace('models/', '') || m}
                       </button>
