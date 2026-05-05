@@ -94,10 +94,15 @@ export default function Overlay() {
   // ── Auto-resize logic ──────────────────────────────────────────────────
   useEffect(() => {
     const trigger = () => {
-      if (hasContent || isMenuOpen) {
-        // Use scrollHeight to get the full height of the content
+      if (isMenuOpen) {
+        resizeWindow(300);
+      } else if (internalUrl) {
+        resizeWindow(600); // Use a standard large height for the internal browser
+      } else if (hasContent) {
+        // Measure the content's natural height
         const h = contentRef.current?.scrollHeight || 300;
-        resizeWindow(h);
+        // Add a bit of padding for safety
+        resizeWindow(h + 8);
       } else {
         resizeWindow(SEARCH_BAR_HEIGHT);
       }
@@ -105,15 +110,11 @@ export default function Overlay() {
 
     trigger();
     
-    // Backup for images/markdown rendering delays
-    const timer = setTimeout(trigger, 100);
-    const timer2 = setTimeout(trigger, 500);
+    // Multiple checks to account for delayed rendering (images, mathjax, etc)
+    const timers = [50, 200, 500, 1000].map(ms => setTimeout(trigger, ms));
     
-    return () => {
-      clearTimeout(timer);
-      clearTimeout(timer2);
-    };
-  }, [hasContent, isMenuOpen, answer, error, isLoading, internalUrl, resizeWindow]);
+    return () => timers.forEach(t => clearTimeout(t));
+  }, [hasContent, isMenuOpen, internalUrl, answer, error, isLoading, resizeWindow]);
 
   // ── Dynamic Model Fetching ─────────────────────────────────────────────
   const fetchModels = useCallback(async () => {
@@ -330,17 +331,32 @@ export default function Overlay() {
                       <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
                       <span className="text-[10px] font-bold opacity-40 truncate uppercase tracking-widest">{internalUrl}</span>
                     </div>
-                    <button 
-                      onClick={() => setInternalUrl(null)}
-                      className="px-2 py-1 rounded-md hover:bg-white/10 text-[10px] font-bold text-[var(--clr-danger)] uppercase tracking-widest transition-colors"
-                    >
-                      Close Browser
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={async () => {
+                          if (internalUrl) {
+                            const { open } = await import('@tauri-apps/plugin-shell');
+                            await open(internalUrl);
+                          }
+                        }}
+                        className="px-2 py-1 rounded-md hover:bg-white/10 text-[10px] font-bold text-[var(--clr-accent)] uppercase tracking-widest transition-colors"
+                      >
+                        Open Externally
+                      </button>
+                      <button 
+                        onClick={() => setInternalUrl(null)}
+                        className="px-2 py-1 rounded-md hover:bg-white/10 text-[10px] font-bold text-[var(--clr-danger)] uppercase tracking-widest transition-colors"
+                      >
+                        Close
+                      </button>
+                    </div>
                   </div>
                   <iframe 
                     src={internalUrl} 
                     className="flex-1 w-full border-none bg-white" 
                     title="Internal Browser"
+                    sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
+                    referrerPolicy="no-referrer"
                   />
                 </div>
               ) : (
