@@ -35,7 +35,7 @@ export default function Overlay() {
   const { 
     answer, isLoading, error, clearAnswer, query, setQuery,
     prevAnswer, prevQuery, isModeMenuOpen, isModelMenuOpen,
-    internalUrl, setInternalUrl
+    internalUrl, setInternalUrl, searchMode
   } = useAppStore();
   
   const browser        = useSettingsStore((s) => s.browser);
