@@ -50,7 +50,7 @@ export default function Overlay() {
 
   const updateVersion = useUpdateCheck();
   const [copied, setCopied] = useState(false);
-  const hasContent = isLoading || !!error || !!answer || !!internalUrl;
+  const hasContent = (searchMode === 'search' && isLoading) || !!error || !!answer || !!internalUrl;
   const isMenuOpen = isModeMenuOpen || isModelMenuOpen;
   const isDragging = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -59,8 +59,9 @@ export default function Overlay() {
   const resizeWindow = useCallback(async (contentHeight: number) => {
     try {
       const win = getCurrentWindow();
-      // Force fixed width of 700 to prevent horizontal expansion
-      const FIXED_WIDTH = 700;
+      const size = await win.innerSize();
+      // Force fixed width of 680 (original design) to prevent horizontal expansion
+      const FIXED_WIDTH = 680;
       
       // If a menu is open, we need enough height to show it
       // Otherwise, use content height or search bar height
@@ -72,7 +73,15 @@ export default function Overlay() {
       }
 
       const h = Math.min(Math.max(targetH, SEARCH_BAR_HEIGHT + 16), internalUrl ? 1200 : MAX_WINDOW_HEIGHT);
-      await win.setSize(new LogicalSize(FIXED_WIDTH, h));
+      
+      const factor = await win.scaleFactor();
+      const logicalH = size.height / factor;
+      const logicalW = size.width / factor;
+
+      // Only set size if it actually changed to avoid unnecessary re-paints and re-centering
+      if (Math.abs(logicalH - h) > 1 || Math.abs(logicalW - FIXED_WIDTH) > 1) {
+         await win.setSize(new LogicalSize(FIXED_WIDTH, h));
+      }
     } catch { /* Ignore */ }
   }, [hasContent, isMenuOpen, internalUrl]);
 
@@ -251,8 +260,8 @@ export default function Overlay() {
           border: '2px solid var(--clr-accent)',
           overflow: 'hidden',
           transition: 'border-radius 0.2s ease, height 0.2s ease',
-          width: '700px',
-          maxWidth: '700px',
+          width: '680px',
+          maxWidth: '680px',
         }}
       >
         <div ref={contentRef} className="flex flex-col w-full h-full">
