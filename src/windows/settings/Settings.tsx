@@ -151,13 +151,27 @@ export default function Settings() {
       const apiModel = API_MODELS.find(m => m.value === llmModel);
       if (apiModel) {
         setIsRefreshingModels(true);
-        await refreshModels(keyInput, apiModel.provider);
-        setIsRefreshingModels(false);
+        refreshModels(keyInput, apiModel.provider)
+          .finally(() => setIsRefreshingModels(false));
       }
-
       setTimeout(() => setKeyStatus('idle'), 2500);
-    } catch {
+    } catch (e) {
       setKeyStatus('error');
+    }
+  };
+
+  const handleRefresh = async () => {
+    const apiModel = API_MODELS.find(m => m.value === llmModel);
+    if (!apiModel) return;
+
+    const key = await getApiKey();
+    if (!key) return;
+
+    setIsRefreshingModels(true);
+    try {
+      await refreshModels(key, apiModel.provider);
+    } finally {
+      setIsRefreshingModels(false);
     }
   };
 
@@ -370,10 +384,15 @@ export default function Settings() {
                       <div className="flex items-center justify-between">
                         <h4 className="text-sm font-bold">Specific Model Selection</h4>
                         <button 
-                          onClick={() => handleSaveKey()} 
-                          className="text-[10px] font-bold uppercase tracking-wider text-[var(--clr-accent)] hover:underline"
+                          onClick={handleRefresh} 
+                          className="text-[10px] font-bold uppercase tracking-wider text-[var(--clr-accent)] hover:underline flex items-center gap-1.5 disabled:opacity-50"
                           disabled={isRefreshingModels}
                         >
+                          {isRefreshingModels && (
+                            <svg className="animate-spin" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4">
+                              <path d="M21 12a9 9 0 1 1-9-9" />
+                            </svg>
+                          )}
                           {isRefreshingModels ? 'Refreshing...' : 'Refresh List'}
                         </button>
                       </div>

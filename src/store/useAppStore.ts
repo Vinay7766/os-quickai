@@ -33,14 +33,17 @@ interface AppState {
   /** Current search mode: regular AI search, site launcher, or app launcher */
   searchMode: 'search' | 'site' | 'app';
 
-  /** List of dynamically discovered models (e.g. from Gemini) */
-  availableModels: string[];
-
   /** Previous query for 'back' functionality */
   prevQuery: string;
 
   /** Previous answer for 'back' functionality */
   prevAnswer: string;
+
+  /** Whether the mode switcher menu is currently open */
+  isModeMenuOpen: boolean;
+
+  /** Whether the model switcher menu is currently open */
+  isModelMenuOpen: boolean;
 
   /** Update the query text */
   setQuery: (q: string) => void;
@@ -48,13 +51,22 @@ interface AppState {
   /** Change the search mode */
   setMode: (mode: 'search' | 'site' | 'app') => void;
 
-  /** Update the list of available models */
-  setAvailableModels: (models: string[]) => void;
+  /** Toggle mode menu */
+  setModeMenuOpen: (open: boolean) => void;
+
+  /** Toggle model menu */
+  setModelMenuOpen: (open: boolean) => void;
+
+  /** URL for internal browser view */
+  internalUrl: string | null;
+
+  /** Set internal URL */
+  setInternalUrl: (url: string | null) => void;
 
   /** Submit the current query to the selected AI model */
   submitQuery: () => Promise<void>;
 
-  /** Clear all query state (input, answer, error) */
+  /** Clear all query state (input, answer, error, internalUrl) */
   clearAnswer: () => void;
 }
 
@@ -68,13 +80,17 @@ export const useAppStore = create<AppState>((set, get) => ({
   isLoading: false,
   error: null,
   searchMode: 'search',
-  availableModels: [],
+  isModeMenuOpen: false,
+  isModelMenuOpen: false,
+  internalUrl: null,
 
   setQuery: (q: string) => set({ query: q }),
   setMode: (mode: 'search' | 'site' | 'app') => set({ searchMode: mode }),
-  setAvailableModels: (models: string[]) => set({ availableModels: models }),
+  setModeMenuOpen: (open: boolean) => set({ isModeMenuOpen: open }),
+  setModelMenuOpen: (open: boolean) => set({ isModelMenuOpen: open }),
+  setInternalUrl: (url: string | null) => set({ internalUrl: url }),
 
-  clearAnswer: () => set({ answer: '', query: '', error: null }),
+  clearAnswer: () => set({ answer: '', query: '', error: null, internalUrl: null }),
 
   submitQuery: async () => {
     const { query, answer, searchMode } = get();
@@ -96,8 +112,13 @@ export const useAppStore = create<AppState>((set, get) => ({
         if (!url.startsWith('http')) {
           url = `https://${url}`;
         }
-        await invoke('search_in_browser', { browser: settings.browser, url });
-        set({ isLoading: false, query: '' });
+        
+        if (settings.openLinksInternal) {
+          set({ internalUrl: url, isLoading: false, query: '' });
+        } else {
+          await invoke('search_in_browser', { browser: settings.browser, url });
+          set({ isLoading: false, query: '' });
+        }
         return;
       }
 

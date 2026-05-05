@@ -48,7 +48,7 @@ interface SettingsState {
   
   loadSettings: () => Promise<void>;
   updateHotkey: (hk: string) => Promise<void>;
-  updateSetting: (key: string, val: string | boolean) => Promise<void>;
+  updateSetting: (key: string, val: string | boolean | string[]) => Promise<void>;
   saveAll: () => Promise<void>;
   refreshModels: (apiKey: string, provider: string) => Promise<void>;
 }
@@ -81,6 +81,16 @@ function applyThemeToDom(theme: string) {
 // ── Zustand Store ────────────────────────────────────────────────────────────
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
+  settingsLoaded: false,
+  hotkey: 'alt+a',
+  llmModel: 'minimax-2.5',
+  searchEngine: 'google',
+  llmSite: 'claude',
+  browser: 'default',
+  theme: 'system',
+  enableSiteLauncher: true,
+  enableAppLauncher: true,
+  openLinksInternal: true,
   availableModels: [],
 
   // ── Load Settings from Disk ────────────────────────────────────────────
@@ -175,6 +185,8 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 
       // Broadcast full reload to overlay
       await emit('settings-updated', { key: 'all', val: '' });
+    } catch (e) {
+      console.error('[Settings] Failed to save all:', e);
     }
   },
 }));
