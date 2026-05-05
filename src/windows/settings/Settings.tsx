@@ -20,7 +20,8 @@ const API_MODELS = [
 
 const FREE_MODEL_OPTIONS = [
   { value: 'minimax-2.5', label: 'Minimax 2.5 (Free)' },
-  { value: 'gemini-1.5-flash-8b', label: 'Gemini Flash (Free)' },
+  { value: 'qwen-2.5-72b', label: 'Qwen 2.5 (Free)' },
+  { value: 'nemotron-70b', label: 'Nemotron (Free)' },
 ];
 
 const BROWSERS = [
