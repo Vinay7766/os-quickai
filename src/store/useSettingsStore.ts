@@ -38,10 +38,15 @@ interface SettingsState {
   llmSite: string;
   browser: string;
   theme: 'light' | 'dark' | 'system';
+  
+  // New toggles
+  enableSiteLauncher: boolean;
+  enableAppLauncher: boolean;
+  openLinksInternal: boolean;
 
   loadSettings: () => Promise<void>;
   updateHotkey: (hk: string) => Promise<void>;
-  updateSetting: (key: string, val: string) => Promise<void>;
+  updateSetting: (key: string, val: string | boolean) => Promise<void>;
   saveAll: () => Promise<void>;
 }
 
@@ -80,6 +85,9 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   llmSite: 'claude',
   browser: 'default',
   theme: 'system',
+  enableSiteLauncher: true,
+  enableAppLauncher: true,
+  openLinksInternal: true,
 
   // ── Load Settings from Disk ────────────────────────────────────────────
   loadSettings: async () => {
@@ -90,19 +98,24 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       const llmSite      = await invoke<string | null>('get_setting', { key: 'llmSite' })      ?? 'claude';
       const browser      = await invoke<string | null>('get_setting', { key: 'browser' })      ?? 'default';
 
+      const enableSiteLauncher = (await invoke<string | null>('get_setting', { key: 'enableSiteLauncher' })) !== 'false';
+      const enableAppLauncher  = (await invoke<string | null>('get_setting', { key: 'enableAppLauncher' }))  !== 'false';
+      const openLinksInternal  = (await invoke<string | null>('get_setting', { key: 'openLinksInternal' }))  !== 'false';
+
       let theme = await invoke<'light' | 'dark' | 'system' | null>('get_setting', { key: 'theme' });
       if (!theme) {
         theme = 'system';
         await invoke('save_setting', { key: 'theme', value: theme });
       }
 
-      // Detect the actual OS theme from the Windows registry
       await refreshOsThemeCache();
-
-      // Apply theme to this window's DOM
       applyThemeToDom(theme);
 
-      set({ hotkey, llmModel, searchEngine, llmSite, browser, theme, settingsLoaded: true });
+      set({ 
+        hotkey, llmModel, searchEngine, llmSite, browser, theme, 
+        enableSiteLauncher, enableAppLauncher, openLinksInternal,
+        settingsLoaded: true 
+      });
     } catch (e) {
       console.error('[Settings] Failed to load:', e);
       await refreshOsThemeCache();
@@ -122,22 +135,21 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   },
 
   // ── Update Any Setting ─────────────────────────────────────────────────
-  updateSetting: async (key: string, val: string) => {
+  updateSetting: async (key: string, val: string | boolean) => {
     // 1. Update local Zustand state immediately
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     set({ [key]: val } as any);
 
     // 2. If theme changed, apply to THIS window's DOM
-    if (key === 'theme') {
+    if (key === 'theme' && typeof val === 'string') {
       if (val === 'system') await refreshOsThemeCache();
       applyThemeToDom(val);
     }
 
     try {
-      // 3. Persist to disk
-      await invoke('save_setting', { key, value: val });
+      // 3. Persist to disk (always as string)
+      await invoke('save_setting', { key, value: String(val) });
 
-      // 4. Broadcast to ALL windows so the overlay picks it up instantly
+      // 4. Broadcast to ALL windows
       await emit('settings-updated', { key, val });
     } catch (e) {
       console.error('[Settings] Failed to save:', e);

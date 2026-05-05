@@ -13,11 +13,40 @@ import rehypeHighlight from 'rehype-highlight';
 import remarkGfm from 'remark-gfm';
 import { useAppStore } from '../store/useAppStore';
 import { useSettingsStore } from '../store/useSettingsStore';
+import { open } from '@tauri-apps/plugin-shell';
+import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
 import 'highlight.js/styles/github-dark.css';
 
 export function ResultPanel() {
   const { answer, isLoading, error } = useAppStore();
-  const { llmModel } = useSettingsStore();
+  const { llmModel, openLinksInternal } = useSettingsStore();
+
+  const handleLinkClick = async (e: React.MouseEvent<HTMLAnchorElement>, url: string) => {
+    e.preventDefault();
+    
+    // Ctrl+Click always opens in system browser
+    if (e.ctrlKey) {
+      await open(url);
+      return;
+    }
+
+    if (openLinksInternal) {
+      // Open in a new internal window
+      const webview = new WebviewWindow('internal-browser', {
+        url,
+        title: 'Quickno Browser',
+        width: 1000,
+        height: 800,
+        center: true,
+      });
+      webview.once('tauri://error', (e) => {
+        console.error('Failed to open internal window:', e);
+        open(url); // Fallback
+      });
+    } else {
+      await open(url);
+    }
+  };
 
   return (
     <div className="w-full select-text cursor-auto" style={{ color: 'var(--clr-text)' }}>
@@ -62,7 +91,6 @@ export function ResultPanel() {
       {/* ── Answer State ──────────────────────────────────────────────── */}
       {!isLoading && !error && answer && (
         <div className="animate-fade-in-up">
-          {/* Rendered markdown with syntax highlighting */}
           <div
             className="prose prose-sm max-w-none dark:prose-invert leading-relaxed"
             style={{ color: 'var(--clr-text)' }}
@@ -70,12 +98,22 @@ export function ResultPanel() {
             <ReactMarkdown 
               remarkPlugins={[remarkGfm]} 
               rehypePlugins={[rehypeHighlight]}
+              components={{
+                a: ({ href, children }) => (
+                  <a 
+                    href={href} 
+                    onClick={(e) => handleLinkClick(e, href || '')}
+                    className="text-[var(--clr-accent)] hover:underline font-bold"
+                  >
+                    {children}
+                  </a>
+                )
+              }}
             >
               {answer}
             </ReactMarkdown>
           </div>
 
-          {/* Model attribution footer */}
           <div
             className="mt-5 pt-3 border-t flex items-center gap-2 opacity-50"
             style={{ borderColor: 'var(--clr-border)' }}
