@@ -107,13 +107,17 @@ export function QueryInput() {
                            llmModel.includes('gpt') ? 'ChatGPT' : llmModel;
 
   return (
-    <div ref={containerRef} className="flex items-center w-full gap-2 overflow-hidden">
+    <div ref={containerRef} className="flex items-center w-full gap-2">
       {/* Mode Switcher */}
       <div className="relative">
         <button
           className="flex items-center gap-1 px-1.5 py-1 rounded-md hover:bg-white/10 transition-colors"
           style={{ color: 'var(--clr-accent)' }}
-          onClick={() => setModeMenuOpen(!isModeMenuOpen)}
+          onClick={(e) => {
+            e.stopPropagation();
+            setModeMenuOpen(!isModeMenuOpen);
+            if (!isModeMenuOpen) setModelMenuOpen(false); // Close other menu
+          }}
         >
           {getModeIcon()}
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="6 9 12 15 18 9" /></svg>
@@ -162,7 +166,11 @@ export function QueryInput() {
           <button
             className="flex items-center gap-1 px-2 py-1 rounded-md border border-white/10 hover:bg-white/5 transition-all"
             style={{ color: 'var(--clr-text-secondary)', fontSize: '10px', fontWeight: 'bold' }}
-            onClick={() => setModelMenuOpen(!isModelMenuOpen)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setModelMenuOpen(!isModelMenuOpen);
+              if (!isModelMenuOpen) setModeMenuOpen(false); // Close other menu
+            }}
           >
             {currentModelLabel}
             <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4"><polyline points="6 9 12 15 18 9" /></svg>
