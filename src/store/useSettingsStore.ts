@@ -43,6 +43,7 @@ interface SettingsState {
   enableSiteLauncher: boolean;
   enableAppLauncher: boolean;
   openLinksInternal: boolean;
+  enableFailover: boolean;
 
   availableModels: string[];
   
@@ -91,6 +92,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   enableSiteLauncher: true,
   enableAppLauncher: true,
   openLinksInternal: true,
+  enableFailover: false,
   availableModels: [],
 
   // ── Load Settings from Disk ────────────────────────────────────────────
@@ -105,6 +107,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       const enableSiteLauncher = (await invoke<string | null>('get_setting', { key: 'enableSiteLauncher' })) !== 'false';
       const enableAppLauncher  = (await invoke<string | null>('get_setting', { key: 'enableAppLauncher' }))  !== 'false';
       const openLinksInternal  = (await invoke<string | null>('get_setting', { key: 'openLinksInternal' }))  !== 'false';
+      const enableFailover     = (await invoke<string | null>('get_setting', { key: 'enableFailover' }))     === 'true';
 
       let theme = await invoke<'light' | 'dark' | 'system' | null>('get_setting', { key: 'theme' });
       if (!theme) {
@@ -117,7 +120,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 
       set({ 
         hotkey, llmModel, searchEngine, llmSite, browser, theme, 
-        enableSiteLauncher, enableAppLauncher, openLinksInternal,
+        enableSiteLauncher, enableAppLauncher, openLinksInternal, enableFailover,
         settingsLoaded: true 
       });
     } catch (e) {
