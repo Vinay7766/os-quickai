@@ -3,7 +3,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useEffect, useState } from 'react';
-import { useSettingsStore, FREE_MODELS } from '../../store/useSettingsStore';
+import { useSettingsStore } from '../../store/useSettingsStore';
 import { saveApiKey, deleteApiKey, getApiKey, updateShortcut, checkBrowserExists } from '../../lib/tauriCommands';
 import { open } from '@tauri-apps/plugin-shell';
 import WelcomeScreen from './WelcomeScreen';
@@ -19,9 +19,11 @@ const API_MODELS = [
 ];
 
 const FREE_MODEL_OPTIONS = [
-  { value: 'minimax-2.5', label: 'Minimax 2.5 (Free)' },
-  { value: 'qwen-2.5-72b', label: 'Qwen 2.5 (Free)' },
-  { value: 'nemotron-70b', label: 'Nemotron (Free)' },
+  { value: 'qwen-coder', label: 'Qwen 2.5 Coder (Free)' },
+  { value: 'qwen',       label: 'Qwen 2.5 72B (Free)' },
+  { value: 'deepseek',   label: 'DeepSeek V3 (Free)' },
+  { value: 'llama',      label: 'Llama 3.3 (Free)' },
+  { value: 'mistral',    label: 'Mistral Large (Free)' },
 ];
 
 const BROWSERS = [
@@ -67,6 +69,8 @@ export default function Settings() {
   const [saveIndicator, setSaveIndicator] = useState(false);
   const [hotkeyStatus, setHotkeyStatus] = useState<'idle' | 'saving' | 'ok' | 'err'>('idle');
   const [isRefreshingModels, setIsRefreshingModels] = useState(false);
+  const [storedKeys, setStoredKeys] = useState<Record<string, boolean>>({});
+  const [activeKeyProvider, setActiveKeyProvider] = useState<string | null>(null);
 
   // ── Initialization ─────────────────────────────────────────────────────
   useEffect(() => {
@@ -95,17 +99,26 @@ export default function Settings() {
         });
     });
 
-    // Fetch API key independently
-    getApiKey().then(key => {
-      if (key) {
-        setKeyInput('••••••••••••');
-        // Initial model refresh if on a premium provider
-        const currentProvider = API_MODELS.find(m => llmModel.startsWith(m.value))?.provider;
-        if (currentProvider) {
-          refreshModels(key, currentProvider);
-        }
-      }
+    // Check all provider keys on init
+    Promise.all(API_MODELS.map(async m => {
+      const key = await getApiKey(m.provider);
+      return { provider: m.provider, exists: !!key };
+    })).then(results => {
+      const mapping: Record<string, boolean> = {};
+      results.forEach(r => mapping[r.provider] = r.exists);
+      setStoredKeys(mapping);
     });
+
+    // Fetch API key for the current model independently
+    const apiModel = API_MODELS.find(m => llmModel.startsWith(m.value));
+    if (apiModel) {
+      getApiKey(apiModel.provider).then(key => {
+        if (key) {
+          setKeyInput('••••••••••••');
+          refreshModels(key, apiModel.provider);
+        }
+      });
+    }
 
     return () => {
       clearTimeout(forceLoadTimer);
@@ -115,10 +128,15 @@ export default function Settings() {
 
   // Auto-refresh when provider changes
   useEffect(() => {
-    const apiModel = API_MODELS.find(m => m.value === llmModel);
+    const apiModel = API_MODELS.find(m => llmModel.startsWith(m.value));
     if (apiModel) {
-      getApiKey().then(key => {
-        if (key) refreshModels(key, apiModel.provider);
+      getApiKey(apiModel.provider).then(key => {
+        if (key) {
+          setKeyInput('••••••••••••');
+          refreshModels(key, apiModel.provider);
+        } else {
+          setKeyInput('');
+        }
       });
     }
   }, [llmModel]);
@@ -141,31 +159,43 @@ export default function Settings() {
     setTimeout(() => setSaveIndicator(false), 2000);
   };
 
-  const handleSaveKey = async () => {
+  const handleSaveKey = async (provider?: string) => {
     if (!keyInput || keyInput === '••••••••••••') return;
+    
+    const targetProvider = provider || API_MODELS.find(m => llmModel.startsWith(m.value))?.provider;
+    if (!targetProvider) return;
+
     setKeyStatus('saving');
     try {
-      await saveApiKey(keyInput);
+      await saveApiKey(keyInput, targetProvider);
       setKeyStatus('success');
       
-      // Refresh models immediately after saving key
-      const apiModel = API_MODELS.find(m => m.value === llmModel);
-      if (apiModel) {
+      // Update local storage status
+      setStoredKeys(prev => ({ ...prev, [targetProvider]: true }));
+      
+      // Refresh models immediately if this is the active model's provider
+      const apiModel = API_MODELS.find(m => llmModel.startsWith(m.value));
+      if (apiModel && apiModel.provider === targetProvider) {
         setIsRefreshingModels(true);
-        refreshModels(keyInput, apiModel.provider)
+        refreshModels(keyInput, targetProvider)
           .finally(() => setIsRefreshingModels(false));
       }
-      setTimeout(() => setKeyStatus('idle'), 2500);
+      
+      setTimeout(() => {
+        setKeyStatus('idle');
+        setKeyInput('••••••••••••');
+        setActiveKeyProvider(null);
+      }, 2500);
     } catch (e) {
       setKeyStatus('error');
     }
   };
 
   const handleRefresh = async () => {
-    const apiModel = API_MODELS.find(m => m.value === llmModel);
+    const apiModel = API_MODELS.find(m => llmModel.startsWith(m.value));
     if (!apiModel) return;
 
-    const key = await getApiKey();
+    const key = await getApiKey(apiModel.provider);
     if (!key) return;
 
     setIsRefreshingModels(true);
@@ -176,12 +206,21 @@ export default function Settings() {
     }
   };
 
-  const handleDeleteKey = async () => {
-    if (confirm('Delete the saved API key? This will permanently remove it from the Windows Credential Manager and your local machine.')) {
-      await deleteApiKey();
-      setKeyInput('');
+  const handleDeleteKey = async (provider?: string) => {
+    const apiModel = API_MODELS.find(m => llmModel.startsWith(m.value));
+    const targetProvider = provider || apiModel?.provider;
+    if (!targetProvider) return;
+
+    const label = API_MODELS.find(m => m.provider === targetProvider)?.label || targetProvider;
+
+    if (confirm(`Delete the saved API key for ${label}? This will permanently remove it from the Windows Credential Manager.`)) {
+      await deleteApiKey(targetProvider);
+      setStoredKeys(prev => ({ ...prev, [targetProvider]: false }));
+      if (targetProvider === apiModel?.provider) {
+        setKeyInput('');
+      }
       setKeyStatus('idle');
-      alert('API Key successfully deleted from your machine.');
+      alert(`${label} API Key successfully deleted from your machine.`);
     }
   };
 
@@ -230,7 +269,6 @@ export default function Settings() {
     );
   }
 
-  const isFreeModel = FREE_MODELS.includes(llmModel);
 
   return (
     <div className="h-screen flex overflow-hidden" style={{ background: 'var(--clr-surface)', color: 'var(--clr-text)' }}>
@@ -325,7 +363,7 @@ export default function Settings() {
                   ))}
                   <div className="px-3 py-2 mt-2 text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--clr-text-secondary)' }}>Premium API Models (Bring Your Own Key)</div>
                   {API_MODELS.map(m => {
-                    const isActiveProvider = llmModel === m.value || availableModels.includes(llmModel);
+                    const isActiveProvider = llmModel.startsWith(m.value) || availableModels.includes(llmModel);
                     return (
                       <button
                         key={m.value}
@@ -345,80 +383,125 @@ export default function Settings() {
                 </div>
               </div>
 
-              {!isFreeModel && (
-                <div className="space-y-4">
-                  <div 
-                    className="p-6 rounded-2xl border space-y-4"
-                    style={{ background: 'var(--clr-accent-soft)', borderColor: 'var(--clr-border)' }}
-                  >
-                    <div>
-                      <h4 className="text-sm font-bold">API Key Manager</h4>
-                      <p className="text-xs mt-1" style={{ color: 'var(--clr-text-secondary)' }}>
-                        Stored securely in Windows Credential Manager. Never leaves your machine.
-                      </p>
-                    </div>
-                    <div className="flex gap-2">
-                      <input
-                        type="password"
-                        value={keyInput}
-                        onChange={e => setKeyInput(e.target.value)}
-                        placeholder={API_MODELS.find(m => m.value === llmModel)?.placeholder ?? 'Enter your secure API key...'}
-                        className="flex-1 px-4 py-2.5 rounded-xl text-sm border focus:outline-none transition-all"
-                        style={{ background: 'var(--clr-surface)', borderColor: 'var(--clr-border)', color: 'var(--clr-text)' }}
-                      />
-                      <button
-                        onClick={handleSaveKey}
-                        disabled={keyStatus === 'saving' || !keyInput || keyInput === '••••••••••••'}
-                        className="px-6 py-2.5 rounded-xl text-sm font-bold text-white disabled:opacity-50 transition-colors"
-                        style={{ background: 'var(--clr-accent)' }}
-                      >
-                        {keyStatus === 'saving' ? 'Saving...' : 'Save Key'}
-                      </button>
-                    </div>
-                    {keyStatus === 'success' && <p className="text-xs font-medium" style={{ color: 'var(--clr-success)' }}>✓ API Key encrypted and saved securely.</p>}
-                    {keyStatus === 'error' && <p className="text-xs font-medium" style={{ color: 'var(--clr-danger)' }}>Failed to store API Key.</p>}
+              <div className="space-y-4">
+                <div 
+                  className="p-6 rounded-2xl border space-y-6"
+                  style={{ background: 'var(--clr-surface-secondary)', borderColor: 'var(--clr-border)' }}
+                >
+                  <div>
+                    <h4 className="text-sm font-bold">API Key Manager</h4>
+                    <p className="text-xs mt-1" style={{ color: 'var(--clr-text-secondary)' }}>
+                      Stored securely in Windows Credential Manager.
+                    </p>
                   </div>
 
-                  {/* Discovered Models List */}
-                  {availableModels.length > 0 && (
-                    <div className="p-6 rounded-2xl border space-y-4" style={{ background: 'var(--clr-surface-secondary)', borderColor: 'var(--clr-border)' }}>
-                      <div className="flex items-center justify-between">
-                        <h4 className="text-sm font-bold">Specific Model Selection</h4>
-                        <button 
-                          onClick={handleRefresh} 
-                          className="text-[10px] font-bold uppercase tracking-wider text-[var(--clr-accent)] hover:underline flex items-center gap-1.5 disabled:opacity-50"
-                          disabled={isRefreshingModels}
-                        >
-                          {isRefreshingModels && (
-                            <svg className="animate-spin" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4">
-                              <path d="M21 12a9 9 0 1 1-9-9" />
-                            </svg>
-                          )}
-                          {isRefreshingModels ? 'Refreshing...' : 'Refresh List'}
-                        </button>
+                  <div className="space-y-3">
+                    {API_MODELS.map(m => (
+                      <div key={m.provider} className="group flex flex-col gap-2 p-3 rounded-xl border border-transparent hover:border-white/5 hover:bg-white/5 transition-all">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold">{m.label}</span>
+                            {storedKeys[m.provider] ? (
+                              <span className="flex items-center gap-1 text-[9px] font-bold text-[var(--clr-success)] uppercase tracking-widest">
+                                <span className="w-1.5 h-1.5 rounded-full bg-[var(--clr-success)] animate-pulse" />
+                                Connected
+                              </span>
+                            ) : (
+                              <span className="text-[9px] font-bold opacity-30 uppercase tracking-widest">Not Configured</span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {storedKeys[m.provider] && (
+                              <button 
+                                onClick={() => handleDeleteKey(m.provider)}
+                                className="text-[9px] font-bold uppercase tracking-widest text-[var(--clr-danger)] opacity-0 group-hover:opacity-100 hover:underline transition-opacity"
+                              >
+                                Delete
+                              </button>
+                            )}
+                            <button 
+                              onClick={() => {
+                                setActiveKeyProvider(activeKeyProvider === m.provider ? null : m.provider);
+                                setKeyInput(storedKeys[m.provider] ? '••••••••••••' : '');
+                              }}
+                              className="text-[9px] font-bold uppercase tracking-widest text-[var(--clr-accent)] hover:underline"
+                            >
+                              {activeKeyProvider === m.provider ? 'Cancel' : storedKeys[m.provider] ? 'Update Key' : 'Add Key'}
+                            </button>
+                          </div>
+                        </div>
+
+                        {activeKeyProvider === m.provider && (
+                          <div className="flex gap-2 animate-in slide-in-from-top-2 duration-200">
+                            <input
+                              type="password"
+                              autoFocus
+                              value={keyInput}
+                              onChange={e => setKeyInput(e.target.value)}
+                              placeholder={m.placeholder}
+                              className="flex-1 px-3 py-1.5 rounded-lg text-xs border focus:outline-none transition-all"
+                              style={{ background: 'var(--clr-surface)', borderColor: 'var(--clr-border)', color: 'var(--clr-text)' }}
+                            />
+                            <button
+                              onClick={() => handleSaveKey(m.provider)}
+                              disabled={keyStatus === 'saving' || !keyInput || keyInput === '••••••••••••'}
+                              className="px-4 py-1.5 rounded-lg text-xs font-bold text-white disabled:opacity-50"
+                              style={{ background: 'var(--clr-accent)' }}
+                            >
+                              {keyStatus === 'saving' ? '...' : 'Save'}
+                            </button>
+                          </div>
+                        )}
+                        {keyStatus === 'success' && activeKeyProvider === m.provider && <p className="text-[10px] font-medium text-[var(--clr-success)]">✓ Key saved.</p>}
                       </div>
-                      <div className="grid grid-cols-1 gap-1 max-h-60 overflow-y-auto pr-2 scrollbar-thin">
-                        {availableModels.map(m => (
-                          <button
-                            key={m}
-                            onClick={() => updateSetting('llmModel', m)}
-                            className="flex items-center justify-between px-3 py-2.5 rounded-lg text-xs transition-all hover:bg-white/5"
-                            style={{
-                              background: llmModel === m ? 'var(--clr-accent-soft)' : 'transparent',
-                              color: llmModel === m ? 'var(--clr-accent)' : 'var(--clr-text-secondary)',
-                            }}
-                          >
-                            <span className={llmModel === m ? 'font-bold' : ''}>
-                              {m.split('/').pop()?.replace('models/', '') || m}
-                            </span>
-                            {llmModel === m && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                    ))}
+                  </div>
                 </div>
-              )}
+
+                {/* Discovered Models List */}
+                {availableModels.length > 0 && (
+                  <div className="p-6 rounded-2xl border space-y-4" style={{ background: 'var(--clr-surface-secondary)', borderColor: 'var(--clr-border)' }}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-sm font-bold">Specific Model Selection</h4>
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[var(--clr-accent-soft)] text-[var(--clr-accent)] uppercase tracking-widest">
+                          {API_MODELS.find(m => m.value === llmModel || availableModels.includes(llmModel))?.label || 'Custom'}
+                        </span>
+                      </div>
+                      <button 
+                        onClick={() => handleRefresh()} 
+                        className="text-[10px] font-bold uppercase tracking-wider text-[var(--clr-accent)] hover:underline flex items-center gap-1.5 disabled:opacity-50"
+                        disabled={isRefreshingModels}
+                      >
+                        {isRefreshingModels && (
+                          <svg className="animate-spin" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4">
+                            <path d="M21 12a9 9 0 1 1-9-9" />
+                          </svg>
+                        )}
+                        {isRefreshingModels ? 'Refreshing...' : 'Refresh List'}
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-1 gap-1 max-h-60 overflow-y-auto pr-2 scrollbar-thin">
+                      {availableModels.map(m => (
+                        <button
+                          key={m}
+                          onClick={() => updateSetting('llmModel', m)}
+                          className="flex items-center justify-between px-3 py-2.5 rounded-lg text-xs transition-all hover:bg-white/5"
+                          style={{
+                            background: llmModel === m ? 'var(--clr-accent-soft)' : 'transparent',
+                            color: llmModel === m ? 'var(--clr-accent)' : 'var(--clr-text-secondary)',
+                          }}
+                        >
+                          <span className={llmModel === m ? 'font-bold' : ''}>
+                            {m.split('/').pop()?.replace('models/', '') || m}
+                          </span>
+                          {llmModel === m && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -611,7 +694,7 @@ export default function Settings() {
 
               <div className="grid gap-3">
                 {[
-                  { title: 'Community Discord', desc: 'Join the conversation, ask questions, and share ideas.', url: 'https://discord.gg/tJXcYePghn' },
+                  { title: 'Community Discord', desc: 'Join the conversation, ask questions, and share ideas.', url: 'https://discord.gg/29a3qkEsX' },
                   { title: 'Bug Reporting', desc: 'Found an issue? Let us know so we can fix it.', url: 'https://discord.gg/CpMW6AMsKC' },
                   { title: 'Feature Requests', desc: 'Suggest new features for future versions.', url: 'https://discord.gg/CpMW6AMsKC' }
                 ].map(item => (
@@ -633,6 +716,35 @@ export default function Settings() {
                     </button>
                   </div>
                 ))}
+              </div>
+
+              <div className="pt-6 border-t" style={{ borderColor: 'var(--clr-border)' }}>
+                <h3 className="text-sm font-bold mb-4 flex items-center gap-2">
+                  Support the Project
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <button
+                    onClick={() => open('https://ko-fi.com/vinay7766')}
+                    className="flex flex-col items-center gap-1 p-5 rounded-2xl border transition-all hover:border-[var(--clr-accent)] hover:bg-[var(--clr-accent-soft)] group"
+                    style={{ background: 'var(--clr-input-bg)', borderColor: 'var(--clr-border)' }}
+                  >
+                    <div className="text-center">
+                      <div className="text-xs font-bold">Support Developer</div>
+                      <p className="text-[10px] opacity-60">Help keep Quickno free & fast</p>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => open('https://ko-fi.com/pollinations')}
+                    className="flex flex-col items-center gap-1 p-5 rounded-2xl border transition-all hover:border-[var(--clr-accent)] hover:bg-[var(--clr-accent-soft)] group"
+                    style={{ background: 'var(--clr-input-bg)', borderColor: 'var(--clr-border)' }}
+                  >
+                    <div className="text-center">
+                      <div className="text-xs font-bold">Support Pollinations</div>
+                      <p className="text-[10px] opacity-60">Back the free AI engine</p>
+                    </div>
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -658,7 +770,7 @@ export default function Settings() {
                   </p>
                 </div>
                 <button
-                  onClick={handleDeleteKey}
+                  onClick={() => handleDeleteKey()}
                   className="px-6 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:brightness-110 active:scale-95 shadow-sm"
                   style={{ background: 'var(--clr-danger)' }}
                 >

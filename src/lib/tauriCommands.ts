@@ -16,19 +16,19 @@ export async function queryLlm(query: string, model: string, apiKey: string): Pr
 
 // ── API Key Management ───────────────────────────────────────────────────────
 
-/** Save an API key to Windows Credential Manager. */
-export async function saveApiKey(key: string): Promise<void> {
-  return await invoke<void>('save_api_key', { key });
+/** Save an API key to Windows Credential Manager for a specific provider. */
+export async function saveApiKey(key: string, provider: string): Promise<void> {
+  return await invoke<void>('save_api_key', { key, provider });
 }
 
-/** Retrieve the stored API key (returns null if none exists). */
-export async function getApiKey(): Promise<string | null> {
-  return await invoke<string | null>('get_api_key');
+/** Retrieve the stored API key for a specific provider (returns null if none exists). */
+export async function getApiKey(provider: string): Promise<string | null> {
+  return await invoke<string | null>('get_api_key', { provider });
 }
 
-/** Delete the API key from both the app and Windows Credential Manager. */
-export async function deleteApiKey(): Promise<void> {
-  return await invoke<void>('delete_api_key');
+/** Delete the API key for a specific provider from both the app and Windows Credential Manager. */
+export async function deleteApiKey(provider: string): Promise<void> {
+  return await invoke<void>('delete_api_key', { provider });
 }
 
 /** Test if an API key is valid (currently only works for OpenAI keys). */
