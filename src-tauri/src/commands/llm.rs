@@ -219,7 +219,12 @@ pub async fn list_gemini_models(api_key: String) -> Result<Vec<String>, AppError
 
 /// The main Tauri command that the frontend calls to get AI responses.
 #[tauri::command]
-pub async fn query_llm(query: String, model: String, api_key: String) -> Result<String, AppError> {
+pub async fn query_llm(
+    query: String, 
+    model: String, 
+    api_key: String, 
+    enable_failover: bool
+) -> Result<String, AppError> {
     if query.len() > 4000 {
         return Err(AppError::NetworkError(
             "Query is too long. Please limit your query to 4000 characters.".to_string()
@@ -232,7 +237,7 @@ pub async fn query_llm(query: String, model: String, api_key: String) -> Result<
         .build()
         .map_err(|e| AppError::NetworkError(e.to_string()))?;
 
-    // ── Free Models (Auto-Switching Logic) ──────────────────────────────
+    // ── Free Models (Conditional Failover) ──────────────────────────────
     if is_free_model(&model) {
         // 1. Try the user's selected model first
         let primary_id = free_model_id(&model);
@@ -240,21 +245,24 @@ pub async fn query_llm(query: String, model: String, api_key: String) -> Result<
             return Ok(answer);
         }
 
-        // 2. If primary fails, cycle through fallbacks automatically
-        // We exclude the primary to avoid redundant retries
-        let fallbacks = ["qwen-coder", "llama", "deepseek", "mistral", "qwen", "openai-fast"];
-        for fallback_id in fallbacks {
-            if fallback_id == primary_id { continue; }
-            
-            // Log or track the switch if needed, but for now just try silently
-            if let Some(answer) = query_pollinations(&client, &query, fallback_id).await {
-                return Ok(answer);
+        // 2. If primary fails AND failover is enabled, cycle through fallbacks
+        if enable_failover {
+            let fallbacks = ["qwen-coder", "llama", "deepseek", "mistral", "qwen", "openai-fast"];
+            for fallback_id in fallbacks {
+                if fallback_id == primary_id { continue; }
+                if let Some(answer) = query_pollinations(&client, &query, fallback_id).await {
+                    return Ok(answer);
+                }
             }
         }
 
         return Err(AppError::ProviderError {
             status: 503,
-            message: "All free model endpoints are currently at capacity. Please try again in a moment or use a premium API key.".into(),
+            message: if enable_failover {
+                "All free model endpoints are currently at capacity. Please try again or use an API key.".into()
+            } else {
+                format!("The model '{}' is currently unavailable. Switch to another model or enable 'High Reliability' mode in the model menu.", model)
+            },
         });
     }
 

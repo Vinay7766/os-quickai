@@ -10,8 +10,8 @@ import { invoke } from '@tauri-apps/api/core';
 // ── AI Query ─────────────────────────────────────────────────────────────────
 
 /** Send a query to the selected AI model and get a response. */
-export async function queryLlm(query: string, model: string, apiKey: string): Promise<string> {
-  return await invoke<string>('query_llm', { query, model, apiKey });
+export async function queryLlm(query: string, model: string, apiKey: string, enableFailover: boolean): Promise<string> {
+  return await invoke<string>('query_llm', { query, model, apiKey, enableFailover });
 }
 
 // ── API Key Management ───────────────────────────────────────────────────────

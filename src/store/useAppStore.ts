@@ -151,7 +151,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       }
 
       // Send the query to the Rust backend
-      const answer = await queryLlm(query, llmModel, apiKey || '');
+      const answer = await queryLlm(query, llmModel, apiKey || '', settings.enableFailover);
       set({ answer, isLoading: false, error: null });
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : String(e);

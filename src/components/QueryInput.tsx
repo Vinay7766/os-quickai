@@ -183,7 +183,20 @@ export function QueryInput() {
             <div className="absolute top-full right-0 mt-2 w-48 glass rounded-xl border border-white/10 shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
               <div className="max-h-48 overflow-y-auto scrollbar-thin">
                 {/* Free Models */}
-                <div className="px-3 py-1.5 text-[9px] uppercase tracking-widest opacity-40 font-bold border-b border-white/5">Free Models</div>
+                <div className="px-3 py-1.5 flex items-center justify-between border-b border-white/5">
+                  <span className="text-[9px] uppercase tracking-widest opacity-40 font-bold">Free Models</span>
+                  <button 
+                    onClick={(e) => { 
+                      e.stopPropagation(); 
+                      updateSetting('enableFailover', !useSettingsStore.getState().enableFailover); 
+                    }}
+                    className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full border transition-all ${useSettingsStore.getState().enableFailover ? 'bg-[var(--clr-accent)]/10 border-[var(--clr-accent)]/30 text-[var(--clr-accent)]' : 'bg-white/5 border-white/10 text-white/40'}`}
+                    title={useSettingsStore.getState().enableFailover ? "High Reliability: Will try other models if the selected one fails (Slower)" : "Speed Mode: Direct connection (Faster)"}
+                  >
+                    <span style={{ fontSize: '8px' }}>{useSettingsStore.getState().enableFailover ? 'Reliable' : 'Speed'}</span>
+                    <div className={`w-2 h-2 rounded-full ${useSettingsStore.getState().enableFailover ? 'bg-[var(--clr-accent)]' : 'bg-white/20'}`} />
+                  </button>
+                </div>
                 {[
                   { id: 'qwen-coder', label: 'Qwen 2.5 Coder' },
                   { id: 'qwen',       label: 'Qwen 2.5 72B' },
