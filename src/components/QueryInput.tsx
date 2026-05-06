@@ -99,8 +99,11 @@ export function QueryInput() {
     }
   };
 
-  const currentModelLabel = llmModel === 'minimax-2.5' ? 'MiniMax' :
-                           llmModel === 'gemini-1.5-flash-8b' ? 'Gemini Flash' :
+  const currentModelLabel = llmModel === 'qwen-coder' ? 'Qwen Coder' :
+                           llmModel === 'qwen'       ? 'Qwen 72B' :
+                           llmModel === 'deepseek'   ? 'DeepSeek' :
+                           llmModel === 'llama'      ? 'Llama 3.3' :
+                           llmModel === 'mistral'    ? 'Mistral' :
                            llmModel.includes('gemini') ? 'Gemini' : 
                            llmModel.includes('claude') ? 'Claude' : 
                            llmModel.includes('grok') ? 'Grok' : 
@@ -182,9 +185,11 @@ export function QueryInput() {
                 {/* Free Models */}
                 <div className="px-3 py-1.5 text-[9px] uppercase tracking-widest opacity-40 font-bold border-b border-white/5">Free Models</div>
                 {[
-                  { id: 'minimax-2.5', label: 'MiniMax' },
-                  { id: 'qwen-2.5-72b', label: 'Qwen 2.5' },
-                  { id: 'nemotron-70b', label: 'Nemotron' }
+                  { id: 'qwen-coder', label: 'Qwen 2.5 Coder' },
+                  { id: 'qwen',       label: 'Qwen 2.5 72B' },
+                  { id: 'deepseek',   label: 'DeepSeek V3' },
+                  { id: 'llama',      label: 'Llama 3.3' },
+                  { id: 'mistral',    label: 'Mistral Large' }
                 ].map(m => (
                   <button
                     key={m.id}

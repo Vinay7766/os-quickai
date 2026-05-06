@@ -136,10 +136,18 @@ export const useAppStore = create<AppState>((set, get) => ({
       const llmModel = settings.llmModel;
       const isFree = FREE_MODELS.includes(llmModel);
 
-      // Free models don't need an API key; paid models do
-      const apiKey = await getApiKey();
-      if (!isFree && !apiKey) {
-        throw new Error('API Key not found. Please add your API key in the Settings.');
+      let apiKey = '';
+      if (!isFree) {
+        // Identify the provider for the selected model
+        const provider = llmModel.includes('gemini') ? 'gemini' :
+                         llmModel.includes('gpt')    ? 'openai' :
+                         llmModel.includes('grok')   ? 'grok'   :
+                         llmModel.includes('claude') ? 'claude' : 'openai';
+        
+        apiKey = (await getApiKey(provider)) || '';
+        if (!apiKey) {
+          throw new Error(`API Key for ${provider.toUpperCase()} not found. Please add it in Settings.`);
+        }
       }
 
       // Send the query to the Rust backend

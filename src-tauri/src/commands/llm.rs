@@ -21,15 +21,18 @@ use serde_json::{json, Value};
 /// Maps a user-friendly free model name to the Pollinations model ID.
 fn free_model_id(model: &str) -> &str {
     match model {
-        "qwen-3.6"   => "openai-fast",   // Best available on Pollinations
-        "nemotron"   => "openai-fast",   // Uses GPT-OSS 20B reasoning model
-        _            => "openai-fast",   // Default (minimax-2.5 and fallback)
+        "qwen-coder" => "qwen-coder",
+        "qwen"       => "qwen",
+        "deepseek"   => "deepseek",
+        "llama"      => "llama",
+        "mistral"    => "mistral",
+        _            => "openai-fast",   // Default fallback
     }
 }
 
 /// Checks if a given model name is one of the free (no-key) models.
 fn is_free_model(model: &str) -> bool {
-    matches!(model, "minimax-2.5" | "qwen-3.6" | "nemotron")
+    matches!(model, "qwen-coder" | "qwen" | "deepseek" | "llama" | "mistral" | "openai-fast")
 }
 
 // ── Pollinations API Helper ──────────────────────────────────────────────────
@@ -229,21 +232,29 @@ pub async fn query_llm(query: String, model: String, api_key: String) -> Result<
         .build()
         .map_err(|e| AppError::NetworkError(e.to_string()))?;
 
-    // ── Free Models ──────────────────────────────────────────────────────
+    // ── Free Models (Auto-Switching Logic) ──────────────────────────────
     if is_free_model(&model) {
-        let target_model = free_model_id(&model);
-        if let Some(answer) = query_pollinations(&client, &query, target_model).await {
+        // 1. Try the user's selected model first
+        let primary_id = free_model_id(&model);
+        if let Some(answer) = query_pollinations(&client, &query, primary_id).await {
             return Ok(answer);
         }
-        let fallback_models = ["openai-fast", "openai"];
-        for fallback in fallback_models {
-            if let Some(answer) = query_pollinations(&client, &query, fallback).await {
+
+        // 2. If primary fails, cycle through fallbacks automatically
+        // We exclude the primary to avoid redundant retries
+        let fallbacks = ["qwen-coder", "llama", "deepseek", "mistral", "qwen", "openai-fast"];
+        for fallback_id in fallbacks {
+            if fallback_id == primary_id { continue; }
+            
+            // Log or track the switch if needed, but for now just try silently
+            if let Some(answer) = query_pollinations(&client, &query, fallback_id).await {
                 return Ok(answer);
             }
         }
+
         return Err(AppError::ProviderError {
             status: 503,
-            message: "Free model service is unavailable. Please try again or use a premium model.".into(),
+            message: "All free model endpoints are currently at capacity. Please try again in a moment or use a premium API key.".into(),
         });
     }
 

@@ -27,15 +27,21 @@ const AI_URLS: Record<string, string> = {
   perplexity: 'https://www.perplexity.ai/',
 };
 
+const API_MODELS = [
+  { value: 'gemini',  provider: 'gemini' },
+  { value: 'grok',    provider: 'grok' },
+  { value: 'chatgpt', provider: 'openai' },
+  { value: 'claude',  provider: 'claude' },
+];
+
 // ── Layout Constants ─────────────────────────────────────────────────────────
 const SEARCH_BAR_HEIGHT = 56;
-const MAX_WINDOW_HEIGHT = 600;
 
 export default function Overlay() {
   const { 
     answer, isLoading, error, clearAnswer, query, setQuery,
     prevAnswer, prevQuery, isModeMenuOpen, isModelMenuOpen,
-    internalUrl, setInternalUrl, searchMode
+    internalUrl, setInternalUrl, searchMode, setMode
   } = useAppStore();
   
   const browser        = useSettingsStore((s) => s.browser);
@@ -110,16 +116,13 @@ export default function Overlay() {
   // ── Dynamic Model Fetching ─────────────────────────────────────────────
   const fetchModels = useCallback(async () => {
     try {
-      const key = await getApiKey();
-      if (key) {
-        // Determine provider based on model ID or generic names
-        let provider = '';
-        if (llmModel.includes('gemini')) provider = 'gemini';
-        else if (llmModel.includes('gpt') || llmModel === 'chatgpt') provider = 'openai';
-        else if (llmModel.includes('claude')) provider = 'claude';
-        else if (llmModel.includes('grok')) provider = 'grok';
+      // Find provider for the current model
+      const apiModel = API_MODELS.find(m => llmModel.startsWith(m.value));
+      const provider = apiModel?.provider;
 
-        if (provider) {
+      if (provider) {
+        const key = await getApiKey(provider);
+        if (key) {
           await refreshModels(key, provider);
         }
       }
@@ -167,10 +170,27 @@ export default function Overlay() {
         const input = document.querySelector('textarea, input');
         if (input instanceof HTMLElement) input.focus();
       }
+
+      // Ctrl + 1, 2, 3 → Switch Modes
+      if (e.ctrlKey && e.key === '1') {
+        e.preventDefault();
+        setMode('search');
+        return;
+      }
+      if (e.ctrlKey && e.key === '2') {
+        e.preventDefault();
+        setMode('site');
+        return;
+      }
+      if (e.ctrlKey && e.key === '3') {
+        e.preventDefault();
+        setMode('app');
+        return;
+      }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [clearAnswer, prevAnswer, prevQuery]);
+  }, [clearAnswer, prevAnswer, prevQuery, setMode]);
 
   const handleBrowserSearch = async () => {
     if (!query.trim()) return;
@@ -321,6 +341,22 @@ export default function Overlay() {
                     <div className="flex items-center gap-3 overflow-hidden">
                       <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
                       <span className="text-[10px] font-bold opacity-40 truncate uppercase tracking-widest">{internalUrl}</span>
+                    </div>
+                    <div className="flex-1 flex items-center justify-center gap-4">
+                      <button 
+                        onClick={() => open('https://ko-fi.com/vinay7766')}
+                        className="text-[10px] font-bold text-[var(--clr-text-secondary)] hover:text-[var(--clr-accent)] transition-colors"
+                        title="Support the Developer"
+                      >
+                        Support Me
+                      </button>
+                      <button 
+                        onClick={() => open('https://ko-fi.com/pollinations')}
+                        className="text-[10px] font-bold text-[var(--clr-text-secondary)] hover:text-[var(--clr-accent)] transition-colors"
+                        title="Support Pollinations.ai"
+                      >
+                        Pollinations
+                      </button>
                     </div>
                     <div className="flex items-center gap-2">
                       <button 

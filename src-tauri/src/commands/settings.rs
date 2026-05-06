@@ -12,17 +12,17 @@ use keyring::Entry;
 /// Service name used to identify Quickno's credentials in Windows Credential Manager.
 const SERVICE_NAME: &str = "os_quickai";
 
-/// Account name for the stored API key entry.
-const ACCOUNT_NAME: &str = "openai_api_key";
+/// Returns the account name for a specific provider to ensure separate storage.
+fn get_account_name(provider: &str) -> String {
+    format!("{}_api_key", provider.to_lowercase().replace("chatgpt", "openai"))
+}
 
-/// Saves an API key to the Windows Credential Manager.
-///
-/// The key is encrypted using DPAPI (Data Protection API) and can only
-/// be accessed by the current Windows user account.
+/// Saves an API key to the Windows Credential Manager for a specific provider.
 #[tauri::command]
-pub async fn save_api_key(key: String) -> Result<(), AppError> {
+pub async fn save_api_key(key: String, provider: String) -> Result<(), AppError> {
     tokio::task::spawn_blocking(move || {
-        let entry = Entry::new(SERVICE_NAME, ACCOUNT_NAME)
+        let account = get_account_name(&provider);
+        let entry = Entry::new(SERVICE_NAME, &account)
             .map_err(|e| AppError::StorageError(e.to_string()))?;
         entry
             .set_password(&key)
@@ -32,17 +32,26 @@ pub async fn save_api_key(key: String) -> Result<(), AppError> {
     .map_err(|_| AppError::UnknownError("Thread dropped".into()))?
 }
 
-/// Retrieves the stored API key from Windows Credential Manager.
-///
-/// Returns `None` if no key has been saved yet.
+/// Retrieves the stored API key for a specific provider.
 #[tauri::command]
-pub async fn get_api_key() -> Result<Option<String>, AppError> {
-    tokio::task::spawn_blocking(|| {
-        let entry = Entry::new(SERVICE_NAME, ACCOUNT_NAME)
+pub async fn get_api_key(provider: String) -> Result<Option<String>, AppError> {
+    tokio::task::spawn_blocking(move || {
+        let account = get_account_name(&provider);
+        let entry = Entry::new(SERVICE_NAME, &account)
             .map_err(|e| AppError::StorageError(e.to_string()))?;
         match entry.get_password() {
             Ok(pw) => Ok(Some(pw)),
-            Err(keyring::Error::NoEntry) => Ok(None),
+            Err(keyring::Error::NoEntry) => {
+                // Migration: Check for the old generic key if this is an 'openai' request
+                if provider.to_lowercase() == "openai" || provider.to_lowercase() == "chatgpt" {
+                    if let Ok(old_entry) = Entry::new(SERVICE_NAME, "openai_api_key") {
+                        if let Ok(pw) = old_entry.get_password() {
+                            return Ok(Some(pw));
+                        }
+                    }
+                }
+                Ok(None)
+            },
             Err(e) => Err(AppError::StorageError(e.to_string())),
         }
     })
@@ -50,14 +59,12 @@ pub async fn get_api_key() -> Result<Option<String>, AppError> {
     .unwrap_or(Err(AppError::UnknownError("Thread dropped".into())))
 }
 
-/// Deletes the stored API key from both the app and Windows Credential Manager.
-///
-/// After this operation, the key is permanently removed from the system.
-/// The user will need to enter a new key to use premium models again.
+/// Deletes the stored API key for a specific provider.
 #[tauri::command]
-pub async fn delete_api_key() -> Result<(), AppError> {
-    tokio::task::spawn_blocking(|| {
-        if let Ok(entry) = Entry::new(SERVICE_NAME, ACCOUNT_NAME) {
+pub async fn delete_api_key(provider: String) -> Result<(), AppError> {
+    tokio::task::spawn_blocking(move || {
+        let account = get_account_name(&provider);
+        if let Ok(entry) = Entry::new(SERVICE_NAME, &account) {
             let _ = entry.delete_credential();
         }
     })
