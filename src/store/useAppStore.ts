@@ -113,12 +113,7 @@ export const useAppStore = create<AppState>((set, get) => ({
           url = `https://${url}`;
         }
         
-        if (settings.openLinksInternal) {
-          set({ internalUrl: url, isLoading: false, query: '' });
-        } else {
-          await invoke('search_in_browser', { browser: settings.browser, url });
-          set({ isLoading: false, query: '' });
-        }
+        set({ internalUrl: url, isLoading: false, query: '' });
         return;
       }
 
@@ -151,7 +146,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       }
 
       // Send the query to the Rust backend
-      const answer = await queryLlm(query, llmModel, apiKey || '', settings.enableFailover);
+      const answer = await queryLlm(query, llmModel, apiKey || '');
       set({ answer, isLoading: false, error: null });
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : String(e);

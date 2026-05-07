@@ -26,7 +26,7 @@ import { emit, listen } from '@tauri-apps/api/event';
 import { getSystemTheme } from '../lib/tauriCommands';
 
 // ── Free Model Identifiers ───────────────────────────────────────────────────
-export const FREE_MODELS = ['qwen-coder', 'qwen', 'deepseek', 'llama', 'mistral'];
+export const FREE_MODELS = ['free-model'];
 
 // ── Store Interface ──────────────────────────────────────────────────────────
 
@@ -43,7 +43,6 @@ interface SettingsState {
   enableSiteLauncher: boolean;
   enableAppLauncher: boolean;
   openLinksInternal: boolean;
-  enableFailover: boolean;
 
   availableModels: string[];
   
@@ -84,7 +83,7 @@ function applyThemeToDom(theme: string) {
 export const useSettingsStore = create<SettingsState>((set, get) => ({
   settingsLoaded: false,
   hotkey: 'alt+a',
-  llmModel: 'minimax-2.5',
+  llmModel: 'free-model',
   searchEngine: 'google',
   llmSite: 'claude',
   browser: 'default',
@@ -92,7 +91,6 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   enableSiteLauncher: true,
   enableAppLauncher: true,
   openLinksInternal: true,
-  enableFailover: false,
   availableModels: [],
 
   // ── Load Settings from Disk ────────────────────────────────────────────
@@ -107,7 +105,6 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       const enableSiteLauncher = (await invoke<string | null>('get_setting', { key: 'enableSiteLauncher' })) !== 'false';
       const enableAppLauncher  = (await invoke<string | null>('get_setting', { key: 'enableAppLauncher' }))  !== 'false';
       const openLinksInternal  = (await invoke<string | null>('get_setting', { key: 'openLinksInternal' }))  !== 'false';
-      const enableFailover     = (await invoke<string | null>('get_setting', { key: 'enableFailover' }))     === 'true';
 
       let theme = await invoke<'light' | 'dark' | 'system' | null>('get_setting', { key: 'theme' });
       if (!theme) {
@@ -120,7 +117,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 
       set({ 
         hotkey, llmModel, searchEngine, llmSite, browser, theme, 
-        enableSiteLauncher, enableAppLauncher, openLinksInternal, enableFailover,
+        enableSiteLauncher, enableAppLauncher, openLinksInternal,
         settingsLoaded: true 
       });
     } catch (e) {

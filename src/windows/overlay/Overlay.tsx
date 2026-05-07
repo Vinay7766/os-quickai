@@ -50,7 +50,6 @@ export default function Overlay() {
   const searchEngine   = useSettingsStore((s) => s.searchEngine);
   const loadSettings        = useSettingsStore((s) => s.loadSettings);
   const refreshModels       = useSettingsStore((s) => s.refreshModels);
-  const openLinksInternal   = useSettingsStore((s) => s.openLinksInternal);
   
   void useSettingsStore((s) => s.theme);
 
@@ -196,16 +195,12 @@ export default function Overlay() {
     if (!query.trim()) return;
     const searchUrl = (SEARCH_URLS[searchEngine] ?? SEARCH_URLS.google) + encodeURIComponent(query);
     try {
-      if (openLinksInternal) {
-        useAppStore.setState({ internalUrl: searchUrl, query: '' });
+      if (browser === 'default' || !browser) {
+        await open(searchUrl);
       } else {
-        if (browser === 'default' || !browser) {
-          await open(searchUrl);
-        } else {
-          await searchInBrowser(browser, searchUrl);
-        }
-        setQuery('');
+        await searchInBrowser(browser, searchUrl);
       }
+      setQuery('');
     } catch (e) {
       alert(String(e));
     }
@@ -223,19 +218,15 @@ export default function Overlay() {
       try { await writeText(query); } catch {}
     }
     
-    if (openLinksInternal) {
-      useAppStore.setState({ internalUrl: url, query: '' });
-    } else {
-      try {
-        if (browser === 'default' || !browser) {
-          await open(url);
-        } else {
-          await searchInBrowser(browser, url);
-        }
-        setQuery('');
-      } catch (e) {
-        alert(String(e));
+    try {
+      if (browser === 'default' || !browser) {
+        await open(url);
+      } else {
+        await searchInBrowser(browser, url);
       }
+      setQuery('');
+    } catch (e) {
+      alert(String(e));
     }
   };
 
@@ -263,19 +254,22 @@ export default function Overlay() {
   };
 
   return (
-    <div className="p-2 w-full h-screen overflow-hidden flex flex-col items-center box-border">
+    <div 
+      className="w-full h-screen overflow-hidden flex flex-col box-border relative"
+      style={{
+        border: '2px solid var(--clr-accent)',
+        borderRadius: (hasContent || isMenuOpen) ? '24px' : '9999px',
+        background: 'var(--clr-glass)',
+        transition: 'border-radius 0.2s ease',
+      }}
+    >
       <div
         ref={containerRef}
-        className="glass flex-1 flex flex-col shadow-2xl relative"
+        className="flex-1 flex flex-col relative w-full"
         style={{
           minHeight: SEARCH_BAR_HEIGHT,
-          background: 'var(--clr-glass)',
-          borderRadius: (hasContent || isMenuOpen) ? 24 : 9999,
-          border: '2px solid var(--clr-accent)',
+          background: 'transparent',
           overflow: isMenuOpen ? 'visible' : 'hidden',
-          transition: 'border-radius 0.2s ease, height 0.2s ease',
-          width: '100%',
-          maxWidth: '680px',
         }}
       >
         <div ref={contentRef} className="flex flex-col w-full min-h-full">
@@ -342,20 +336,20 @@ export default function Overlay() {
                       <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
                       <span className="text-[10px] font-bold opacity-40 truncate uppercase tracking-widest">{internalUrl}</span>
                     </div>
-                    <div className="flex-1 flex items-center justify-center gap-4">
+                    <div className="flex-1 flex items-center justify-center gap-2">
                       <button 
                         onClick={() => open('https://ko-fi.com/vinay7766')}
-                        className="text-[10px] font-bold text-[var(--clr-text-secondary)] hover:text-[var(--clr-accent)] transition-colors"
+                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all text-[9px] font-bold text-[var(--clr-text-secondary)] hover:text-white"
                         title="Support the Developer"
                       >
-                        Support Me
+                        <span className="opacity-60">☕</span> Support Me
                       </button>
                       <button 
                         onClick={() => open('https://ko-fi.com/pollinations')}
-                        className="text-[10px] font-bold text-[var(--clr-text-secondary)] hover:text-[var(--clr-accent)] transition-colors"
+                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all text-[9px] font-bold text-[var(--clr-text-secondary)] hover:text-white"
                         title="Support Pollinations.ai"
                       >
-                        Pollinations
+                        <span className="opacity-60">🌿</span> Pollinations
                       </button>
                     </div>
                     <div className="flex items-center gap-2">

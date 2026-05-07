@@ -18,7 +18,7 @@ import 'highlight.js/styles/github-dark.css';
 
 export function ResultPanel() {
   const { answer, isLoading, error } = useAppStore();
-  const { llmModel, openLinksInternal } = useSettingsStore();
+  const { llmModel } = useSettingsStore();
 
   const handleLinkClick = async (e: React.MouseEvent<HTMLAnchorElement>, url: string) => {
     e.preventDefault();
@@ -29,12 +29,8 @@ export function ResultPanel() {
       return;
     }
 
-    if (openLinksInternal) {
-      // Keep the answer so we can return to it!
-      useAppStore.setState({ internalUrl: url });
-    } else {
-      await open(url);
-    }
+    // Always open in internal search pill
+    useAppStore.setState({ internalUrl: url });
   };
 
   return (

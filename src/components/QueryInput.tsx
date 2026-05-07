@@ -83,6 +83,13 @@ export function QueryInput() {
       e.preventDefault();
       clearAnswer();
     }
+
+    // Ctrl + 1/2/3 for mode switching
+    if (e.ctrlKey) {
+      if (e.key === '1') { e.preventDefault(); setMode('search'); }
+      if (e.key === '2') { e.preventDefault(); setMode('site'); }
+      if (e.key === '3') { e.preventDefault(); setMode('app'); }
+    }
   };
 
   const getModeIcon = () => {
@@ -99,11 +106,7 @@ export function QueryInput() {
     }
   };
 
-  const currentModelLabel = llmModel === 'qwen-coder' ? 'Qwen Coder' :
-                           llmModel === 'qwen'       ? 'Qwen 72B' :
-                           llmModel === 'deepseek'   ? 'DeepSeek' :
-                           llmModel === 'llama'      ? 'Llama 3.3' :
-                           llmModel === 'mistral'    ? 'Mistral' :
+  const currentModelLabel = llmModel === 'free-model' ? 'Free Model' :
                            llmModel.includes('gemini') ? 'Gemini' : 
                            llmModel.includes('claude') ? 'Claude' : 
                            llmModel.includes('grok') ? 'Grok' : 
@@ -185,33 +188,13 @@ export function QueryInput() {
                 {/* Free Models */}
                 <div className="px-3 py-1.5 flex items-center justify-between border-b border-white/5">
                   <span className="text-[9px] uppercase tracking-widest opacity-40 font-bold">Free Models</span>
-                  <button 
-                    onClick={(e) => { 
-                      e.stopPropagation(); 
-                      updateSetting('enableFailover', !useSettingsStore.getState().enableFailover); 
-                    }}
-                    className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full border transition-all ${useSettingsStore.getState().enableFailover ? 'bg-[var(--clr-accent)]/10 border-[var(--clr-accent)]/30 text-[var(--clr-accent)]' : 'bg-white/5 border-white/10 text-white/40'}`}
-                    title={useSettingsStore.getState().enableFailover ? "High Reliability: Will try other models if the selected one fails (Slower)" : "Speed Mode: Direct connection (Faster)"}
-                  >
-                    <span style={{ fontSize: '8px' }}>{useSettingsStore.getState().enableFailover ? 'Reliable' : 'Speed'}</span>
-                    <div className={`w-2 h-2 rounded-full ${useSettingsStore.getState().enableFailover ? 'bg-[var(--clr-accent)]' : 'bg-white/20'}`} />
-                  </button>
                 </div>
-                {[
-                  { id: 'qwen-coder', label: 'Qwen 2.5 Coder' },
-                  { id: 'qwen',       label: 'Qwen 2.5 72B' },
-                  { id: 'deepseek',   label: 'DeepSeek V3' },
-                  { id: 'llama',      label: 'Llama 3.3' },
-                  { id: 'mistral',    label: 'Mistral Large' }
-                ].map(m => (
-                  <button
-                    key={m.id}
-                    className={`w-full text-left px-3 py-2 text-[11px] font-bold transition-colors hover:bg-white/10 ${llmModel === m.id ? 'text-[var(--clr-accent)]' : 'text-[var(--clr-text-secondary)]'}`}
-                    onClick={() => { updateSetting('llmModel', m.id); setModelMenuOpen(false); }}
-                  >
-                    {m.label}
-                  </button>
-                ))}
+                <button
+                  className={`w-full text-left px-3 py-2 text-[11px] font-bold transition-colors hover:bg-white/10 ${llmModel === 'free-model' ? 'text-[var(--clr-accent)]' : 'text-[var(--clr-text-secondary)]'}`}
+                  onClick={() => { updateSetting('llmModel', 'free-model'); setModelMenuOpen(false); }}
+                >
+                  Free Model
+                </button>
                 
                 {/* Dynamic/Paid Models */}
                 {availableModels.length > 0 && (
