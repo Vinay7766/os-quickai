@@ -21,18 +21,14 @@ use serde_json::{json, Value};
 /// Maps a user-friendly free model name to the Pollinations model ID.
 fn free_model_id(model: &str) -> &str {
     match model {
-        "qwen-coder" => "qwen-coder",
-        "qwen"       => "qwen",
-        "deepseek"   => "deepseek",
-        "llama"      => "llama",
-        "mistral"    => "mistral",
+        "free-model" => "openai-fast",
         _            => "openai-fast",   // Default fallback
     }
 }
 
 /// Checks if a given model name is one of the free (no-key) models.
 fn is_free_model(model: &str) -> bool {
-    matches!(model, "qwen-coder" | "qwen" | "deepseek" | "llama" | "mistral" | "openai-fast")
+    matches!(model, "free-model" | "openai-fast")
 }
 
 // ── Pollinations API Helper ──────────────────────────────────────────────────
@@ -222,8 +218,7 @@ pub async fn list_gemini_models(api_key: String) -> Result<Vec<String>, AppError
 pub async fn query_llm(
     query: String, 
     model: String, 
-    api_key: String, 
-    enable_failover: bool
+    api_key: String
 ) -> Result<String, AppError> {
     if query.len() > 4000 {
         return Err(AppError::NetworkError(
@@ -237,32 +232,16 @@ pub async fn query_llm(
         .build()
         .map_err(|e| AppError::NetworkError(e.to_string()))?;
 
-    // ── Free Models (Conditional Failover) ──────────────────────────────
+    // ── Free Models (Direct Call) ──────────────────────────────
     if is_free_model(&model) {
-        // 1. Try the user's selected model first
         let primary_id = free_model_id(&model);
         if let Some(answer) = query_pollinations(&client, &query, primary_id).await {
             return Ok(answer);
         }
 
-        // 2. If primary fails AND failover is enabled, cycle through fallbacks
-        if enable_failover {
-            let fallbacks = ["qwen-coder", "llama", "deepseek", "mistral", "qwen", "openai-fast"];
-            for fallback_id in fallbacks {
-                if fallback_id == primary_id { continue; }
-                if let Some(answer) = query_pollinations(&client, &query, fallback_id).await {
-                    return Ok(answer);
-                }
-            }
-        }
-
         return Err(AppError::ProviderError {
             status: 503,
-            message: if enable_failover {
-                "All free model endpoints are currently at capacity. Please try again or use an API key.".into()
-            } else {
-                format!("The model '{}' is currently unavailable. Switch to another model or enable 'High Reliability' mode in the model menu.", model)
-            },
+            message: format!("The free model endpoint is currently at capacity. Please try again or use an API key."),
         });
     }
 

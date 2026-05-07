@@ -52,21 +52,19 @@ fn set_autostart(exe_path: &str) {
     }
 }
 
-/// Checks if this is the first time the app has been launched.
-/// Returns `true` if the "v1_2Installed" registry key does not exist.
+/// Checks if this is the first time the app has been launched for this version.
 fn is_first_run() -> bool {
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
     hkcu.open_subkey(r"SOFTWARE\Quickno")
-        .and_then(|k| k.get_value::<String, _>("v1_2Installed"))
+        .and_then(|k| k.get_value::<String, _>("v1_0_1Installed"))
         .is_err()
 }
 
-/// Marks the app as "installed" by writing a registry flag.
-/// This prevents the welcome screen from showing on subsequent launches.
+/// Marks the app as "installed" for this version.
 fn mark_installed() {
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
     if let Ok((key, _)) = hkcu.create_subkey(r"SOFTWARE\Quickno") {
-        let _ = key.set_value("v1_2Installed", &"1");
+        let _ = key.set_value("v1_0_1Installed", &"1");
     }
 }
 
@@ -203,9 +201,26 @@ fn main() {
                 })
                 .build(app)?;
 
-            // ── Default Global Hotkey ────────────────────────────────────
-            let default_hotkey = "alt+a";
-            app.global_shortcut().on_shortcut(default_hotkey, |app, _shortcut, event| {
+            // ── Load and Register Global Hotkey ──────────────────────────
+            // We read the saved hotkey from settings.json. If it doesn't exist,
+            // we default to "alt+a".
+            let settings_path = app.path().app_data_dir().unwrap_or_default().join("settings.json");
+            let saved_hotkey = if settings_path.exists() {
+                let content = std::fs::read_to_string(settings_path).unwrap_or_default();
+                let json: serde_json::Value = serde_json::from_str(&content).unwrap_or_default();
+                json.get("hotkey")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string())
+                    .unwrap_or_else(|| "alt+a".to_string())
+            } else {
+                "alt+a".to_string()
+            };
+
+            // Store the hotkey in app state so it can be updated later
+            *app.state::<HotkeyState>().0.lock().unwrap() = saved_hotkey.clone();
+
+            // Register the hotkey
+            app.global_shortcut().on_shortcut(&saved_hotkey, |app, _shortcut, event| {
                 if event.state == ShortcutState::Pressed {
                     toggle_overlay(app);
                 }

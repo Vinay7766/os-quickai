@@ -19,11 +19,7 @@ const API_MODELS = [
 ];
 
 const FREE_MODEL_OPTIONS = [
-  { value: 'qwen-coder', label: 'Qwen 2.5 Coder (Free)' },
-  { value: 'qwen',       label: 'Qwen 2.5 72B (Free)' },
-  { value: 'deepseek',   label: 'DeepSeek V3 (Free)' },
-  { value: 'llama',      label: 'Llama 3.3 (Free)' },
-  { value: 'mistral',    label: 'Mistral Large (Free)' },
+  { value: 'free-model', label: 'Free Model' },
 ];
 
 const BROWSERS = [
@@ -44,14 +40,13 @@ const AI_SITES = [
   { value: 'perplexity', label: 'Perplexity' },
 ];
 
-type Section = 'models' | 'interface' | 'hotkey' | 'feedback' | 'danger';
+type Section = 'models' | 'interface' | 'hotkey' | 'feedback';
 
 const SIDEBAR_NAV: { id: Section; label: string; icon: string }[] = [
   { id: 'models', label: 'AI Models & APIs', icon: '🧠' },
   { id: 'interface', label: 'Interface & Browser', icon: '🎨' },
   { id: 'hotkey', label: 'Shortcuts', icon: '⌨️' },
   { id: 'feedback', label: 'Support & Community', icon: '💬' },
-  { id: 'danger', label: 'Security & Data', icon: '🛡️' },
 ];
 
 export default function Settings() {
@@ -75,7 +70,7 @@ export default function Settings() {
   // ── Initialization ─────────────────────────────────────────────────────
   useEffect(() => {
     document.body.classList.add('settings-window');
-    
+
     // Fallback timeout to guarantee the loading screen never gets permanently stuck
     const forceLoadTimer = setTimeout(() => {
       console.warn("Initialization timed out. Forcing UI to load.");
@@ -87,7 +82,7 @@ export default function Settings() {
 
     // Non-blocking initialization
     loadSettings().finally(() => {
-      invoke<boolean>('get_setting', { key: 'hasCompletedWelcome_v1_2' })
+      invoke<boolean>('get_setting', { key: 'hasCompletedWelcome_v1_0_1' })
         .then(completed => {
           clearTimeout(forceLoadTimer);
           setHasCompletedWelcome(!!completed);
@@ -145,7 +140,7 @@ export default function Settings() {
 
   const handleWelcomeComplete = async () => {
     try {
-      await invoke('save_setting', { key: 'hasCompletedWelcome_v1_2', value: true });
+      await invoke('save_setting', { key: 'hasCompletedWelcome_v1_0_1', value: true });
       setHasCompletedWelcome(true);
     } catch (e) {
       console.error('Failed to save welcome state', e);
@@ -161,7 +156,7 @@ export default function Settings() {
 
   const handleSaveKey = async (provider?: string) => {
     if (!keyInput || keyInput === '••••••••••••') return;
-    
+
     const targetProvider = provider || API_MODELS.find(m => llmModel.startsWith(m.value))?.provider;
     if (!targetProvider) return;
 
@@ -169,10 +164,10 @@ export default function Settings() {
     try {
       await saveApiKey(keyInput, targetProvider);
       setKeyStatus('success');
-      
+
       // Update local storage status
       setStoredKeys(prev => ({ ...prev, [targetProvider]: true }));
-      
+
       // Refresh models immediately if this is the active model's provider
       const apiModel = API_MODELS.find(m => llmModel.startsWith(m.value));
       if (apiModel && apiModel.provider === targetProvider) {
@@ -180,7 +175,7 @@ export default function Settings() {
         refreshModels(keyInput, targetProvider)
           .finally(() => setIsRefreshingModels(false));
       }
-      
+
       setTimeout(() => {
         setKeyStatus('idle');
         setKeyInput('••••••••••••');
@@ -272,15 +267,15 @@ export default function Settings() {
 
   return (
     <div className="h-screen flex overflow-hidden" style={{ background: 'var(--clr-surface)', color: 'var(--clr-text)' }}>
-      
+
       {/* ── Sidebar ── */}
-      <div 
+      <div
         className="w-64 shrink-0 flex flex-col py-10 px-4 border-r pt-12"
         style={{ background: 'var(--clr-surface-secondary)', borderColor: 'var(--clr-border)' }}
       >
         {/* Brand Header */}
         <div className="px-4 mb-8 flex items-center gap-3">
-          <div 
+          <div
             className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold text-white shadow-sm"
             style={{ background: 'var(--clr-accent)' }}
           >
@@ -316,7 +311,7 @@ export default function Settings() {
         <button
           onClick={handleManualSave}
           className="mt-6 px-4 py-2.5 rounded-xl text-[13px] font-semibold text-white transition-all hover:brightness-110 active:scale-95"
-          style={{ 
+          style={{
             background: saveIndicator ? 'var(--clr-success)' : 'var(--clr-accent)',
             boxShadow: 'var(--shadow-md)'
           }}
@@ -328,7 +323,7 @@ export default function Settings() {
       {/* ── Main Content Area ── */}
       <div className="flex-1 overflow-y-auto px-12 py-12 pt-16">
         <div className="max-w-xl">
-          
+
           {/* Models Section */}
           {activeSection === 'models' && (
             <div className="space-y-8 animate-fade-in-up">
@@ -341,7 +336,7 @@ export default function Settings() {
 
               <div className="space-y-4">
                 <h3 className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--clr-text-tertiary)' }}>Model Selection</h3>
-                <div 
+                <div
                   className="grid gap-1.5 p-1.5 rounded-2xl border"
                   style={{ background: 'var(--clr-input-bg)', borderColor: 'var(--clr-border)' }}
                 >
@@ -384,7 +379,7 @@ export default function Settings() {
               </div>
 
               <div className="space-y-4">
-                <div 
+                <div
                   className="p-6 rounded-2xl border space-y-6"
                   style={{ background: 'var(--clr-surface-secondary)', borderColor: 'var(--clr-border)' }}
                 >
@@ -412,14 +407,14 @@ export default function Settings() {
                           </div>
                           <div className="flex items-center gap-2">
                             {storedKeys[m.provider] && (
-                              <button 
+                              <button
                                 onClick={() => handleDeleteKey(m.provider)}
                                 className="text-[9px] font-bold uppercase tracking-widest text-[var(--clr-danger)] opacity-0 group-hover:opacity-100 hover:underline transition-opacity"
                               >
                                 Delete
                               </button>
                             )}
-                            <button 
+                            <button
                               onClick={() => {
                                 setActiveKeyProvider(activeKeyProvider === m.provider ? null : m.provider);
                                 setKeyInput(storedKeys[m.provider] ? '••••••••••••' : '');
@@ -468,8 +463,8 @@ export default function Settings() {
                           {API_MODELS.find(m => m.value === llmModel || availableModels.includes(llmModel))?.label || 'Custom'}
                         </span>
                       </div>
-                      <button 
-                        onClick={() => handleRefresh()} 
+                      <button
+                        onClick={() => handleRefresh()}
                         className="text-[10px] font-bold uppercase tracking-wider text-[var(--clr-accent)] hover:underline flex items-center gap-1.5 disabled:opacity-50"
                         disabled={isRefreshingModels}
                       >
@@ -501,6 +496,23 @@ export default function Settings() {
                     </div>
                   </div>
                 )}
+
+                {/* Delete API Keys (Moved from Security) */}
+                <div className="pt-8 mt-8 border-t" style={{ borderColor: 'var(--clr-border)' }}>
+                  <h3 className="text-[11px] font-bold uppercase tracking-wider mb-4" style={{ color: 'var(--clr-danger)' }}>Danger Zone</h3>
+                  <div className="p-5 rounded-2xl border flex items-center justify-between gap-4" style={{ background: 'var(--clr-input-bg)', borderColor: 'rgba(220, 38, 38, 0.15)' }}>
+                    <div>
+                      <p className="text-xs font-bold mb-0.5">Delete All API Keys</p>
+                      <p className="text-[10px] opacity-60">Wipe all stored credentials from Windows Manager.</p>
+                    </div>
+                    <button 
+                      onClick={() => handleDeleteKey()}
+                      className="px-4 py-2 rounded-lg bg-[var(--clr-danger)] text-white text-[11px] font-bold hover:brightness-110 transition-all"
+                    >
+                      Reset API Keys
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -576,7 +588,7 @@ export default function Settings() {
               {/* Launcher Toggles */}
               <div className="space-y-4 pt-4 border-t" style={{ borderColor: 'var(--clr-border)' }}>
                 <h3 className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--clr-text-tertiary)' }}>Feature Toggles</h3>
-                
+
                 <div className="flex items-center justify-between p-4 rounded-xl border" style={{ background: 'var(--clr-input-bg)', borderColor: 'var(--clr-border)' }}>
                   <div>
                     <div className="text-sm font-bold">Site Launcher</div>
@@ -629,28 +641,52 @@ export default function Settings() {
                 </p>
               </div>
 
-              <div 
+              <div
                 className="p-6 rounded-2xl border space-y-4"
                 style={{ background: 'var(--clr-input-bg)', borderColor: 'var(--clr-border)' }}
               >
                 <h3 className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--clr-text-tertiary)' }}>Global Toggle Key</h3>
                 <div className="flex gap-3">
-                  <input
-                    type="text"
-                    value={hotkey}
-                    onChange={e => updateHotkey(e.target.value)}
-                    className="flex-1 px-4 py-2.5 rounded-xl text-sm font-mono border focus:outline-none"
-                    style={{ background: 'var(--clr-surface)', borderColor: 'var(--clr-border)', color: 'var(--clr-text)' }}
-                  />
+                  <div 
+                    className="flex-1 px-4 py-2.5 rounded-xl text-sm font-mono border focus:outline-none flex items-center justify-center cursor-pointer hover:border-[var(--clr-accent)] transition-all group"
+                    style={{ background: 'var(--clr-surface)', borderColor: hotkeyStatus === 'err' ? 'var(--clr-danger)' : 'var(--clr-border)', color: 'var(--clr-text)' }}
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      e.preventDefault();
+                      const modifiers = [];
+                      if (e.ctrlKey) modifiers.push('ctrl');
+                      if (e.altKey) modifiers.push('alt');
+                      if (e.shiftKey) modifiers.push('shift');
+                      
+                      let key = e.key.toLowerCase();
+                      if (key === 'control') return;
+                      if (key === 'alt') return;
+                      if (key === 'shift') return;
+                      if (key === ' ') key = 'space';
+                      
+                      if (modifiers.length === 0) {
+                        setHotkeyStatus('err');
+                        return;
+                      }
+
+                      const finalShortcut = [...modifiers, key].join('+');
+                      updateHotkey(finalShortcut);
+                      setHotkeyStatus('idle');
+                    }}
+                  >
+                    <span className="opacity-40 group-hover:opacity-100 transition-opacity mr-2">Click to Record:</span>
+                    <span className="font-bold text-[var(--clr-accent)] uppercase">{hotkey.replace(/\+/g, ' + ')}</span>
+                  </div>
                   <button
                     onClick={handleHotkeySave}
                     disabled={hotkeyStatus === 'saving'}
-                    className="px-6 py-2.5 rounded-xl text-sm font-bold text-white"
+                    className="px-6 py-2.5 rounded-xl text-sm font-bold text-white shadow-lg shadow-[var(--clr-accent)]/20 active:scale-95 transition-all"
                     style={{ background: 'var(--clr-accent)' }}
                   >
-                    {hotkeyStatus === 'saving' ? 'Saving...' : hotkeyStatus === 'ok' ? 'Saved' : 'Apply'}
+                    {hotkeyStatus === 'saving' ? 'Saving...' : hotkeyStatus === 'ok' ? 'Saved' : 'Register Hotkey'}
                   </button>
                 </div>
+                {hotkeyStatus === 'err' && <p className="text-[10px] text-[var(--clr-danger)] font-bold uppercase">Shortcut must include a modifier (Ctrl, Alt, or Shift)</p>}
               </div>
 
               <div className="space-y-3">
@@ -660,16 +696,19 @@ export default function Settings() {
                     { keys: 'Enter', action: 'Submit query to internal AI' },
                     { keys: 'Ctrl + Enter', action: 'Open query in external AI site' },
                     { keys: 'Alt + Enter', action: 'Open query in web browser' },
+                    { keys: 'Ctrl + 1', action: 'Switch to Search Mode' },
+                    { keys: 'Ctrl + 2', action: 'Switch to Site Mode' },
+                    { keys: 'Ctrl + 3', action: 'Switch to App Mode' },
                     { keys: '/', action: 'Focus text input' },
                     { keys: 'Escape', action: 'Close overlay' },
                   ].map(s => (
-                    <div 
-                      key={s.keys} 
+                    <div
+                      key={s.keys}
                       className="flex items-center justify-between px-4 py-3 rounded-xl border"
                       style={{ background: 'var(--clr-input-bg)', borderColor: 'var(--clr-border)' }}
                     >
                       <span className="text-sm">{s.action}</span>
-                      <code 
+                      <code
                         className="text-[11px] font-bold px-2 py-1 rounded-md"
                         style={{ background: 'var(--clr-surface)', color: 'var(--clr-accent)', border: '1px solid var(--clr-border)' }}
                       >
@@ -698,8 +737,8 @@ export default function Settings() {
                   { title: 'Bug Reporting', desc: 'Found an issue? Let us know so we can fix it.', url: 'https://discord.gg/CpMW6AMsKC' },
                   { title: 'Feature Requests', desc: 'Suggest new features for future versions.', url: 'https://discord.gg/CpMW6AMsKC' }
                 ].map(item => (
-                  <div 
-                    key={item.title} 
+                  <div
+                    key={item.title}
                     className="p-5 rounded-2xl border flex items-center justify-between gap-4"
                     style={{ background: 'var(--clr-input-bg)', borderColor: 'var(--clr-border)' }}
                   >
@@ -725,12 +764,12 @@ export default function Settings() {
                 <div className="grid grid-cols-2 gap-4">
                   <button
                     onClick={() => open('https://ko-fi.com/vinay7766')}
-                    className="flex flex-col items-center gap-1 p-5 rounded-2xl border transition-all hover:border-[var(--clr-accent)] hover:bg-[var(--clr-accent-soft)] group"
+                    className="flex flex-col items-center gap-1 p-5 rounded-2xl border transition-all hover:bg-[var(--clr-accent)] hover:text-white group"
                     style={{ background: 'var(--clr-input-bg)', borderColor: 'var(--clr-border)' }}
                   >
                     <div className="text-center">
-                      <div className="text-xs font-bold">Support Developer</div>
-                      <p className="text-[10px] opacity-60">Help keep Quickno free & fast</p>
+                      <div className="text-sm font-bold">Support Developer</div>
+                      <p className="text-[10px] opacity-60 group-hover:opacity-100">Help keep Quickno free & fast</p>
                     </div>
                   </button>
 
@@ -749,37 +788,8 @@ export default function Settings() {
             </div>
           )}
 
-          {/* Danger Zone */}
-          {activeSection === 'danger' && (
-            <div className="space-y-8 animate-fade-in-up">
-              <div>
-                <h2 className="text-xl font-bold mb-1" style={{ color: 'var(--clr-danger)' }}>Security & Data</h2>
-                <p className="text-sm" style={{ color: 'var(--clr-text-secondary)' }}>
-                  Manage sensitive data stored on your local machine.
-                </p>
-              </div>
-
-              <div 
-                className="p-6 rounded-2xl border space-y-4"
-                style={{ background: 'var(--clr-danger-soft)', borderColor: 'rgba(220, 38, 38, 0.15)' }}
-              >
-                <div>
-                  <h3 className="text-sm font-bold mb-1" style={{ color: 'var(--clr-danger)' }}>Delete API Key</h3>
-                  <p className="text-xs leading-relaxed" style={{ color: 'var(--clr-text-secondary)' }}>
-                    This will permanently remove your stored API key from the Windows Credential Manager and your local machine. Premium AI models will no longer work until a new key is provided.
-                  </p>
-                </div>
-                <button
-                  onClick={() => handleDeleteKey()}
-                  className="px-6 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:brightness-110 active:scale-95 shadow-sm"
-                  style={{ background: 'var(--clr-danger)' }}
-                >
-                  Delete API Key
-                </button>
-              </div>
-            </div>
           )}
-          
+
         </div>
       </div>
     </div>
