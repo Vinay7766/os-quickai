@@ -18,13 +18,6 @@ use serde_json::{json, Value};
 // These are the user-facing model names shown in the UI.
 // They map to actual model IDs on the Pollinations API.
 
-/// Maps a user-friendly free model name to the Pollinations model ID.
-fn free_model_id(model: &str) -> &str {
-    match model {
-        "free-model" => "openai-fast",
-        _            => "openai-fast",   // Default fallback
-    }
-}
 
 /// Checks if a given model name is one of the free (no-key) models.
 fn is_free_model(model: &str) -> bool {
