@@ -136,6 +136,11 @@ fn main() {
             // the window has `transparent: true`. We must explicitly clear it.
             if let Some(overlay) = app.get_webview_window("overlay") {
                 let _ = overlay.set_background_color(Some(tauri::window::Color(0, 0, 0, 0)));
+                // Force size to ensure it matches the new compact design
+                let _ = overlay.set_size(tauri::Size::Logical(tauri::LogicalSize {
+                    width: 480.0,
+                    height: 52.0,
+                }));
             }
 
             // ── Second-instance listener ─────────────────────────────────
@@ -159,13 +164,32 @@ fn main() {
                     }
                 }
             });
+            // ── Load Global Hotkey ──────────────────────────────────────
+            let settings_path = app.path().app_data_dir().unwrap_or_default().join("settings.json");
+            let saved_hotkey = if settings_path.exists() {
+                let content = std::fs::read_to_string(settings_path).unwrap_or_default();
+                let json: serde_json::Value = serde_json::from_str(&content).unwrap_or_default();
+                json.get("hotkey")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string())
+                    .unwrap_or_else(|| "alt+a".to_string())
+            } else {
+                "alt+a".to_string()
+            };
+
+            // Store the hotkey in app state so it can be updated later
+            *app.state::<HotkeyState>().0.lock().unwrap() = saved_hotkey.clone();
 
             // ── System Tray ──────────────────────────────────────────────
-            let quit_i     = MenuItem::with_id(app, "quit",     "✕  Quit",             true, None::<&str>)?;
-            let settings_i = MenuItem::with_id(app, "settings", "⚙  Main Page",        true, None::<&str>)?;
-            let toggle_i   = MenuItem::with_id(app, "toggle",   "⌨  Toggle (Alt+A)",   true, None::<&str>)?;
-            let discord_i  = MenuItem::with_id(app, "discord",  "💬  Join Discord",     true, None::<&str>)?;
-            let feedback_i = MenuItem::with_id(app, "feedback", "📝  Feedback",         true, None::<&str>)?;
+            let quit_i     = MenuItem::with_id(app, "quit",     "Quit",               true, None::<&str>)?;
+            let settings_i = MenuItem::with_id(app, "settings", "Settings",           true, None::<&str>)?;
+            
+            // Dynamic label for the toggle menu item
+            let toggle_label = format!("Toggle ({})", saved_hotkey.replace('+', " + ").to_uppercase());
+            let toggle_i   = MenuItem::with_id(app, "toggle", &toggle_label,   true, None::<&str>)?;
+            
+            let discord_i  = MenuItem::with_id(app, "discord",  "Join Discord",       true, None::<&str>)?;
+            let feedback_i = MenuItem::with_id(app, "feedback", "Feedback",           true, None::<&str>)?;
 
             let menu = Menu::with_items(
                 app,
@@ -173,7 +197,7 @@ fn main() {
             )?;
 
             TrayIconBuilder::new()
-                .tooltip("Quickno — Alt+A")
+                .tooltip(&format!("Quickno — {}", saved_hotkey.to_uppercase()))
                 .icon(app.default_window_icon().unwrap().clone())
                 .menu(&menu)
                 .show_menu_on_left_click(false)
@@ -201,30 +225,25 @@ fn main() {
                 })
                 .build(app)?;
 
-            // ── Load and Register Global Hotkey ──────────────────────────
-            // We read the saved hotkey from settings.json. If it doesn't exist,
-            // we default to "alt+a".
-            let settings_path = app.path().app_data_dir().unwrap_or_default().join("settings.json");
-            let saved_hotkey = if settings_path.exists() {
-                let content = std::fs::read_to_string(settings_path).unwrap_or_default();
-                let json: serde_json::Value = serde_json::from_str(&content).unwrap_or_default();
-                json.get("hotkey")
-                    .and_then(|v| v.as_str())
-                    .map(|s| s.to_string())
-                    .unwrap_or_else(|| "alt+a".to_string())
-            } else {
-                "alt+a".to_string()
-            };
-
-            // Store the hotkey in app state so it can be updated later
-            *app.state::<HotkeyState>().0.lock().unwrap() = saved_hotkey.clone();
-
-            // Register the hotkey
-            app.global_shortcut().on_shortcut(&saved_hotkey, |app, _shortcut, event| {
+            // ── Global Hotkey Registration ──────────────────────────────
+            // Register the hotkey with a fallback to "alt+a" if it fails.
+            // We use a match to ensure we don't register both.
+            let registration_result = app.global_shortcut().on_shortcut(saved_hotkey.as_str(), |app, _shortcut, event| {
                 if event.state == ShortcutState::Pressed {
                     toggle_overlay(app);
                 }
-            })?;
+            });
+
+            if let Err(_) = registration_result {
+                // If custom failed, AND it wasn't already alt+a, then fallback
+                if saved_hotkey != "alt+a" {
+                    let _ = app.global_shortcut().on_shortcut("alt+a", |app, _shortcut, event| {
+                        if event.state == ShortcutState::Pressed {
+                            toggle_overlay(app);
+                        }
+                    });
+                }
+            }
 
             // ── Autostart ────────────────────────────────────────────────
             if let Ok(exe) = std::env::current_exe() {
