@@ -16,6 +16,7 @@ const API_MODELS = [
   { value: 'grok', label: 'Grok', placeholder: 'xai-...', provider: 'grok' },
   { value: 'chatgpt', label: 'ChatGPT', placeholder: 'sk-proj-...', provider: 'openai' },
   { value: 'claude', label: 'Claude', placeholder: 'sk-ant-api03-...', provider: 'claude' },
+  { value: 'perplexity', label: 'Perplexity', placeholder: 'pplx-...', provider: 'perplexity' },
 ];
 
 const FREE_MODEL_OPTIONS = [
@@ -42,11 +43,11 @@ const AI_SITES = [
 
 type Section = 'models' | 'interface' | 'hotkey' | 'feedback';
 
-const SIDEBAR_NAV: { id: Section; label: string; icon: string }[] = [
-  { id: 'models', label: 'AI Models & APIs', icon: '🧠' },
-  { id: 'interface', label: 'Interface & Browser', icon: '🎨' },
-  { id: 'hotkey', label: 'Shortcuts', icon: '⌨️' },
-  { id: 'feedback', label: 'Support & Community', icon: '💬' },
+const SIDEBAR_NAV: { id: Section; label: string }[] = [
+  { id: 'models', label: 'AI Models & APIs' },
+  { id: 'interface', label: 'Interface & Browser' },
+  { id: 'hotkey', label: 'Shortcuts' },
+  { id: 'feedback', label: 'Support & Community' },
 ];
 
 export default function Settings() {
@@ -110,7 +111,7 @@ export default function Settings() {
       getApiKey(apiModel.provider).then(key => {
         if (key) {
           setKeyInput('••••••••••••');
-          refreshModels(key, apiModel.provider);
+          refreshModels();
         }
       });
     }
@@ -128,7 +129,7 @@ export default function Settings() {
       getApiKey(apiModel.provider).then(key => {
         if (key) {
           setKeyInput('••••••••••••');
-          refreshModels(key, apiModel.provider);
+          refreshModels();
         } else {
           setKeyInput('');
         }
@@ -172,7 +173,7 @@ export default function Settings() {
       const apiModel = API_MODELS.find(m => llmModel.startsWith(m.value));
       if (apiModel && apiModel.provider === targetProvider) {
         setIsRefreshingModels(true);
-        refreshModels(keyInput, targetProvider)
+        refreshModels()
           .finally(() => setIsRefreshingModels(false));
       }
 
@@ -195,7 +196,7 @@ export default function Settings() {
 
     setIsRefreshingModels(true);
     try {
-      await refreshModels(key, apiModel.provider);
+      await refreshModels();
     } finally {
       setIsRefreshingModels(false);
     }
@@ -316,7 +317,7 @@ export default function Settings() {
             boxShadow: 'var(--shadow-md)'
           }}
         >
-          {saveIndicator ? 'Saved successfully ✓' : 'Save all changes'}
+          {saveIndicator ? 'Saved successfully' : 'Save all changes'}
         </button>
       </div>
 
@@ -648,20 +649,19 @@ export default function Settings() {
                 <h3 className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--clr-text-tertiary)' }}>Global Toggle Key</h3>
                 <div className="flex gap-3">
                   <div 
-                    className="flex-1 px-4 py-2.5 rounded-xl text-sm font-mono border focus:outline-none flex items-center justify-center cursor-pointer hover:border-[var(--clr-accent)] transition-all group"
+                    className="flex-1 px-4 py-2.5 rounded-xl text-sm font-mono border focus:outline-none flex items-center justify-center cursor-pointer hover:border-[var(--clr-accent)] transition-all group relative overflow-hidden"
                     style={{ background: 'var(--clr-surface)', borderColor: hotkeyStatus === 'err' ? 'var(--clr-danger)' : 'var(--clr-border)', color: 'var(--clr-text)' }}
                     tabIndex={0}
                     onKeyDown={(e) => {
                       e.preventDefault();
+                      setHotkeyStatus('saving'); // Use 'saving' to mean "recording" visually
                       const modifiers = [];
                       if (e.ctrlKey) modifiers.push('ctrl');
                       if (e.altKey) modifiers.push('alt');
                       if (e.shiftKey) modifiers.push('shift');
                       
                       let key = e.key.toLowerCase();
-                      if (key === 'control') return;
-                      if (key === 'alt') return;
-                      if (key === 'shift') return;
+                      if (key === 'control' || key === 'alt' || key === 'shift') return;
                       if (key === ' ') key = 'space';
                       
                       if (modifiers.length === 0) {
@@ -674,8 +674,13 @@ export default function Settings() {
                       setHotkeyStatus('idle');
                     }}
                   >
-                    <span className="opacity-40 group-hover:opacity-100 transition-opacity mr-2">Click to Record:</span>
-                    <span className="font-bold text-[var(--clr-accent)] uppercase">{hotkey.replace(/\+/g, ' + ')}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="opacity-40 group-hover:opacity-100 transition-opacity">
+                        {hotkeyStatus === 'saving' ? 'Recording...' : 'Click to Change:'}
+                      </span>
+                      <span className="font-bold text-[var(--clr-accent)] uppercase tracking-wider">{hotkey.replace(/\+/g, ' + ')}</span>
+                    </div>
+                    {hotkeyStatus === 'saving' && <div className="absolute inset-0 bg-[var(--clr-accent)]/5 animate-pulse" />}
                   </div>
                   <button
                     onClick={handleHotkeySave}
@@ -758,36 +763,34 @@ export default function Settings() {
               </div>
 
               <div className="pt-6 border-t" style={{ borderColor: 'var(--clr-border)' }}>
-                <h3 className="text-sm font-bold mb-4 flex items-center gap-2">
-                  Support the Project
-                </h3>
+                <h3 className="text-sm font-bold mb-4">Support the Project</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <button
                     onClick={() => open('https://ko-fi.com/vinay7766')}
-                    className="flex flex-col items-center gap-1 p-5 rounded-2xl border transition-all hover:bg-[var(--clr-accent)] hover:text-white group"
+                    className="flex flex-col items-center gap-2 p-5 rounded-2xl border transition-all hover:scale-[1.02] active:scale-95 group relative overflow-hidden"
                     style={{ background: 'var(--clr-input-bg)', borderColor: 'var(--clr-border)' }}
                   >
-                    <div className="text-center">
-                      <div className="text-sm font-bold">Support Developer</div>
-                      <p className="text-[10px] opacity-60 group-hover:opacity-100">Help keep Quickno free & fast</p>
+                    <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/0 to-yellow-500/0 group-hover:from-yellow-500/5 group-hover:to-yellow-500/10 transition-all" />
+                    <div className="text-center relative z-10">
+                      <div className="text-sm font-bold text-yellow-500">Support Developer</div>
+                      <p className="text-[10px] opacity-60">Help keep Quickno fast & free</p>
                     </div>
                   </button>
 
                   <button
                     onClick={() => open('https://ko-fi.com/pollinations')}
-                    className="flex flex-col items-center gap-1 p-5 rounded-2xl border transition-all hover:border-[var(--clr-accent)] hover:bg-[var(--clr-accent-soft)] group"
+                    className="flex flex-col items-center gap-2 p-5 rounded-2xl border transition-all hover:scale-[1.02] active:scale-95 group relative overflow-hidden"
                     style={{ background: 'var(--clr-input-bg)', borderColor: 'var(--clr-border)' }}
                   >
-                    <div className="text-center">
-                      <div className="text-xs font-bold">Support Pollinations</div>
-                      <p className="text-[10px] opacity-60">Back the free AI engine</p>
+                    <div className="absolute inset-0 bg-gradient-to-br from-green-500/0 to-green-500/0 group-hover:from-green-500/5 group-hover:to-green-500/10 transition-all" />
+                    <div className="text-center relative z-10">
+                      <div className="text-xs font-bold text-green-500">Support Pollinations</div>
+                      <p className="text-[10px] opacity-60">Back the core AI engine</p>
                     </div>
                   </button>
                 </div>
               </div>
             </div>
-          )}
-
           )}
 
         </div>
