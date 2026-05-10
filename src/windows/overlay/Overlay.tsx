@@ -330,6 +330,19 @@ export default function Overlay() {
                         onClick={async () => {
                           if (internalUrl) {
                             const { open } = await import('@tauri-apps/plugin-shell');
+                            try {
+                              const mapping = useSettingsStore.getState().modelProviderMap[llmModel];
+                              const answer = await invoke<string>('query_llm', { 
+                                query, 
+                                model: llmModel, 
+                                apiKey: currentKey,
+                                provider: mapping?.provider,
+                                baseUrl: mapping?.baseUrl
+                              });
+                              setAnswer(answer);
+                            } catch (e) {
+                              console.error(e);
+                            }
                             await open(internalUrl);
                           }
                         }}

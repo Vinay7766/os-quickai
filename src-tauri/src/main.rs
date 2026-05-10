@@ -129,6 +129,8 @@ fn main() {
             commands::browser::launch_app,
             commands::llm::list_gemini_models,
             commands::llm::list_provider_models,
+            commands::llm::list_ollama_models,
+            commands::llm::list_openai_compatible,
         ])
         .setup(move |app| {
             // ── Transparent overlay background ───────────────────────────

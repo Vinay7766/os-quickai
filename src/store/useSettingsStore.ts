@@ -57,6 +57,7 @@ interface SettingsState {
   ollamaUrl: string;
 
   availableModels: string[];
+  modelProviderMap: Record<string, { provider: string; baseUrl?: string }>;
   
   loadSettings: () => Promise<void>;
   updateHotkey: (hk: string) => Promise<void>;
@@ -107,6 +108,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   ollamaEnabled: false,
   ollamaUrl: 'http://localhost:11434',
   availableModels: [],
+  modelProviderMap: {},
 
   // ── Load Settings from Disk ────────────────────────────────────────────
   loadSettings: async () => {
@@ -159,6 +161,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       const state = get();
       const providers = ['gemini', 'grok', 'openai', 'claude', 'perplexity'];
       let allModels: string[] = [];
+      let providerMap: Record<string, { provider: string; baseUrl?: string }> = {};
 
       // 1. Standard Providers
       for (const provider of providers) {
@@ -167,6 +170,9 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
           try {
             const models = await invoke<string[]>('list_provider_models', { apiKey: key, provider });
             allModels = [...allModels, ...models];
+            models.forEach(m => {
+              providerMap[m] = { provider };
+            });
           } catch (e) {
             console.error(`[Settings] Failed to fetch models for ${provider}:`, e);
           }
@@ -182,6 +188,9 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
               url: custom.baseUrl.endsWith('/models') ? custom.baseUrl : `${custom.baseUrl.replace(/\/$/, '')}/models`
             });
             allModels = [...allModels, ...models];
+            models.forEach(m => {
+              providerMap[m] = { provider: 'custom', baseUrl: custom.baseUrl };
+            });
           } catch (e) {
             console.error(`[Settings] Failed to fetch models for custom provider ${custom.name}:`, e);
           }
@@ -192,16 +201,20 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       if (state.ollamaEnabled) {
         try {
           const models = await invoke<string[]>('list_ollama_models', { url: state.ollamaUrl });
-          // Prefix ollama models to avoid confusion
-          allModels = [...allModels, ...models.map(m => `ollama:${m}`)];
+          const prefixed = models.map(m => `ollama:${m}`);
+          allModels = [...allModels, ...prefixed];
+          prefixed.forEach(m => {
+            providerMap[m] = { provider: 'ollama', baseUrl: state.ollamaUrl };
+          });
         } catch (e) {
           console.error('[Settings] Failed to fetch Ollama models:', e);
         }
       }
 
       const uniqueModels = Array.from(new Set(allModels));
-      set({ availableModels: uniqueModels });
+      set({ availableModels: uniqueModels, modelProviderMap: providerMap });
       await emit('settings-updated', { key: 'availableModels', val: uniqueModels });
+      await emit('settings-updated', { key: 'modelProviderMap', val: providerMap });
     } catch (e) {
       console.error('[Settings] Global refresh failed:', e);
     }
