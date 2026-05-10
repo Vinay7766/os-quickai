@@ -33,23 +33,32 @@ pub async fn open_settings(app: tauri::AppHandle) {
 #[tauri::command]
 pub fn update_shortcut(app: tauri::AppHandle, new_shortcut: String) -> Result<(), String> {
     let state = app.state::<HotkeyState>();
+    let mut current_hk = state.0.lock().unwrap();
 
-    // Unregister the old hotkey
-    let old = state.0.lock().unwrap().clone();
-    if !old.is_empty() {
-        let _ = app.global_shortcut().unregister(old.as_str());
-    }
+    // 1. Unregister the old key (whether it was custom or default)
+    // We don't use ? here because it might already be unregistered
+    let _ = app.global_shortcut().unregister(current_hk.as_str());
 
-    // Register the new hotkey with the same toggle behaviour
-    app.global_shortcut()
-        .on_shortcut(new_shortcut.as_str(), |app, _shortcut, event| {
+    // 2. Try to register the new one
+    let res = app.global_shortcut().on_shortcut(new_shortcut.as_str(), |app, _shortcut, event| {
+        if event.state == ShortcutState::Pressed {
+            crate::toggle_overlay(app);
+        }
+    });
+
+    if res.is_ok() {
+        *current_hk = new_shortcut;
+        Ok(())
+    } else {
+        // FALLBACK: If new key is "incomplete" or invalid, go back to Alt+A
+        let _ = app.global_shortcut().on_shortcut("alt+a", |app, _shortcut, event| {
             if event.state == ShortcutState::Pressed {
                 crate::toggle_overlay(app);
             }
-        })
-        .map_err(|e| e.to_string())?;
-
-    // Persist the new hotkey in app state
-    *state.0.lock().unwrap() = new_shortcut;
-    Ok(())
+        });
+        *current_hk = "alt+a".to_string();
+        
+        // Return an error so the frontend knows the fallback happened
+        Err("Invalid shortcut. Falling back to Alt+A.".into())
+    }
 }
