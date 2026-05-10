@@ -238,21 +238,25 @@ pub async fn query_llm(
         .build()
         .map_err(|e| AppError::NetworkError(e.to_string()))?;
 
-    // ── Free Models (Direct Call with Retries) ───────────────────
+    // ── Free Models (Aggressive Failover with Micro-Retries) ─────
     if is_free_model(&model) {
-        let primary_id = free_model_id(&model);
         let mut attempts = 0;
         let max_attempts = 3;
+        
+        // Sequence of models to try if the primary is busy
+        let models_to_try = ["openai-fast", "mistral", "llama"];
 
         while attempts < max_attempts {
-            match query_pollinations(&client, &query, primary_id).await {
+            // Try a different model in the sequence on each retry
+            let current_id = models_to_try[attempts % models_to_try.len()];
+            
+            match query_pollinations(&client, &query, current_id).await {
                 Ok(answer) => return Ok(answer),
                 Err((503, _)) => {
-                    // Server at capacity — wait and retry
                     attempts += 1;
                     if attempts < max_attempts {
-                        let wait_ms = attempts * 1000; // 1s, 2s backoff
-                        tokio::time::sleep(std::time::Duration::from_millis(wait_ms as u64)).await;
+                        // Micro-retry: only wait 150ms instead of 1000ms
+                        tokio::time::sleep(std::time::Duration::from_millis(150)).await;
                         continue;
                     }
                 }
