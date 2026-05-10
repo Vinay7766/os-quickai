@@ -60,7 +60,7 @@ export default function Overlay() {
     try {
       const win = getCurrentWindow();
       const size = await win.innerSize();
-      const FIXED_WIDTH = 680;
+      const FIXED_WIDTH = 480;
       
       const factor = await win.scaleFactor();
       const currentH = size.height / factor;
@@ -101,7 +101,7 @@ export default function Overlay() {
     };
 
     trigger();
-    const timers = [50, 200, 500, 1000].map(ms => setTimeout(trigger, ms));
+    const timers = [10, 50, 100, 200, 500, 1000].map(ms => setTimeout(trigger, ms));
     return () => timers.forEach(t => clearTimeout(t));
   }, [hasContent, isMenuOpen, internalUrl, answer, error, isLoading, resizeWindow]);
 
@@ -330,19 +330,6 @@ export default function Overlay() {
                         onClick={async () => {
                           if (internalUrl) {
                             const { open } = await import('@tauri-apps/plugin-shell');
-                            try {
-                              const mapping = useSettingsStore.getState().modelProviderMap[llmModel];
-                              const answer = await invoke<string>('query_llm', { 
-                                query, 
-                                model: llmModel, 
-                                apiKey: currentKey,
-                                provider: mapping?.provider,
-                                baseUrl: mapping?.baseUrl
-                              });
-                              setAnswer(answer);
-                            } catch (e) {
-                              console.error(e);
-                            }
                             await open(internalUrl);
                           }
                         }}

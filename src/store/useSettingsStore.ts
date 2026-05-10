@@ -231,7 +231,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   },
 
   // ── Update Any Setting ─────────────────────────────────────────────────
-  updateSetting: async (key: string, val: string | boolean | string[]) => {
+  updateSetting: async (key: string, val: string | boolean | string[] | CustomProvider[]) => {
     // 1. Update local Zustand state immediately
     set({ [key]: val } as any);
 
