@@ -66,7 +66,6 @@ export function ResultPanel() {
           }}
         >
           <div className="flex items-center gap-2 mb-2">
-            <div className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--clr-danger)' }} />
             <strong className="text-[10px] font-bold uppercase tracking-wider">Error</strong>
           </div>
           {error}
@@ -103,10 +102,6 @@ export function ResultPanel() {
             className="mt-5 pt-3 border-t flex items-center gap-2 opacity-50"
             style={{ borderColor: 'var(--clr-border)' }}
           >
-            <div
-              className="w-1.5 h-1.5 rounded-full"
-              style={{ background: 'var(--clr-accent)' }}
-            />
             <span className="text-[10px] font-semibold uppercase tracking-wider">
               {llmModel}
             </span>
