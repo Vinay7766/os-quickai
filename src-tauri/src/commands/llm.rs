@@ -37,7 +37,9 @@ fn is_free_model(model: &str) -> bool {
 
 /// Sends a query to the Pollinations AI API and returns the response text.
 /// Returns `None` if the request fails or returns an empty response.
-async fn query_pollinations(client: &Client, query: &str, model: &str) -> Option<String> {
+/// Sends a query to the Pollinations AI API and returns the response text.
+/// Returns the response or an error code so we can retry on 503.
+async fn query_pollinations(client: &Client, query: &str, model: &str) -> Result<String, (u16, String)> {
     let response = client
         .post("https://text.pollinations.ai/openai")
         .json(&json!({
@@ -56,20 +58,20 @@ async fn query_pollinations(client: &Client, query: &str, model: &str) -> Option
         }))
         .send()
         .await
-        .ok()?;
+        .map_err(|e| (500, e.to_string()))?;
 
-    // Only process successful responses
+    let status = response.status().as_u16();
     if !response.status().is_success() {
-        return None;
+        return Err((status, response.text().await.unwrap_or_default()));
     }
 
-    let body: Value = response.json().await.ok()?;
+    let body: Value = response.json().await.map_err(|e| (status, e.to_string()))?;
     let content = body["choices"][0]["message"]["content"]
         .as_str()
-        .filter(|s| !s.is_empty())?;
+        .filter(|s| !s.is_empty())
+        .ok_or_else(|| (status, "Empty response from AI".to_string()))?;
 
     // ── Clean Response ───────────────────────────────────────────────────
-    // Remove any attribution signatures or "ads" that the API might inject.
     let cleaned = content
         .replace("Powered by Pollinations.ai", "")
         .replace("Powered by Pollinations", "")
@@ -81,7 +83,11 @@ async fn query_pollinations(client: &Client, query: &str, model: &str) -> Option
         .trim()
         .to_string();
 
-    if cleaned.is_empty() { None } else { Some(cleaned) }
+    if cleaned.is_empty() { 
+        Err((status, "Empty response after cleaning".to_string())) 
+    } else { 
+        Ok(cleaned) 
+    }
 }
 
 // ── Main Query Handler ───────────────────────────────────────────────────────
@@ -232,16 +238,33 @@ pub async fn query_llm(
         .build()
         .map_err(|e| AppError::NetworkError(e.to_string()))?;
 
-    // ── Free Models (Direct Call) ──────────────────────────────
+    // ── Free Models (Direct Call with Retries) ───────────────────
     if is_free_model(&model) {
         let primary_id = free_model_id(&model);
-        if let Some(answer) = query_pollinations(&client, &query, primary_id).await {
-            return Ok(answer);
+        let mut attempts = 0;
+        let max_attempts = 3;
+
+        while attempts < max_attempts {
+            match query_pollinations(&client, &query, primary_id).await {
+                Ok(answer) => return Ok(answer),
+                Err((503, _)) => {
+                    // Server at capacity — wait and retry
+                    attempts += 1;
+                    if attempts < max_attempts {
+                        let wait_ms = attempts * 1000; // 1s, 2s backoff
+                        tokio::time::sleep(std::time::Duration::from_millis(wait_ms as u64)).await;
+                        continue;
+                    }
+                }
+                Err((s, m)) => {
+                    return Err(AppError::ProviderError { status: s, message: m });
+                }
+            }
         }
 
         return Err(AppError::ProviderError {
             status: 503,
-            message: format!("The free model endpoint is currently at capacity. Please try again or use an API key."),
+            message: "The free model endpoint is consistently at capacity. Please try again in a few minutes or use an API key.".to_string(),
         });
     }
 
