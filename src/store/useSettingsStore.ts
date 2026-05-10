@@ -50,7 +50,7 @@ interface SettingsState {
   updateHotkey: (hk: string) => Promise<void>;
   updateSetting: (key: string, val: string | boolean | string[]) => Promise<void>;
   saveAll: () => Promise<void>;
-  refreshModels: (apiKey: string, provider: string) => Promise<void>;
+  refreshModels: () => Promise<void>;
 }
 
 // ── Theme Helpers ────────────────────────────────────────────────────────────
@@ -120,6 +120,9 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         enableSiteLauncher, enableAppLauncher, openLinksInternal,
         settingsLoaded: true 
       });
+
+      // Fetch all available models based on existing keys
+      get().refreshModels();
     } catch (e) {
       console.error('[Settings] Failed to load:', e);
       await refreshOsThemeCache();
@@ -128,15 +131,28 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     }
   },
 
-  // ── Refresh Available Models ───────────────────────────────────────────
-  refreshModels: async (apiKey: string, provider: string) => {
+  // ── Refresh All Available Models ──────────────────────────────────────
+  refreshModels: async () => {
     try {
-      const models = await invoke<string[]>('list_provider_models', { apiKey, provider });
-      set({ availableModels: models });
-      await emit('settings-updated', { key: 'availableModels', val: models });
+      const providers = ['gemini', 'grok', 'openai', 'claude', 'perplexity'];
+      let allModels: string[] = [];
+
+      for (const provider of providers) {
+        const key = await invoke<string | null>('get_api_key', { provider });
+        if (key && key !== '••••••••••••') {
+          try {
+            const models = await invoke<string[]>('list_provider_models', { apiKey: key, provider });
+            allModels = [...allModels, ...models];
+          } catch (e) {
+            console.error(`[Settings] Failed to fetch models for ${provider}:`, e);
+          }
+        }
+      }
+
+      set({ availableModels: Array.from(new Set(allModels)) });
+      await emit('settings-updated', { key: 'availableModels', val: allModels });
     } catch (e) {
-      console.error('[Settings] Failed to refresh models:', e);
-      set({ availableModels: [] });
+      console.error('[Settings] Global refresh failed:', e);
     }
   },
 
