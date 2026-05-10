@@ -7,7 +7,7 @@ import { QueryInput } from '../../components/QueryInput';
 import { ResultPanel } from '../../components/ResultPanel';
 import { UpdateBanner } from '../../components/UpdateBanner';
 import { useUpdateCheck } from '../../hooks/useUpdateCheck';
-import { searchInBrowser, getApiKey } from '../../lib/tauriCommands';
+import { searchInBrowser } from '../../lib/tauriCommands';
 import { open } from '@tauri-apps/plugin-shell';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 
@@ -27,15 +27,9 @@ const AI_URLS: Record<string, string> = {
   perplexity: 'https://www.perplexity.ai/',
 };
 
-const API_MODELS = [
-  { value: 'gemini',  provider: 'gemini' },
-  { value: 'grok',    provider: 'grok' },
-  { value: 'chatgpt', provider: 'openai' },
-  { value: 'claude',  provider: 'claude' },
-];
 
 // ── Layout Constants ─────────────────────────────────────────────────────────
-const SEARCH_BAR_HEIGHT = 56;
+const SEARCH_BAR_HEIGHT = 52;
 
 export default function Overlay() {
   const { 
@@ -46,7 +40,6 @@ export default function Overlay() {
   
   const browser        = useSettingsStore((s) => s.browser);
   const llmSite        = useSettingsStore((s) => s.llmSite);
-  const llmModel       = useSettingsStore((s) => s.llmModel);
   const searchEngine   = useSettingsStore((s) => s.searchEngine);
   const loadSettings        = useSettingsStore((s) => s.loadSettings);
   const refreshModels       = useSettingsStore((s) => s.refreshModels);
@@ -112,40 +105,22 @@ export default function Overlay() {
     return () => timers.forEach(t => clearTimeout(t));
   }, [hasContent, isMenuOpen, internalUrl, answer, error, isLoading, resizeWindow]);
 
-  // ── Dynamic Model Fetching ─────────────────────────────────────────────
-  const fetchModels = useCallback(async () => {
-    try {
-      // Find provider for the current model
-      const apiModel = API_MODELS.find(m => llmModel.startsWith(m.value));
-      const provider = apiModel?.provider;
-
-      if (provider) {
-        const key = await getApiKey(provider);
-        if (key) {
-          await refreshModels(key, provider);
-        }
-      }
-    } catch (e) {
-      console.warn('[Overlay] Model discovery failed:', e);
-    }
-  }, [llmModel, refreshModels]);
-
   useEffect(() => {
-    loadSettings().then(() => fetchModels());
-  }, [loadSettings, fetchModels]);
+    loadSettings().then(() => refreshModels());
+  }, [loadSettings, refreshModels]);
 
   useEffect(() => {
     let unlisten: (() => void) | undefined;
     getCurrentWindow()
       .onFocusChanged(({ payload: focused }) => {
         if (focused) {
-          loadSettings().then(() => fetchModels());
+          loadSettings().then(() => refreshModels());
           window.dispatchEvent(new Event('focus-input'));
         }
       })
       .then((fn) => { unlisten = fn; });
     return () => unlisten?.();
-  }, [loadSettings, fetchModels]);
+  }, [loadSettings, refreshModels]);
 
   // ── Shortcuts ──────────────────────────────────────────────────────────
   useEffect(() => {
@@ -257,10 +232,13 @@ export default function Overlay() {
     <div 
       className="w-full h-screen overflow-hidden flex flex-col box-border relative"
       style={{
-        border: '2px solid var(--clr-accent)',
-        borderRadius: (hasContent || isMenuOpen) ? '24px' : '9999px',
+        // BORDER ONLY - SHADOW REMOVED TO ELIMINATE "OUTER BORDER" ARTIFACT
+        borderRadius: '28px',
+        border: `2px solid ${isLoading ? 'var(--clr-accent)' : 'rgba(var(--clr-accent-rgb), 0.5)'}`,
         background: 'var(--clr-glass)',
-        transition: 'border-radius 0.2s ease',
+        transition: 'border-color 0.3s ease', 
+        boxShadow: 'none',
+        margin: '1px', // Prevents border-clipping on transparent window edges
       }}
     >
       <div
@@ -306,9 +284,7 @@ export default function Overlay() {
                 onClick={handleBrowserSearch}
                 title="Search on Web (Alt+Enter)"
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                  <circle cx="12" cy="12" r="10" /><path d="M2 12h20" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-                </svg>
+                <span className="text-[10px] font-black uppercase">Web</span>
               </button>
 
               <button
@@ -318,9 +294,7 @@ export default function Overlay() {
                 onClick={handleAIOpen}
                 title="Open in AI Site (Ctrl+Enter)"
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                </svg>
+                <span className="text-[10px] font-black uppercase">AI</span>
               </button>
             </div>
           </div>
@@ -333,7 +307,6 @@ export default function Overlay() {
                 <div className="flex-1 flex flex-col min-h-0 animate-in fade-in slide-in-from-bottom-4 duration-300">
                   <div className="flex items-center justify-between px-6 py-2 border-b border-white/5 bg-white/5">
                     <div className="flex items-center gap-3 overflow-hidden">
-                      <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
                       <span className="text-[10px] font-bold opacity-40 truncate uppercase tracking-widest">{internalUrl}</span>
                     </div>
                     <div className="flex-1 flex items-center justify-center gap-2">
@@ -342,14 +315,14 @@ export default function Overlay() {
                         className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all text-[9px] font-bold text-[var(--clr-text-secondary)] hover:text-white"
                         title="Support the Developer"
                       >
-                        <span className="opacity-60">☕</span> Support Me
+                        Support Me
                       </button>
                       <button 
                         onClick={() => open('https://ko-fi.com/pollinations')}
                         className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all text-[9px] font-bold text-[var(--clr-text-secondary)] hover:text-white"
                         title="Support Pollinations.ai"
                       >
-                        <span className="opacity-60">🌿</span> Pollinations
+                        Pollinations
                       </button>
                     </div>
                     <div className="flex items-center gap-2">
@@ -406,11 +379,6 @@ export default function Overlay() {
                         className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all hover:bg-white/5 active:scale-95"
                         style={{ color: copied ? 'var(--clr-success)' : 'var(--clr-text-secondary)' }}
                       >
-                        {copied ? (
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
-                        ) : (
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
-                        )}
                         {copied ? 'Copied!' : 'Copy Answer'}
                       </button>
                     )}
