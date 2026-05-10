@@ -189,6 +189,28 @@ pub async fn list_ollama_models(url: String) -> Result<Vec<String>, AppError> {
     }
 }
 
+#[tauri::command]
+pub async fn pull_ollama_model(url: String, name: String) -> Result<(), AppError> {
+    let client = Client::new();
+    let pull_url = format!("{}/api/pull", url.trim_end_matches('/'));
+    
+    let response = client
+        .post(pull_url)
+        .json(&json!({ "name": name, "stream": false }))
+        .send()
+        .await
+        .map_err(|e| AppError::NetworkError(e.to_string()))?;
+
+    if response.status().is_success() {
+        Ok(())
+    } else {
+        Err(AppError::ProviderError {
+            status: response.status().as_u16(),
+            message: response.text().await.unwrap_or_default(),
+        })
+    }
+}
+
 async fn list_claude_internal(api_key: &str) -> Result<Vec<String>, AppError> {
     let client = Client::new();
     let response = client
