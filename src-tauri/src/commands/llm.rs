@@ -250,8 +250,8 @@ pub async fn list_provider_models(api_key: String, provider: String) -> Result<V
 
     match provider.to_lowercase().as_str() {
         "gemini" => list_gemini_internal(&api_key).await,
-        "openai" => list_openai_compatible(&api_key, "https://api.openai.com/v1/models").await,
-        "grok"   => list_openai_compatible(&api_key, "https://api.x.ai/v1/models").await,
+        "openai" => list_openai_compatible(api_key.clone(), "https://api.openai.com/v1/models".to_string()).await,
+        "grok"   => list_openai_compatible(api_key.clone(), "https://api.x.ai/v1/models".to_string()).await,
         "claude" => list_claude_internal(&api_key).await,
         _ => Err(AppError::NetworkError("Unknown provider".to_string())),
     }
