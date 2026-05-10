@@ -41,10 +41,11 @@ const AI_SITES = [
   { value: 'perplexity', label: 'Perplexity' },
 ];
 
-type Section = 'models' | 'interface' | 'hotkey' | 'feedback';
+type Section = 'models' | 'advanced' | 'interface' | 'hotkey' | 'feedback';
 
 const SIDEBAR_NAV: { id: Section; label: string }[] = [
   { id: 'models', label: 'AI Models & APIs' },
+  { id: 'advanced', label: 'Advanced AI' },
   { id: 'interface', label: 'Interface & Browser' },
   { id: 'hotkey', label: 'Shortcuts' },
   { id: 'feedback', label: 'Support & Community' },
@@ -67,6 +68,13 @@ export default function Settings() {
   const [isRefreshingModels, setIsRefreshingModels] = useState(false);
   const [storedKeys, setStoredKeys] = useState<Record<string, boolean>>({});
   const [activeKeyProvider, setActiveKeyProvider] = useState<string | null>(null);
+
+  // Advanced AI State
+  const [showAddCustom, setShowAddCustom] = useState(false);
+  const [newCustom, setNewCustom] = useState({ name: '', baseUrl: '', apiKey: '' });
+  const [ollamaPullInput, setOllamaPullInput] = useState('');
+  const [isPulling, setIsPulling] = useState(false);
+  const [pullError, setPullError] = useState<string | null>(null);
 
   // ── Initialization ─────────────────────────────────────────────────────
   useEffect(() => {
@@ -199,6 +207,39 @@ export default function Settings() {
       await refreshModels();
     } finally {
       setIsRefreshingModels(false);
+    }
+  };
+
+  const handleAddCustom = async () => {
+    if (!newCustom.name || !newCustom.baseUrl) return;
+    const provider = { ...newCustom, id: Date.now().toString() };
+    const updated = [...customProviders, provider];
+    await updateSetting('customProviders', updated as any);
+    await invoke('save_setting', { key: 'customProviders', value: JSON.stringify(updated) });
+    setNewCustom({ name: '', baseUrl: '', apiKey: '' });
+    setShowAddCustom(false);
+    refreshModels();
+  };
+
+  const handleRemoveCustom = async (id: string) => {
+    const updated = customProviders.filter(p => p.id !== id);
+    await updateSetting('customProviders', updated as any);
+    await invoke('save_setting', { key: 'customProviders', value: JSON.stringify(updated) });
+    refreshModels();
+  };
+
+  const handlePullOllama = async () => {
+    if (!ollamaPullInput) return;
+    setIsPulling(true);
+    setPullError(null);
+    try {
+      await invoke('pull_ollama_model', { url: ollamaUrl, name: ollamaPullInput });
+      setOllamaPullInput('');
+      refreshModels();
+    } catch (e) {
+      setPullError(String(e));
+    } finally {
+      setIsPulling(false);
     }
   };
 
@@ -518,6 +559,141 @@ export default function Settings() {
             </div>
           )}
 
+          {/* Advanced Section */}
+          {activeSection === 'advanced' && (
+            <div className="space-y-10 animate-fade-in-up">
+              <div>
+                <h2 className="text-xl font-bold mb-1">Advanced AI Sources</h2>
+                <p className="text-sm" style={{ color: 'var(--clr-text-secondary)' }}>
+                  Integrate local models via Ollama or connect any OpenAI-compatible provider.
+                </p>
+              </div>
+
+              {/* Ollama Section */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--clr-text-tertiary)' }}>Local AI (Ollama)</h3>
+                  <button
+                    onClick={() => updateSetting('ollamaEnabled', !ollamaEnabled)}
+                    className={`w-10 h-5 rounded-full transition-all relative ${ollamaEnabled ? 'bg-[var(--clr-accent)]' : 'bg-gray-600'}`}
+                  >
+                    <div className={`absolute top-1 w-3 h-3 rounded-full bg-white transition-all ${ollamaEnabled ? 'right-1' : 'left-1'}`} />
+                  </button>
+                </div>
+
+                {ollamaEnabled && (
+                  <div className="p-6 rounded-2xl border space-y-4 animate-in fade-in slide-in-from-top-2 duration-300" style={{ background: 'var(--clr-input-bg)', borderColor: 'var(--clr-border)' }}>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={ollamaPullInput}
+                        onChange={e => setOllamaPullInput(e.target.value)}
+                        placeholder="Enter model name (e.g. deepseek-r1)"
+                        className="flex-1 px-4 py-2.5 rounded-xl text-sm border focus:outline-none focus:border-[var(--clr-accent)] transition-all"
+                        style={{ background: 'var(--clr-surface)', borderColor: 'var(--clr-border)', color: 'var(--clr-text)' }}
+                      />
+                      <button
+                        onClick={handlePullOllama}
+                        disabled={isPulling || !ollamaPullInput}
+                        className="px-6 py-2.5 rounded-xl text-sm font-bold text-white disabled:opacity-50 hover:brightness-110 transition-all"
+                        style={{ background: 'var(--clr-accent)' }}
+                      >
+                        {isPulling ? 'Pulling...' : 'Pull Model'}
+                      </button>
+                    </div>
+                    {pullError && <p className="text-[10px] text-[var(--clr-danger)] font-bold">{pullError}</p>}
+                    <p className="text-[10px] opacity-60">
+                      Ollama must be running at <code className="bg-white/5 px-1 rounded">localhost:11434</code>. 
+                      Pulled models will appear in the search bar dropdown automatically.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Custom Providers (BYOK) */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--clr-text-tertiary)' }}>Custom Providers (BYOK)</h3>
+                  <button
+                    onClick={() => setShowAddCustom(!showAddCustom)}
+                    className="text-[10px] font-bold uppercase tracking-widest text-[var(--clr-accent)] hover:underline"
+                  >
+                    {showAddCustom ? 'Cancel' : '+ Add Provider'}
+                  </button>
+                </div>
+
+                {showAddCustom && (
+                  <div className="p-6 rounded-2xl border space-y-4 animate-in fade-in slide-in-from-top-2 duration-300" style={{ background: 'var(--clr-input-bg)', borderColor: 'var(--clr-border)' }}>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold uppercase opacity-40 px-1">Friendly Name</label>
+                        <input
+                          type="text"
+                          value={newCustom.name}
+                          onChange={e => setNewCustom({ ...newCustom, name: e.target.value })}
+                          placeholder="e.g. OpenRouter"
+                          className="w-full px-4 py-2.5 rounded-xl text-sm border focus:outline-none focus:border-[var(--clr-accent)]"
+                          style={{ background: 'var(--clr-surface)', borderColor: 'var(--clr-border)', color: 'var(--clr-text)' }}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold uppercase opacity-40 px-1">Base URL</label>
+                        <input
+                          type="text"
+                          value={newCustom.baseUrl}
+                          onChange={e => setNewCustom({ ...newCustom, baseUrl: e.target.value })}
+                          placeholder="https://api.provider.com/v1"
+                          className="w-full px-4 py-2.5 rounded-xl text-sm border focus:outline-none focus:border-[var(--clr-accent)]"
+                          style={{ background: 'var(--clr-surface)', borderColor: 'var(--clr-border)', color: 'var(--clr-text)' }}
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold uppercase opacity-40 px-1">API Key</label>
+                      <input
+                        type="password"
+                        value={newCustom.apiKey}
+                        onChange={e => setNewCustom({ ...newCustom, apiKey: e.target.value })}
+                        placeholder="sk-..."
+                        className="w-full px-4 py-2.5 rounded-xl text-sm border focus:outline-none focus:border-[var(--clr-accent)]"
+                        style={{ background: 'var(--clr-surface)', borderColor: 'var(--clr-border)', color: 'var(--clr-text)' }}
+                      />
+                    </div>
+                    <button
+                      onClick={handleAddCustom}
+                      className="w-full py-3 rounded-xl text-sm font-bold text-white hover:brightness-110 transition-all"
+                      style={{ background: 'var(--clr-accent)' }}
+                    >
+                      Connect & Discover Models
+                    </button>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  {customProviders.map(p => (
+                    <div key={p.id} className="flex items-center justify-between p-4 rounded-xl border group hover:bg-white/5 transition-all" style={{ background: 'var(--clr-input-bg)', borderColor: 'var(--clr-border)' }}>
+                      <div>
+                        <div className="text-sm font-bold">{p.name}</div>
+                        <div className="text-[10px] opacity-40 font-mono truncate max-w-[200px]">{p.baseUrl}</div>
+                      </div>
+                      <button
+                        onClick={() => handleRemoveCustom(p.id)}
+                        className="text-[9px] font-bold uppercase tracking-widest text-[var(--clr-danger)] opacity-0 group-hover:opacity-100 hover:underline"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                  {customProviders.length === 0 && !showAddCustom && (
+                    <div className="py-8 text-center border-2 border-dashed rounded-2xl opacity-20" style={{ borderColor: 'var(--clr-border)' }}>
+                      <p className="text-xs font-bold uppercase tracking-wider">No Custom Providers</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Interface & Browser Section */}
           {activeSection === 'interface' && (
             <div className="space-y-8 animate-fade-in-up">
@@ -532,8 +708,9 @@ export default function Settings() {
                 <h3 className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--clr-text-tertiary)' }}>Theme Mode</h3>
                 <div className="grid grid-cols-3 gap-3">
                   {[
-                    { value: 'light', label: 'Light' },
-                    { value: 'dark', label: 'Dark' },
+                    { id: 'ai', label: 'AI Models' },
+                    { id: 'advanced', label: 'Advanced AI' },
+                    { id: 'search', label: 'Search' },
                     { value: 'system', label: 'System' },
                   ].map(t => (
                     <button

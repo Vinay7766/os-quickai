@@ -131,6 +131,7 @@ fn main() {
             commands::llm::list_provider_models,
             commands::llm::list_ollama_models,
             commands::llm::list_openai_compatible,
+            commands::llm::pull_ollama_model,
         ])
         .setup(move |app| {
             // ── Transparent overlay background ───────────────────────────
