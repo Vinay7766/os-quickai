@@ -106,10 +106,12 @@ export function QueryInput() {
     }
   };
 
+
   const currentModelLabel = llmModel === 'free-model' ? 'Free Model' :
                            llmModel.includes('gemini') ? 'Gemini' : 
                            llmModel.includes('claude') ? 'Claude' : 
                            llmModel.includes('grok') ? 'Grok' : 
+                           llmModel.includes('pplx') || llmModel.includes('perplexity') ? 'Perplexity' :
                            llmModel.includes('gpt') ? 'ChatGPT' : llmModel;
 
   return (
@@ -117,7 +119,7 @@ export function QueryInput() {
       {/* Mode Switcher */}
       <div className="relative">
         <button
-          className="flex items-center gap-1 px-1.5 py-1 rounded-md hover:bg-white/10 transition-colors"
+          className="flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-white/10 transition-colors"
           style={{ color: 'var(--clr-accent)' }}
           onClick={(e) => {
             e.stopPropagation();
@@ -126,6 +128,7 @@ export function QueryInput() {
           }}
         >
           {getModeIcon()}
+          <span className="text-[10px] font-bold uppercase tracking-widest hidden sm:inline">{searchMode}</span>
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="6 9 12 15 18 9" /></svg>
         </button>
         
