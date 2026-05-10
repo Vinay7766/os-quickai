@@ -30,6 +30,13 @@ export const FREE_MODELS = ['free-model'];
 
 // ── Store Interface ──────────────────────────────────────────────────────────
 
+export interface CustomProvider {
+  id: string;
+  name: string;
+  baseUrl: string;
+  apiKey: string;
+}
+
 interface SettingsState {
   settingsLoaded: boolean;
   hotkey: string;
@@ -44,11 +51,16 @@ interface SettingsState {
   enableAppLauncher: boolean;
   openLinksInternal: boolean;
 
+  // BYOK & Ollama
+  customProviders: CustomProvider[];
+  ollamaEnabled: boolean;
+  ollamaUrl: string;
+
   availableModels: string[];
   
   loadSettings: () => Promise<void>;
   updateHotkey: (hk: string) => Promise<void>;
-  updateSetting: (key: string, val: string | boolean | string[]) => Promise<void>;
+  updateSetting: (key: string, val: string | boolean | string[] | CustomProvider[]) => Promise<void>;
   saveAll: () => Promise<void>;
   refreshModels: () => Promise<void>;
 }
@@ -91,6 +103,9 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   enableSiteLauncher: true,
   enableAppLauncher: true,
   openLinksInternal: true,
+  customProviders: [],
+  ollamaEnabled: false,
+  ollamaUrl: 'http://localhost:11434',
   availableModels: [],
 
   // ── Load Settings from Disk ────────────────────────────────────────────
@@ -115,9 +130,16 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       await refreshOsThemeCache();
       applyThemeToDom(theme);
 
+      const customProvidersRaw = await invoke<string | null>('get_setting', { key: 'customProviders' }) ?? '[]';
+      const customProviders: CustomProvider[] = JSON.parse(customProvidersRaw);
+      
+      const ollamaEnabled = (await invoke<string | null>('get_setting', { key: 'ollamaEnabled' })) === 'true';
+      const ollamaUrl = await invoke<string | null>('get_setting', { key: 'ollamaUrl' }) ?? 'http://localhost:11434';
+
       set({ 
         hotkey, llmModel, searchEngine, llmSite, browser, theme, 
         enableSiteLauncher, enableAppLauncher, openLinksInternal,
+        customProviders, ollamaEnabled, ollamaUrl,
         settingsLoaded: true 
       });
 
@@ -134,9 +156,11 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   // ── Refresh All Available Models ──────────────────────────────────────
   refreshModels: async () => {
     try {
+      const state = get();
       const providers = ['gemini', 'grok', 'openai', 'claude', 'perplexity'];
       let allModels: string[] = [];
 
+      // 1. Standard Providers
       for (const provider of providers) {
         const key = await invoke<string | null>('get_api_key', { provider });
         if (key && key !== '••••••••••••') {
@@ -149,8 +173,35 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         }
       }
 
-      set({ availableModels: Array.from(new Set(allModels)) });
-      await emit('settings-updated', { key: 'availableModels', val: allModels });
+      // 2. Custom Providers (BYOK)
+      for (const custom of state.customProviders) {
+        if (custom.baseUrl && custom.apiKey) {
+          try {
+            const models = await invoke<string[]>('list_openai_compatible', { 
+              apiKey: custom.apiKey, 
+              url: custom.baseUrl.endsWith('/models') ? custom.baseUrl : `${custom.baseUrl.replace(/\/$/, '')}/models`
+            });
+            allModels = [...allModels, ...models];
+          } catch (e) {
+            console.error(`[Settings] Failed to fetch models for custom provider ${custom.name}:`, e);
+          }
+        }
+      }
+
+      // 3. Ollama
+      if (state.ollamaEnabled) {
+        try {
+          const models = await invoke<string[]>('list_ollama_models', { url: state.ollamaUrl });
+          // Prefix ollama models to avoid confusion
+          allModels = [...allModels, ...models.map(m => `ollama:${m}`)];
+        } catch (e) {
+          console.error('[Settings] Failed to fetch Ollama models:', e);
+        }
+      }
+
+      const uniqueModels = Array.from(new Set(allModels));
+      set({ availableModels: uniqueModels });
+      await emit('settings-updated', { key: 'availableModels', val: uniqueModels });
     } catch (e) {
       console.error('[Settings] Global refresh failed:', e);
     }
