@@ -146,7 +146,14 @@ export const useAppStore = create<AppState>((set, get) => ({
       }
 
       // Send the query to the Rust backend
-      const answer = await queryLlm(query, llmModel, apiKey || '');
+      const mapping = settings.modelProviderMap[llmModel];
+      const answer = await queryLlm(
+        query, 
+        llmModel, 
+        apiKey || '', 
+        mapping?.provider, 
+        mapping?.baseUrl
+      );
       set({ answer, isLoading: false, error: null });
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : String(e);

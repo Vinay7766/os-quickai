@@ -127,7 +127,8 @@ async fn list_gemini_internal(api_key: &str) -> Result<Vec<String>, AppError> {
     }
 }
 
-async fn list_openai_compatible(api_key: &str, url: &str) -> Result<Vec<String>, AppError> {
+#[tauri::command]
+pub async fn list_openai_compatible(api_key: String, url: String) -> Result<Vec<String>, AppError> {
     let client = Client::new();
     let response = client
         .get(url)
@@ -151,6 +152,33 @@ async fn list_openai_compatible(api_key: &str, url: &str) -> Result<Vec<String>,
                     None
                 }
             })
+            .collect();
+        Ok(models)
+    } else {
+        Err(AppError::ProviderError {
+            status: response.status().as_u16(),
+            message: response.text().await.unwrap_or_default(),
+        })
+    }
+}
+#[tauri::command]
+pub async fn list_ollama_models(url: String) -> Result<Vec<String>, AppError> {
+    let client = Client::new();
+    let tags_url = format!("{}/api/tags", url.trim_end_matches('/'));
+    
+    let response = client
+        .get(tags_url)
+        .send()
+        .await
+        .map_err(|e| AppError::NetworkError(e.to_string()))?;
+
+    if response.status().is_success() {
+        let body: Value = response.json().await.map_err(|e| AppError::NetworkError(e.to_string()))?;
+        let models = body["models"]
+            .as_array()
+            .ok_or_else(|| AppError::NetworkError("Failed to parse Ollama models".to_string()))?
+            .iter()
+            .filter_map(|m| Some(m["name"].as_str()?.to_string()))
             .collect();
         Ok(models)
     } else {
@@ -217,7 +245,9 @@ pub async fn list_gemini_models(api_key: String) -> Result<Vec<String>, AppError
 pub async fn query_llm(
     query: String, 
     model: String, 
-    api_key: String
+    api_key: String,
+    provider: Option<String>,
+    base_url: Option<String>,
 ) -> Result<String, AppError> {
     if query.len() > 4000 {
         return Err(AppError::NetworkError(
@@ -230,6 +260,64 @@ pub async fn query_llm(
         .user_agent("Quickno/1.0 (Desktop AI Assistant)")
         .build()
         .map_err(|e| AppError::NetworkError(e.to_string()))?;
+
+    // ── Ollama Routing ──────────────────────────────────────────
+    if model.starts_with("ollama:") {
+        let actual_model = model.replace("ollama:", "");
+        let ollama_url = base_url.unwrap_or_else(|| "http://localhost:11434".to_string());
+        let chat_url = format!("{}/api/chat", ollama_url.trim_end_matches('/'));
+
+        let response = client
+            .post(chat_url)
+            .json(&json!({
+                "model": actual_model,
+                "messages": [{"role": "user", "content": &query}],
+                "stream": false
+            }))
+            .send()
+            .await
+            .map_err(|e| AppError::NetworkError(e.to_string()))?;
+
+        if response.status().is_success() {
+            let body: Value = response.json().await.map_err(|e| AppError::NetworkError(e.to_string()))?;
+            return Ok(body["message"]["content"].as_str().unwrap_or("(no response)").to_string());
+        } else {
+            return Err(AppError::ProviderError {
+                status: response.status().as_u16(),
+                message: response.text().await.unwrap_or_default(),
+            });
+        }
+    }
+
+    // ── Custom Provider (BYOK) Routing ──────────────────────────
+    if let Some(url) = base_url {
+        let chat_url = if url.ends_with("/chat/completions") { 
+            url 
+        } else { 
+            format!("{}/chat/completions", url.trim_end_matches('/')) 
+        };
+
+        let response = client
+            .post(chat_url)
+            .bearer_auth(&api_key)
+            .json(&json!({
+                "model": model,
+                "messages": [{"role": "user", "content": &query}]
+            }))
+            .send()
+            .await
+            .map_err(|e| AppError::NetworkError(e.to_string()))?;
+
+        if response.status().is_success() {
+            let body: Value = response.json().await.map_err(|e| AppError::NetworkError(e.to_string()))?;
+            return Ok(body["choices"][0]["message"]["content"].as_str().unwrap_or("(no response)").to_string());
+        } else {
+            return Err(AppError::ProviderError {
+                status: response.status().as_u16(),
+                message: response.text().await.unwrap_or_default(),
+            });
+        }
+    }
 
     // ── Free Models (Aggressive Failover with Micro-Retries) ─────
     if is_free_model(&model) {
