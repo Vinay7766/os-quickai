@@ -55,7 +55,7 @@ export default function Settings() {
   const {
     hotkey, llmModel, browser, llmSite, theme, settingsLoaded,
     enableSiteLauncher, enableAppLauncher, openLinksInternal,
-    availableModels,
+    availableModels, customProviders, ollamaEnabled, ollamaUrl,
     loadSettings, updateHotkey, updateSetting, saveAll, refreshModels
   } = useSettingsStore();
 
@@ -670,7 +670,7 @@ export default function Settings() {
                 )}
 
                 <div className="space-y-2">
-                  {customProviders.map(p => (
+                  {customProviders.map((p: any) => (
                     <div key={p.id} className="flex items-center justify-between p-4 rounded-xl border group hover:bg-white/5 transition-all" style={{ background: 'var(--clr-input-bg)', borderColor: 'var(--clr-border)' }}>
                       <div>
                         <div className="text-sm font-bold">{p.name}</div>
@@ -708,9 +708,8 @@ export default function Settings() {
                 <h3 className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--clr-text-tertiary)' }}>Theme Mode</h3>
                 <div className="grid grid-cols-3 gap-3">
                   {[
-                    { id: 'ai', label: 'AI Models' },
-                    { id: 'advanced', label: 'Advanced AI' },
-                    { id: 'search', label: 'Search' },
+                    { value: 'light', label: 'Light' },
+                    { value: 'dark', label: 'Dark' },
                     { value: 'system', label: 'System' },
                   ].map(t => (
                     <button

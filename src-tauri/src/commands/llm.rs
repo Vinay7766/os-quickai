@@ -341,38 +341,12 @@ pub async fn query_llm(
         }
     }
 
-    // ── Free Models (Aggressive Failover with Micro-Retries) ─────
+    // ── Free Models (Stable Direct Call) ────────────────────────
     if is_free_model(&model) {
-        let mut attempts = 0;
-        let max_attempts = 3;
-        
-        // Sequence of models to try if the primary is busy
-        let models_to_try = ["openai-fast", "mistral", "llama"];
-
-        while attempts < max_attempts {
-            // Try a different model in the sequence on each retry
-            let current_id = models_to_try[attempts % models_to_try.len()];
-            
-            match query_pollinations(&client, &query, current_id).await {
-                Ok(answer) => return Ok(answer),
-                Err((503, _)) => {
-                    attempts += 1;
-                    if attempts < max_attempts {
-                        // Micro-retry: only wait 150ms instead of 1000ms
-                        tokio::time::sleep(std::time::Duration::from_millis(150)).await;
-                        continue;
-                    }
-                }
-                Err((s, m)) => {
-                    return Err(AppError::ProviderError { status: s, message: m });
-                }
-            }
+        match query_pollinations(&client, &query, "openai-fast").await {
+            Ok(answer) => return Ok(answer),
+            Err((s, m)) => return Err(AppError::ProviderError { status: s, message: m }),
         }
-
-        return Err(AppError::ProviderError {
-            status: 503,
-            message: "The free model endpoint is consistently at capacity. Please try again in a few minutes or use an API key.".to_string(),
-        });
     }
 
     // ── Paid Models ──────────────────────────────────────────────────────

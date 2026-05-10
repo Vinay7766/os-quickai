@@ -90,7 +90,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   setModelMenuOpen: (open: boolean) => set({ isModelMenuOpen: open }),
   setInternalUrl: (url: string | null) => set({ internalUrl: url }),
 
-  clearAnswer: () => set({ answer: '', query: '', error: null, internalUrl: null }),
+  clearAnswer: () => set({ answer: '', query: '', error: null, internalUrl: null, isLoading: false }),
 
   submitQuery: async () => {
     const { query, answer, searchMode } = get();

@@ -78,8 +78,8 @@ export function QueryInput() {
       }
     }
     
-    // Shift+Esc for collapse (clear)
-    if (e.key === 'Escape' && e.shiftKey) {
+    // Esc for collapse (clear)
+    if (e.key === 'Escape' && !e.shiftKey && !e.ctrlKey && !e.altKey) {
       e.preventDefault();
       clearAnswer();
     }
