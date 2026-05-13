@@ -1,3 +1,17 @@
+// Copyright 2026 Vinay7766
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 // ─────────────────────────────────────────────────────────────────────────────
 // settings.rs — Secure API key management
 // ─────────────────────────────────────────────────────────────────────────────
@@ -156,5 +170,35 @@ pub async fn save_setting(app: tauri::AppHandle, key: String, value: serde_json:
 
     let content = serde_json::to_string_pretty(&json).map_err(|e| AppError::StorageError(e.to_string()))?;
     fs::write(path, content).map_err(|e| AppError::StorageError(e.to_string()))?;
+    Ok(())
+}
+#[tauri::command]
+pub async fn factory_reset(app: tauri::AppHandle) -> Result<(), AppError> {
+    // 1. Delete settings.json
+    let path = get_settings_path(&app)?;
+    if path.exists() {
+        let _ = fs::remove_file(path);
+    }
+
+    // 2. Wipe API keys from Credential Manager
+    // We try to wipe the main ones we know about
+    let providers = ["gemini", "grok", "openai", "claude", "perplexity"];
+    for provider in providers {
+        let account = get_account_name(provider);
+        if let Ok(entry) = Entry::new(SERVICE_NAME, &account) {
+            let _ = entry.delete_credential();
+        }
+    }
+
+    // 3. Remove Registry marker for first run
+    use winreg::enums::*;
+    use winreg::RegKey;
+    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+    if let Ok(key) = hkcu.open_subkey_with_flags(r"SOFTWARE\Quickno", KEY_ALL_ACCESS) {
+        let _ = key.delete_value("v1_0_1Installed");
+    }
+
+    // 4. Exit the app
+    app.exit(0);
     Ok(())
 }
