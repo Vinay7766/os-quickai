@@ -1,3 +1,19 @@
+/*
+ * Copyright 2026 Vinay7766
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { LogicalSize } from '@tauri-apps/api/dpi';
@@ -48,7 +64,6 @@ export default function Overlay() {
 
   const updateVersion = useUpdateCheck();
   const [copied, setCopied] = useState(false);
-  // Expand if we have an answer, an error, an internal URL, or if searching (show dots)
   const hasContent = (searchMode === 'search' && (isLoading || !!answer)) || !!error || !!internalUrl;
   const isMenuOpen = isModeMenuOpen || isModelMenuOpen;
   const isDragging = useRef(false);
@@ -85,14 +100,10 @@ export default function Overlay() {
       } else if (internalUrl) {
         resizeWindow(600);
       } else if (hasContent) {
-        // Calculate total height: Search Bar + Result Content + Footer
-        const searchH = SEARCH_BAR_HEIGHT + 24; // Including margins
+        const searchH = SEARCH_BAR_HEIGHT + 24;
         const resultH = resultRef.current?.scrollHeight || 200;
         const footerH = 48;
-        
         let totalH = searchH + resultH + footerH + 16;
-        
-        // Cap the window height to prevent it from going off-screen
         const targetH = Math.min(totalH, 750);
         resizeWindow(targetH);
       } else {
@@ -125,42 +136,23 @@ export default function Overlay() {
   // ── Shortcuts ──────────────────────────────────────────────────────────
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      // Shift+Esc → Clear/Collapse
       if (e.key === 'Escape' && e.shiftKey) {
         clearAnswer();
         return;
       }
-      
-      // Ctrl+Esc → Back
       if (e.key === 'Escape' && e.ctrlKey) {
         if (prevAnswer || prevQuery) {
           useAppStore.setState({ answer: prevAnswer, query: prevQuery, prevAnswer: '', prevQuery: '' });
         }
         return;
       }
-
-      // Plain Esc → Focus input
       if (e.key === 'Escape') {
         const input = document.querySelector('textarea, input');
         if (input instanceof HTMLElement) input.focus();
       }
-
-      // Ctrl + 1, 2, 3 → Switch Modes
-      if (e.ctrlKey && e.key === '1') {
-        e.preventDefault();
-        setMode('search');
-        return;
-      }
-      if (e.ctrlKey && e.key === '2') {
-        e.preventDefault();
-        setMode('site');
-        return;
-      }
-      if (e.ctrlKey && e.key === '3') {
-        e.preventDefault();
-        setMode('app');
-        return;
-      }
+      if (e.ctrlKey && e.key === '1') { e.preventDefault(); setMode('search'); return; }
+      if (e.ctrlKey && e.key === '2') { e.preventDefault(); setMode('site'); return; }
+      if (e.ctrlKey && e.key === '3') { e.preventDefault(); setMode('app'); return; }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
@@ -170,39 +162,25 @@ export default function Overlay() {
     if (!query.trim()) return;
     const searchUrl = (SEARCH_URLS[searchEngine] ?? SEARCH_URLS.google) + encodeURIComponent(query);
     try {
-      if (browser === 'default' || !browser) {
-        await open(searchUrl);
-      } else {
-        await searchInBrowser(browser, searchUrl);
-      }
+      if (browser === 'default' || !browser) { await open(searchUrl); }
+      else { await searchInBrowser(browser, searchUrl); }
       setQuery('');
-    } catch (e) {
-      alert(String(e));
-    }
+    } catch (e) { alert(String(e)); }
   };
 
   const handleAIOpen = async () => {
     if (!query.trim()) return;
     const site = llmSite === 'default' ? 'claude' : llmSite;
     let url = AI_URLS[site] ?? AI_URLS.claude;
-    if (site === 'perplexity') {
-      url = `https://www.perplexity.ai/?q=${encodeURIComponent(query)}`;
-    } else if (site === 'gemini') {
-      url = `https://gemini.google.com/app?q=${encodeURIComponent(query)}`;
-    } else {
-      try { await writeText(query); } catch {}
-    }
+    if (site === 'perplexity') { url = `https://www.perplexity.ai/?q=${encodeURIComponent(query)}`; }
+    else if (site === 'gemini') { url = `https://gemini.google.com/app?q=${encodeURIComponent(query)}`; }
+    else { try { await writeText(query); } catch {} }
     
     try {
-      if (browser === 'default' || !browser) {
-        await open(url);
-      } else {
-        await searchInBrowser(browser, url);
-      }
+      if (browser === 'default' || !browser) { await open(url); }
+      else { await searchInBrowser(browser, url); }
       setQuery('');
-    } catch (e) {
-      alert(String(e));
-    }
+    } catch (e) { alert(String(e)); }
   };
 
   const handleCopy = async () => {
@@ -216,9 +194,7 @@ export default function Overlay() {
         await navigator.clipboard.writeText(answer);
         setCopied(true);
         setTimeout(() => setCopied(false), 1500);
-      } catch (err) {
-        console.error('Copy failed:', err);
-      }
+      } catch (err) { console.error('Copy failed:', err); }
     }
   };
 
@@ -232,13 +208,12 @@ export default function Overlay() {
     <div 
       className="w-full h-screen overflow-hidden flex flex-col box-border relative"
       style={{
-        // BORDER ONLY - SHADOW REMOVED TO ELIMINATE "OUTER BORDER" ARTIFACT
         borderRadius: '28px',
         border: `2px solid ${isLoading ? 'var(--clr-accent)' : 'rgba(var(--clr-accent-rgb), 0.5)'}`,
         background: 'var(--clr-glass)',
         transition: 'border-color 0.3s ease', 
         boxShadow: 'none',
-        margin: '1px', // Prevents border-clipping on transparent window edges
+        margin: '1px', 
       }}
     >
       <div
@@ -253,7 +228,6 @@ export default function Overlay() {
         <div ref={contentRef} className="flex flex-col w-full min-h-full">
           {updateVersion && <UpdateBanner version={updateVersion} />}
 
-          {/* ── Search Bar Section ─────────────────────────────────────────── */}
           <div
             onMouseDown={(e) => {
               if ((e.target as HTMLElement).closest('button, input, textarea')) return;
@@ -299,98 +273,38 @@ export default function Overlay() {
             </div>
           </div>
 
-          {/* ── Answer Section ────────────────────────────────────────────── */}
           {hasContent && (
             <div className="flex flex-col flex-1 min-h-0 animate-fade-in-up overflow-hidden">
               {internalUrl ? (
-                /* ── Internal Browser View ── */
                 <div className="flex-1 flex flex-col min-h-0 animate-in fade-in slide-in-from-bottom-4 duration-300">
                   <div className="flex items-center justify-between px-6 py-2 border-b border-white/5 bg-white/5">
                     <div className="flex items-center gap-3 overflow-hidden">
                       <span className="text-[10px] font-bold opacity-40 truncate uppercase tracking-widest">{internalUrl}</span>
                     </div>
                     <div className="flex-1 flex items-center justify-center gap-2">
-                      <button 
-                        onClick={() => open('https://ko-fi.com/vinay7766')}
-                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all text-[9px] font-bold text-[var(--clr-text-secondary)] hover:text-white"
-                        title="Support the Developer"
-                      >
-                        Support Me
-                      </button>
-                      <button 
-                        onClick={() => open('https://ko-fi.com/pollinations')}
-                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all text-[9px] font-bold text-[var(--clr-text-secondary)] hover:text-white"
-                        title="Support Pollinations.ai"
-                      >
-                        Pollinations
-                      </button>
+                      <button onClick={() => open('https://ko-fi.com/vinay7766')} className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all text-[9px] font-bold text-[var(--clr-text-secondary)] hover:text-white">Support Me</button>
+                      <button onClick={() => open('https://ko-fi.com/pollinations')} className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all text-[9px] font-bold text-[var(--clr-text-secondary)] hover:text-white">Pollinations</button>
                     </div>
                     <div className="flex items-center gap-2">
-                      <button 
-                        onClick={async () => {
-                          if (internalUrl) {
-                            const { open } = await import('@tauri-apps/plugin-shell');
-                            await open(internalUrl);
-                          }
-                        }}
-                        className="px-2 py-1 rounded-md hover:bg-white/10 text-[10px] font-bold text-[var(--clr-accent)] uppercase tracking-widest transition-colors"
-                      >
-                        Open Externally
-                      </button>
-                      <button 
-                        onClick={() => setInternalUrl(null)}
-                        className="px-2 py-1 rounded-md hover:bg-white/10 text-[10px] font-bold text-[var(--clr-danger)] uppercase tracking-widest transition-colors"
-                      >
-                        Close
-                      </button>
+                      <button onClick={async () => { if (internalUrl) { const { open } = await import('@tauri-apps/plugin-shell'); await open(internalUrl); } }} className="px-2 py-1 rounded-md hover:bg-white/10 text-[10px] font-bold text-[var(--clr-accent)] uppercase tracking-widest transition-colors">Open Externally</button>
+                      <button onClick={() => setInternalUrl(null)} className="px-2 py-1 rounded-md hover:bg-white/10 text-[10px] font-bold text-[var(--clr-danger)] uppercase tracking-widest transition-colors">Close</button>
                     </div>
                   </div>
-                  <iframe 
-                    src={internalUrl} 
-                    className="flex-1 w-full border-none bg-white" 
-                    title="Internal Browser"
-                    sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
-                    referrerPolicy="no-referrer"
-                  />
+                  <iframe src={internalUrl} className="flex-1 w-full border-none bg-white" title="Internal Browser" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals" referrerPolicy="no-referrer" />
                 </div>
               ) : (
-                /* ── Standard AI Result View ── */
                 <>
-                  <div 
-                    ref={resultRef}
-                    className="flex-1 min-h-[100px] overflow-auto scrollbar-thin scrollbar-thumb-[var(--clr-accent-soft)]"
-                  >
-                    <div className="px-6 py-4">
-                      <ResultPanel />
-                    </div>
+                  <div ref={resultRef} className="flex-1 min-h-[100px] overflow-auto scrollbar-thin scrollbar-thumb-[var(--clr-accent-soft)]">
+                    <div className="px-6 py-4"><ResultPanel /></div>
                   </div>
-                  
-                  <div
-                    onMouseDown={(e) => {
-                      if ((e.target as HTMLElement).closest('button')) return;
-                      handleDrag();
-                    }}
-                    className="flex items-center gap-3 px-6 shrink-0 cursor-move select-none"
-                    style={{ height: '48px', background: 'rgba(0,0,0,0.02)', borderTop: '1px solid var(--clr-border)' }}
-                  >
+                  <div onMouseDown={(e) => { if ((e.target as HTMLElement).closest('button')) return; handleDrag(); }} className="flex items-center gap-3 px-6 shrink-0 cursor-move select-none" style={{ height: '48px', background: 'rgba(0,0,0,0.02)', borderTop: '1px solid var(--clr-border)' }}>
                     {answer && (
-                      <button
-                        onClick={handleCopy}
-                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all hover:bg-white/5 active:scale-95"
-                        style={{ color: copied ? 'var(--clr-success)' : 'var(--clr-text-secondary)' }}
-                      >
+                      <button onClick={handleCopy} className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all hover:bg-white/5 active:scale-95" style={{ color: copied ? 'var(--clr-success)' : 'var(--clr-text-secondary)' }}>
                         {copied ? 'Copied!' : 'Copy Answer'}
                       </button>
                     )}
-
                     <div className="flex-1" />
-
-                    <button
-                      onClick={clearAnswer}
-                      className="px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest opacity-40 hover:opacity-100 hover:bg-red-500/10 hover:text-red-500 transition-all"
-                    >
-                      Clear State
-                    </button>
+                    <button onClick={clearAnswer} className="px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest opacity-40 hover:opacity-100 hover:bg-red-500/10 hover:text-red-500 transition-all">Clear State</button>
                   </div>
                 </>
               )}
