@@ -1,21 +1,12 @@
 /* ─────────────────────────────────────────────────────────────────────────────
  * index.css — Global Styles & Design System for Quickno
- * ─────────────────────────────────────────────────────────────────────────────
- * This file defines:
- *   • Tailwind directives
- *   • CSS custom properties (theme variables) for light & dark modes
- *   • Reusable component classes (buttons, scrollbars, animations)
- *   • Transparency overrides for the overlay window
  * ───────────────────────────────────────────────────────────────────────────── */
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* ── Transparent Background Override ──────────────────────────────────────────
- * The overlay window needs a fully transparent background so it floats
- * above the desktop. We force transparency on all root elements, then
- * selectively apply a solid background only to the main window. */
+/* ── Transparent Background Override ────────────────────────────────────────── */
 html,
 html:root,
 body,
@@ -32,50 +23,41 @@ body.settings-window {
   background-color: var(--clr-surface) !important;
 }
 
-/* ── Light Theme Variables ────────────────────────────────────────────────────
- * Clean, minimal palette with subtle grays and a single accent color. */
+/* ── Light Theme Variables ──────────────────────────────────────────────────── */
 :root {
-  /* Surface & Background */
   --clr-surface: #ffffff;
   --clr-surface-secondary: #f8f9fa;
   --clr-input-bg: #f5f5f7;
   --clr-border: rgba(0, 0, 0, 0.08);
   --clr-hover: rgba(0, 0, 0, 0.04);
 
-  /* Accent Color */
   --clr-accent: #2563eb;
   --clr-accent-rgb: 37, 99, 235;
   --clr-accent-soft: rgba(37, 99, 235, 0.08);
   --clr-accent-hover: #1d4ed8;
 
-  /* Status Colors */
   --clr-success: #16a34a;
   --clr-success-soft: rgba(22, 163, 74, 0.08);
   --clr-danger: #dc2626;
   --clr-danger-soft: rgba(220, 38, 38, 0.06);
 
-  /* Typography */
   --clr-text: #111827;
   --clr-text-secondary: #6b7280;
   --clr-text-tertiary: #9ca3af;
 
-  /* Shadows */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
   --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.1);
   --shadow-overlay: 0 16px 48px rgba(0, 0, 0, 0.16);
 
-  /* Transition */
   --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-normal: 200ms cubic-bezier(0.4, 0, 0.2, 1);
 
-  /* Glassmorphism (Overlay) */
   --clr-glass: rgba(255, 255, 255, 0.4);
   --clr-glass-border: rgba(255, 255, 255, 0.2);
 }
 
-/* ── Dark Theme Variables ─────────────────────────────────────────────────────
- * Applied when the <html> element has the 'dark' class. */
+/* ── Dark Theme Variables ───────────────────────────────────────────────────── */
 .dark {
   --clr-surface: #0f0f13;
   --clr-surface-secondary: #18181f;
@@ -102,7 +84,6 @@ body.settings-window {
   --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.4);
   --shadow-overlay: 0 16px 48px rgba(0, 0, 0, 0.5);
 
-  /* Glassmorphism (Overlay) */
   --clr-glass: rgba(15, 15, 19, 0.6);
   --clr-glass-border: rgba(255, 255, 255, 0.08);
 }
@@ -127,8 +108,7 @@ body {
   color: var(--clr-text);
 }
 
-/* ── Pill Action Buttons ──────────────────────────────────────────────────────
- * Small rounded buttons used in the overlay search bar. */
+/* ── Pill Action Buttons ────────────────────────────────────────────────────── */
 .pill-btn {
   display: flex;
   align-items: center;
@@ -152,22 +132,19 @@ body {
   transform: translateY(0);
 }
 
-/* Green variant — used for "Web Search" button */
 .pill-btn.green {
   background: var(--clr-success-soft);
   border-color: rgba(22, 163, 74, 0.15);
   color: var(--clr-success);
 }
 
-/* Blue variant — used for "AI Search" button */
 .pill-btn.blue {
   background: var(--clr-accent-soft);
   border-color: rgba(37, 99, 235, 0.15);
   color: var(--clr-accent);
 }
 
-/* ── Icon Buttons ─────────────────────────────────────────────────────────────
- * Small square buttons with just an icon (e.g., close button). */
+/* ── Icon Buttons ───────────────────────────────────────────────────────────── */
 .icon-btn {
   display: flex;
   align-items: center;
@@ -197,115 +174,60 @@ body {
 }
 
 @keyframes bounce {
-
-  0%,
-  100% {
-    transform: translateY(0);
-    opacity: 0.3;
-  }
-
-  50% {
-    transform: translateY(-4px);
-    opacity: 1;
-  }
+  0%, 100% { transform: translateY(0); opacity: 0.3; }
+  50% { transform: translateY(-4px); opacity: 1; }
 }
 
 /* ── Custom Scrollbars ────────────────────────────────────────────────────────
- * EMERGENCY VISIBILITY: High-contrast yellow scrollbars. */
+ * SYNCED WITH USER SCREENSHOT: Subtle, dark, thin scrollbars. */
 ::-webkit-scrollbar {
-  width: 12px !important;
-  height: 12px !important;
+  width: 5px !important;
+  height: 5px !important;
   display: block !important;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05) !important;
-  border-radius: 10px !important;
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--clr-accent) !important;
-  border: 3px solid transparent !important;
-  background-clip: padding-box !important;
-  border-radius: 10px !important;
-  min-height: 50px !important;
-  min-width: 50px !important;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--clr-accent-hover) !important;
-  background-clip: padding-box !important;
-}
-
-::-webkit-scrollbar-corner {
   background: transparent !important;
 }
 
-/* Ensure code blocks and long lines in prose can scroll horizontally */
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12) !important;
+  border-radius: 10px !important;
+  transition: background 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2) !important;
+}
+
 .prose pre {
   overflow-x: auto !important;
   max-width: 100%;
   scrollbar-width: thin;
 }
 
-.prose code {
-  white-space: pre-wrap;
-}
-
-.prose pre code {
-  white-space: pre;
-}
-
+.prose code { white-space: pre-wrap; }
+.prose pre code { white-space: pre; }
 
 /* ── Utilities ────────────────────────────────────────────────────────────────*/
-html,
-body {
-  cursor: default;
-  overflow: hidden;
-  /* Prevent window-level scrollbars */
-}
-
-/* Ensure only the overlay window is clipped to prevent ghost boxes */
-body.overlay-window {
-  overflow: hidden;
-}
-
-/* Allow settings page to scroll normally */
-body.settings-window {
-  overflow: auto;
-}
+html, body { cursor: default; overflow: hidden; }
+body.overlay-window { overflow: hidden; }
+body.settings-window { overflow: auto; }
 
 .glass {
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
 }
 
-/* Smooth fade-in animation */
 @keyframes fade-in-up {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .animate-fade-in-up {
   animation: fade-in-up 0.3s ease-out both;
 }
 
-/* Stagger delay helper */
-.delay-1 {
-  animation-delay: 50ms;
-}
-
-.delay-2 {
-  animation-delay: 100ms;
-}
-
-.delay-3 {
-  animation-delay: 150ms;
-}
+.delay-1 { animation-delay: 50ms; }
+.delay-2 { animation-delay: 100ms; }
+.delay-3 { animation-delay: 150ms; }
