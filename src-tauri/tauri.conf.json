@@ -1,6 +1,6 @@
 {
   "productName": "Quickno",
-  "version": "1.0.2",
+  "version": "1.0.5",
   "identifier": "com.quickno.app",
   "bundle": {
     "active": true,
