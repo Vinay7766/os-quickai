@@ -1,170 +1,271 @@
-import { useEffect, useState } from 'react';
+/*
+ * Copyright 2026 Vinay7766
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Settings.tsx — Main configuration page & Welcome flow manager
+// ─────────────────────────────────────────────────────────────────────────────
+
+import { useEffect, useState, useCallback } from 'react';
 import { useSettingsStore } from '../../store/useSettingsStore';
-import { AIModelsSection } from './sections/AIModelsSection';
-import { InterfaceSection } from './sections/InterfaceSection';
-import { SupportSection } from './sections/SupportSection';
-import { PluginsSection } from './sections/PluginsSection';
-import { ShortcutsSection } from './sections/ShortcutsSection';
-import { UI_COLORS, APP_METADATA } from '../../constants/appConstants';
+import { saveApiKey, deleteApiKey, getApiKey, updateShortcut, checkBrowserExists } from '../../lib/tauriCommands';
 import WelcomeScreen from './WelcomeScreen';
 import { invoke } from '@tauri-apps/api/core';
 
-/**
- * @file Settings.tsx
- * @description Main settings orchestration component. 
- * Adheres to < 250 line hard limit by delegating to domain-specific sections.
- */
+// Sections
+import AIModelSection from './sections/AIModelSection';
+import InterfaceSection from './sections/InterfaceSection';
+import HotkeySection from './sections/HotkeySection';
+import SupportSection from './sections/SupportSection';
+import PluginSection from './sections/PluginSection';
+
+// ── Configuration Data ───────────────────────────────────────────────────────
+
+export const API_MODELS = [
+  { value: 'gemini', label: 'Gemini', placeholder: 'AIzaSy...', provider: 'gemini' },
+  { value: 'grok', label: 'Grok', placeholder: 'xai-...', provider: 'grok' },
+  { value: 'chatgpt', label: 'ChatGPT', placeholder: 'sk-proj-...', provider: 'openai' },
+  { value: 'claude', label: 'Claude', placeholder: 'sk-ant-api03-...', provider: 'claude' },
+  { value: 'perplexity', label: 'Perplexity', placeholder: 'pplx-...', provider: 'perplexity' },
+];
+
+export const FREE_MODEL_OPTIONS = [
+  { value: 'free-model', label: 'Free Model' },
+];
+
+export const BROWSERS = [
+  { value: 'default', label: 'System Default' },
+  { value: 'chrome', label: 'Google Chrome' },
+  { value: 'firefox', label: 'Firefox' },
+  { value: 'brave', label: 'Brave' },
+  { value: 'bing', label: 'Microsoft Edge' },
+  { value: 'opera', label: 'Opera' },
+  { value: 'comet', label: 'Comet' },
+];
+
+export const AI_SITES = [
+  { value: 'claude', label: 'Claude (Default)' },
+  { value: 'chatgpt', label: 'ChatGPT' },
+  { value: 'gemini', label: 'Gemini' },
+  { value: 'grok', label: 'Grok (xAI)' },
+  { value: 'perplexity', label: 'Perplexity' },
+];
+
+type Section = 'models' | 'plugins' | 'interface' | 'hotkey' | 'support';
+
+const SIDEBAR_NAV: { id: Section; label: string }[] = [
+  { id: 'models', label: 'AI Models & APIs' },
+  { id: 'plugins', label: 'Plugins' },
+  { id: 'interface', label: 'Interface & Browser' },
+  { id: 'hotkey', label: 'Shortcuts' },
+  { id: 'support', label: 'Support & Community' },
+];
+
 export default function Settings() {
-  const [activeSection, setActiveSection] = useState('ai');
-  const [showSaved, setShowSaved] = useState(false);
-  const [hasCompletedWelcome, setHasCompletedWelcome] = useState<boolean | null>(null);
-  const [hotkeyStatus, setHotkeyStatus] = useState<'idle' | 'saving' | 'ok' | 'err'>('idle');
-  const [isRefreshingModels, setIsRefreshingModels] = useState(false);
-  
-  const { 
-    browser, theme, llmModel, customProviders, settingsLoaded,
-    llmSite, hotkey, ollamaEnabled, ollamaUrl, availableModels,
+  const {
+    hotkey, llmModel, browser, llmSite, theme, settingsLoaded,
     enableSiteLauncher, enableAppLauncher, openLinksInternal,
-    loadSettings, updateSetting, addCustomProvider, updateHotkey, refreshModels
+    availableModels, customProviders, ollamaEnabled, ollamaUrl,
+    loadSettings, updateHotkey, updateSetting, refreshModels
   } = useSettingsStore();
 
+  const [hasCompletedWelcome, setHasCompletedWelcome] = useState<boolean | null>(null);
+  const [activeSection, setActiveSection] = useState<Section>('models');
+  const [keyInput, setKeyInput] = useState('');
+  const [keyStatus, setKeyStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
+  const [showToast, setShowToast] = useState(false);
+  const [hotkeyStatus, setHotkeyStatus] = useState<'idle' | 'saving' | 'ok' | 'err'>('idle');
+  const [isRefreshingModels, setIsRefreshingModels] = useState(false);
+  const [storedKeys, setStoredKeys] = useState<Record<string, boolean>>({});
+  const [activeKeyProvider, setActiveKeyProvider] = useState<string | null>(null);
+
+  // ── Initialization ─────────────────────────────────────────────────────
   useEffect(() => {
-    // Fallback timeout to guarantee the loading screen never gets permanently stuck
+    document.body.classList.add('settings-window');
     const forceLoadTimer = setTimeout(() => {
-      console.warn("Initialization timed out. Forcing UI to load.");
-      if (!settingsLoaded) {
-        // We can't call set directly on store here easily without getting it, 
-        // but loadSettings will eventually finish or we can force state.
-      }
+      if (!useSettingsStore.getState().settingsLoaded) useSettingsStore.setState({ settingsLoaded: true });
       setHasCompletedWelcome(prev => prev === null ? false : prev);
     }, 2000);
 
     loadSettings().finally(() => {
       invoke<boolean>('get_setting', { key: 'hasCompletedWelcome_v1_0_1' })
-        .then(completed => {
-          clearTimeout(forceLoadTimer);
-          setHasCompletedWelcome(!!completed);
-        })
-        .catch(() => {
-          clearTimeout(forceLoadTimer);
-          setHasCompletedWelcome(false);
-        });
+        .then(completed => { clearTimeout(forceLoadTimer); setHasCompletedWelcome(!!completed); })
+        .catch(() => { clearTimeout(forceLoadTimer); setHasCompletedWelcome(false); });
     });
 
-    return () => clearTimeout(forceLoadTimer);
-  }, [loadSettings, settingsLoaded]);
+    Promise.all(API_MODELS.map(async m => {
+      const key = await getApiKey(m.provider);
+      return { provider: m.provider, exists: !!key };
+    })).then(results => {
+      const mapping: Record<string, boolean> = {};
+      results.forEach(r => mapping[r.provider] = r.exists);
+      setStoredKeys(mapping);
+    });
 
-  const handleSettingChange = (key: string, value: any) => {
-    updateSetting(key, value);
-    setShowSaved(true);
-    setTimeout(() => setShowSaved(false), 2000);
+    return () => { clearTimeout(forceLoadTimer); document.body.classList.remove('settings-window'); };
+  }, []);
+
+  // ── Handlers ───────────────────────────────────────────────────────────
+
+  const triggerToast = useCallback(() => {
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 2000);
+  }, []);
+
+  const handleUpdateSetting = async (key: string, val: any) => {
+    await updateSetting(key, val);
+    triggerToast();
   };
 
-  const handleRefreshModels = async () => {
+  const handleWelcomeComplete = async () => {
+    try { await invoke('save_setting', { key: 'hasCompletedWelcome_v1_0_1', value: true }); setHasCompletedWelcome(true); }
+    catch (e) { setHasCompletedWelcome(true); }
+  };
+
+  const handleSaveKey = async (provider?: string) => {
+    if (!keyInput || keyInput === '••••••••••••') return;
+    const targetProvider = provider || API_MODELS.find(m => llmModel.startsWith(m.value))?.provider;
+    if (!targetProvider) return;
+    setKeyStatus('saving');
+    try {
+      await saveApiKey(keyInput, targetProvider);
+      setKeyStatus('success');
+      setStoredKeys(prev => ({ ...prev, [targetProvider]: true }));
+      triggerToast();
+      const apiModel = API_MODELS.find(m => llmModel.startsWith(m.value));
+      if (apiModel && apiModel.provider === targetProvider) {
+        setIsRefreshingModels(true);
+        refreshModels().finally(() => setIsRefreshingModels(false));
+      }
+      setTimeout(() => { setKeyStatus('idle'); setKeyInput('••••••••••••'); setActiveKeyProvider(null); }, 2500);
+    } catch (e) { setKeyStatus('error'); }
+  };
+
+  const handleRefresh = async () => {
+    const apiModel = API_MODELS.find(m => llmModel.startsWith(m.value));
+    if (!apiModel) return;
+    const key = await getApiKey(apiModel.provider);
+    if (!key) return;
     setIsRefreshingModels(true);
     try { await refreshModels(); } finally { setIsRefreshingModels(false); }
   };
 
-  const handleSaveHotkey = async () => {
-    setHotkeyStatus('saving');
-    try {
-      await updateHotkey(hotkey);
-      setHotkeyStatus('ok');
-      setTimeout(() => setHotkeyStatus('idle'), 2000);
-    } catch {
-      setHotkeyStatus('err');
+  const handleDeleteKey = async (provider?: string) => {
+    const apiModel = API_MODELS.find(m => llmModel.startsWith(m.value));
+    const targetProvider = provider || apiModel?.provider;
+    
+    if (!targetProvider) {
+      alert("Please select a model provider first to delete its key.");
+      return;
+    }
+
+    const providerLabel = API_MODELS.find(p => p.provider === targetProvider)?.label || targetProvider;
+    if (confirm(`Delete the saved API key for ${providerLabel}?`)) {
+      await deleteApiKey(targetProvider);
+      setStoredKeys(prev => ({ ...prev, [targetProvider]: false }));
+      if (targetProvider === apiModel?.provider) setKeyInput('');
+      setKeyStatus('idle');
+      triggerToast();
+      alert(`${providerLabel} API Key deleted successfully.`);
     }
   };
 
+  const handleResetAllKeys = async () => {
+    if (confirm("Are you sure you want to WIPE ALL stored API keys from your machine? This cannot be undone.")) {
+      try {
+        for (const model of API_MODELS) {
+          await deleteApiKey(model.provider);
+        }
+        if (customProviders.length > 0) {
+          await updateSetting('customProviders', []);
+          await invoke('save_setting', { key: 'customProviders', value: '[]' });
+        }
+        
+        const freshMapping: Record<string, boolean> = {};
+        API_MODELS.forEach(m => freshMapping[m.provider] = false);
+        setStoredKeys(freshMapping);
+        setKeyInput('');
+        refreshModels();
+        triggerToast();
+      } catch (e) {
+        alert("Failed to wipe all keys: " + String(e));
+      }
+    }
+  };
+
+  const handleHotkeySave = async () => {
+    setHotkeyStatus('saving');
+    try { 
+      await updateShortcut(hotkey); 
+      await updateHotkey(hotkey); 
+      setHotkeyStatus('ok'); 
+      triggerToast();
+      setTimeout(() => setHotkeyStatus('idle'), 2000); 
+    }
+    catch (e) { setHotkeyStatus('err'); }
+  };
+
+  const handleBrowserChange = async (val: string) => {
+    if (val !== 'default') {
+      const exists = await checkBrowserExists(val);
+      if (!exists) { alert(`Selected browser could not be found.`); return; }
+    }
+    await handleUpdateSetting('browser', val);
+  };
+
   if (!settingsLoaded || hasCompletedWelcome === null) {
-    return <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--clr-bg)' }}><div className="loading-dot" /></div>;
+    return <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--clr-surface)' }}><div className="loading-dot w-3 h-3" /></div>;
   }
 
-  if (!hasCompletedWelcome) {
-    return <WelcomeScreen onGetStarted={async () => {
-      await invoke('save_setting', { key: 'hasCompletedWelcome_v1_0_1', value: true });
-      setHasCompletedWelcome(true);
-    }} />;
-  }
+  if (!hasCompletedWelcome) return <WelcomeScreen onGetStarted={handleWelcomeComplete} />;
 
   return (
-    <div className="flex h-screen overflow-hidden" style={{ background: 'var(--clr-bg)', color: 'var(--clr-text)' }}>
-      {/* Sidebar Navigation */}
-      <div className="w-64 border-r flex flex-col p-6 gap-2" style={{ borderColor: UI_COLORS.BORDER, background: 'var(--clr-bg-sidebar)' }}>
-        <div className="flex items-center gap-3 mb-8 px-2">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold text-white shadow-lg" style={{ background: UI_COLORS.ACCENT }}>Q</div>
-          <h1 className="text-lg font-black tracking-tight">{APP_METADATA.NAME} <span className="text-[10px] font-normal opacity-40">v{APP_METADATA.VERSION}</span></h1>
+    <div className="h-screen flex overflow-hidden relative" style={{ background: 'var(--clr-surface)', color: 'var(--clr-text)' }}>
+      {/* Nice interactive Toast */}
+      <div className={`absolute top-8 left-1/2 -translate-x-1/2 z-50 pointer-events-none transition-all duration-500 transform ${showToast ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 -translate-y-4 scale-95'}`}>
+        <div className="px-6 py-2.5 rounded-full bg-white/10 backdrop-blur-md border border-white/10 flex items-center gap-3 shadow-2xl">
+          <div className="w-2 h-2 rounded-full bg-[var(--clr-success)] animate-pulse shadow-[0_0_8px_var(--clr-success)]" />
+          <span className="text-xs font-bold tracking-widest uppercase text-white/90">Saved Changes</span>
         </div>
-        
-        {[
-          { id: 'ai', label: 'AI Models & APIs' },
-          { id: 'plugins', label: 'Plugins for Advanced AI' },
-          { id: 'interface', label: 'Interface & Browser' },
-          { id: 'hotkey', label: 'Shortcuts' },
-          { id: 'feedback', label: 'Support & Community' },
-        ].map(item => (
-          <button
-            key={item.id}
-            onClick={() => setActiveSection(item.id)}
-            className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all text-left ${activeSection === item.id ? 'translate-x-1 shadow-lg' : 'opacity-60 hover:opacity-100'}`}
-            style={{ 
-              background: activeSection === item.id ? UI_COLORS.ACCENT : 'transparent',
-              color: activeSection === item.id ? 'white' : 'inherit'
-            }}
-          >
-            {item.label}
-          </button>
-        ))}
       </div>
 
-      {/* Domain Content Sections */}
-      <div className="flex-1 overflow-y-auto p-12 relative scroll-smooth">
-        <div className="max-w-2xl mx-auto">
-          {activeSection === 'ai' && (
-            <AIModelsSection 
-              llmModel={llmModel} 
-              availableModels={availableModels}
-              isRefreshingModels={isRefreshingModels}
-              onSettingChange={handleSettingChange}
-              refreshModels={handleRefreshModels}
-            />
-          )}
-          {activeSection === 'plugins' && (
-            <PluginsSection 
-              customProviders={customProviders}
-              ollamaEnabled={ollamaEnabled}
-              ollamaUrl={ollamaUrl}
-              onSettingChange={handleSettingChange}
-              onAddCustom={addCustomProvider}
-              onDeleteCustom={(id) => updateSetting('customProviders', customProviders.filter(p => p.id !== id))}
-              refreshModels={handleRefreshModels}
-            />
-          )}
-          {activeSection === 'interface' && (
-            <InterfaceSection 
-              browser={browser} theme={theme} llmSite={llmSite}
-              enableSiteLauncher={enableSiteLauncher}
-              enableAppLauncher={enableAppLauncher}
-              openLinksInternal={openLinksInternal}
-              onSettingChange={handleSettingChange} 
-            />
-          )}
-          {activeSection === 'hotkey' && (
-            <ShortcutsSection 
-              hotkey={hotkey}
-              onHotkeyChange={(hk) => updateSetting('hotkey', hk)}
-              onSave={handleSaveHotkey}
-              status={hotkeyStatus}
-            />
-          )}
-          {activeSection === 'feedback' && <SupportSection />}
+      {/* Sidebar */}
+      <div className="w-64 shrink-0 flex flex-col py-10 px-4 border-r pt-12" style={{ background: 'var(--clr-surface-secondary)', borderColor: 'var(--clr-border)' }}>
+        <div className="px-4 mb-10 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold text-white shadow-xl shadow-[var(--clr-accent)]/20" style={{ background: 'var(--clr-accent)' }}>Q</div>
+          <div><h1 className="font-bold text-[17px] leading-tight">Quickno</h1><p className="text-[10px] uppercase tracking-wider font-bold opacity-40">Settings</p></div>
         </div>
+        <div className="space-y-1.5 flex-1">
+          {SIDEBAR_NAV.map((n) => (
+            <button key={n.id} onClick={() => setActiveSection(n.id)} className="group flex items-center gap-3 px-5 py-3 rounded-2xl text-sm transition-all w-full relative text-left" style={{
+                background: activeSection === n.id ? 'var(--clr-accent)' : 'transparent',
+                color: activeSection === n.id ? '#ffffff' : 'var(--clr-text-secondary)',
+                fontWeight: activeSection === n.id ? 700 : 500,
+              }}>{n.label}</button>
+          ))}
+        </div>
+      </div>
 
-        {/* Global Toast Notification */}
-        <div className={`fixed bottom-8 right-8 px-5 py-2.5 rounded-2xl bg-green-500 text-white text-[11px] font-black uppercase tracking-widest shadow-2xl transition-all duration-500 flex items-center gap-2 ${
-          showSaved ? 'translate-y-0 opacity-100 scale-100' : 'translate-y-12 opacity-0 scale-90 pointer-events-none'
-        }`}>
-          SAVED CHANGES
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto px-16 py-16 custom-scrollbar">
+        <div className="max-w-xl">
+          {activeSection === 'models' && <AIModelSection llmModel={llmModel} availableModels={availableModels} storedKeys={storedKeys} activeKeyProvider={activeKeyProvider} keyInput={keyInput} keyStatus={keyStatus} isRefreshingModels={isRefreshingModels} setKeyInput={setKeyInput} setActiveKeyProvider={setActiveKeyProvider} handleSaveKey={handleSaveKey} handleDeleteKey={handleDeleteKey} handleResetAllKeys={handleResetAllKeys} handleRefresh={handleRefresh} updateSetting={handleUpdateSetting} />}
+          {activeSection === 'plugins' && <PluginSection ollamaEnabled={ollamaEnabled} ollamaUrl={ollamaUrl} updateSetting={handleUpdateSetting} refreshModels={refreshModels} />}
+          {activeSection === 'interface' && <InterfaceSection theme={theme} browser={browser} llmSite={llmSite} enableSiteLauncher={enableSiteLauncher} enableAppLauncher={enableAppLauncher} openLinksInternal={openLinksInternal} updateSetting={handleUpdateSetting} handleBrowserChange={handleBrowserChange} />}
+          {activeSection === 'hotkey' && <HotkeySection hotkey={hotkey} hotkeyStatus={hotkeyStatus} updateHotkey={updateHotkey} handleHotkeySave={handleHotkeySave} setHotkeyStatus={setHotkeyStatus} />}
+          {activeSection === 'support' && <SupportSection />}
         </div>
       </div>
     </div>
