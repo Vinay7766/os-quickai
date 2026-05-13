@@ -6,14 +6,14 @@ authors = ["Vinay7766"]
 edition = "2021"
 
 [build-dependencies]
-tauri-build = { version = "2.0.3", features = [] }
+tauri-build = { version = "2.11.0", features = [] }
 
 [dependencies]
-tauri = { version = "2.11.0", features = ["tray-icon"] }
-tauri-plugin-clipboard-manager = "2.3.2"
-tauri-plugin-global-shortcut = "2.3.1"
-tauri-plugin-shell = "2.3.5"
-tauri-plugin-store = "2.4.3"
+tauri = { version = "=2.11.0", features = ["tray-icon"] }
+tauri-plugin-clipboard-manager = "=2.3.2"
+tauri-plugin-global-shortcut = "=2.3.1"
+tauri-plugin-shell = "=2.3.5"
+tauri-plugin-store = "=2.4.3"
 
 serde = { version = "1.0.217", features = ["derive"] }
 serde_json = { version = "1.0.137" }
