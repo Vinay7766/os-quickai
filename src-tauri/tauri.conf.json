@@ -1,6 +1,6 @@
 {
   "productName": "Quickno",
-  "version": "1.0.5",
+  "version": "1.0.0",
   "identifier": "com.quickno.app",
   "bundle": {
     "active": true,
@@ -20,8 +20,8 @@
     }
   },
   "build": {
-    "beforeDevCommand": "npx pnpm dev",
-    "beforeBuildCommand": "npx pnpm build",
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build",
     "frontendDist": "../dist",
     "devUrl": "http://localhost:1420"
   },
