@@ -9,6 +9,22 @@
 //   • /              → Focus this input (from anywhere in the window)
 // ─────────────────────────────────────────────────────────────────────────────
 
+/*
+ * Copyright 2026 Vinay7766
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import { KeyboardEvent, useEffect, useRef } from 'react';
 import { useAppStore } from '../store/useAppStore';
 import { useSettingsStore } from '../store/useSettingsStore';
@@ -92,13 +108,20 @@ export function QueryInput() {
     }
   };
 
-  const getModeIconLabel = () => {
+  const getModeIcon = () => {
     switch (searchMode) {
-      case 'site': return 'URL';
-      case 'app':  return 'APP';
-      default:     return 'AI';
+      case 'site': return (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></svg>
+      );
+      case 'app': return (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><line x1="9" y1="3" x2="9" y2="21" /></svg>
+      );
+      default: return (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" /></svg>
+      );
     }
   };
+
 
   const currentModelLabel = llmModel === 'free-model' ? 'Free Model' :
                            llmModel.includes('gemini') ? 'Gemini' : 
@@ -117,12 +140,12 @@ export function QueryInput() {
           onClick={(e) => {
             e.stopPropagation();
             setModeMenuOpen(!isModeMenuOpen);
-            if (!isModeMenuOpen) setModelMenuOpen(false); // Close other menu
+            if (!isModeMenuOpen) setModelMenuOpen(false); 
           }}
         >
-          <span className="text-[10px] font-black tracking-widest">{getModeIconLabel()}</span>
+          {getModeIcon()}
           <span className="text-[10px] font-bold uppercase tracking-widest hidden sm:inline">{searchMode}</span>
-          <span className="text-[8px] opacity-40">▼</span>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="6 9 12 15 18 9" /></svg>
         </button>
         
         {isModeMenuOpen && (
@@ -171,17 +194,16 @@ export function QueryInput() {
             onClick={(e) => {
               e.stopPropagation();
               setModelMenuOpen(!isModelMenuOpen);
-              if (!isModelMenuOpen) setModeMenuOpen(false); // Close other menu
+              if (!isModelMenuOpen) setModeMenuOpen(false); 
             }}
           >
             {currentModelLabel}
-            <span className="text-[8px] opacity-40">▼</span>
+            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4"><polyline points="6 9 12 15 18 9" /></svg>
           </button>
 
           {isModelMenuOpen && (
             <div className="absolute top-full right-0 mt-2 w-48 glass rounded-xl border border-white/10 shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
               <div className="max-h-48 overflow-y-auto scrollbar-thin">
-                {/* Free Models */}
                 <div className="px-3 py-1.5 flex items-center justify-between border-b border-white/5">
                   <span className="text-[9px] uppercase tracking-widest opacity-40 font-bold">Free Models</span>
                 </div>
@@ -191,8 +213,6 @@ export function QueryInput() {
                 >
                   Free Model
                 </button>
-                
-                {/* Dynamic/Paid Models */}
                 {availableModels.length > 0 && (
                   <>
                     <div className="px-3 py-1.5 text-[9px] uppercase tracking-widest opacity-40 font-bold border-b border-white/5 border-t">Your Models</div>
