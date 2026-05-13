@@ -1,3 +1,19 @@
+/*
+ * Copyright 2026 Vinay7766
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // ─────────────────────────────────────────────────────────────────────────────
 // tauriCommands.ts — Frontend bindings for Rust backend commands
 // ─────────────────────────────────────────────────────────────────────────────
@@ -56,9 +72,7 @@ export async function checkBrowserExists(browser: string): Promise<boolean> {
 
 // ── System Theme ─────────────────────────────────────────────────────────────
 
-/** Detect the OS dark/light theme from the Windows registry.
- *  WebView2 doesn't reliably forward `prefers-color-scheme`, so we
- *  read it natively from the Rust backend. Returns "dark" or "light". */
+/** Detect the OS dark/light theme from the Windows registry. */
 export async function getSystemTheme(): Promise<string> {
   return await invoke<string>('get_system_theme');
 }
@@ -87,4 +101,11 @@ export async function launchApp(name: string): Promise<void> {
 /** Change the global hotkey for toggling the search overlay. */
 export async function updateShortcut(newShortcut: string): Promise<void> {
   return await invoke<void>('update_shortcut', { newShortcut });
+}
+
+// ── Maintenance ──────────────────────────────────────────────────────────────
+
+/** Wipes all settings and API keys, and restarts the app. */
+export async function factoryReset(): Promise<void> {
+  return await invoke<void>('factory_reset');
 }
