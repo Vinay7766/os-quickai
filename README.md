@@ -2,6 +2,7 @@
   <img src="app-icon.svg" width="80" alt="Quickno Logo" />
   <h1>Quickno</h1>
   <p><strong>A lightning-fast, AI-powered global search assistant for Windows</strong></p>
+  <p><a href="https://www.quickno.in/">www.quickno.in</a></p>
   <p>Summon it from anywhere with a hotkey. Ask anything. Open results in your favourite browser or AI.</p>
 
   <br/>
