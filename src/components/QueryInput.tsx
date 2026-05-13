@@ -92,20 +92,13 @@ export function QueryInput() {
     }
   };
 
-  const getModeIcon = () => {
+  const getModeIconLabel = () => {
     switch (searchMode) {
-      case 'site': return (
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></svg>
-      );
-      case 'app': return (
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><line x1="9" y1="3" x2="9" y2="21" /></svg>
-      );
-      default: return (
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" /></svg>
-      );
+      case 'site': return 'URL';
+      case 'app':  return 'APP';
+      default:     return 'AI';
     }
   };
-
 
   const currentModelLabel = llmModel === 'free-model' ? 'Free Model' :
                            llmModel.includes('gemini') ? 'Gemini' : 
@@ -127,9 +120,9 @@ export function QueryInput() {
             if (!isModeMenuOpen) setModelMenuOpen(false); // Close other menu
           }}
         >
-          {getModeIcon()}
+          <span className="text-[10px] font-black tracking-widest">{getModeIconLabel()}</span>
           <span className="text-[10px] font-bold uppercase tracking-widest hidden sm:inline">{searchMode}</span>
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="6 9 12 15 18 9" /></svg>
+          <span className="text-[8px] opacity-40">▼</span>
         </button>
         
         {isModeMenuOpen && (
@@ -182,7 +175,7 @@ export function QueryInput() {
             }}
           >
             {currentModelLabel}
-            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4"><polyline points="6 9 12 15 18 9" /></svg>
+            <span className="text-[8px] opacity-40">▼</span>
           </button>
 
           {isModelMenuOpen && (

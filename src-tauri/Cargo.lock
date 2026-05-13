@@ -2911,7 +2911,7 @@ dependencies = [
 
 [[package]]
 name = "quickno"
-version = "1.0.1"
+version = "1.0.2"
 dependencies = [
  "keyring",
  "open",
