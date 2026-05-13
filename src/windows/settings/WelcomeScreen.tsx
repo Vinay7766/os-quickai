@@ -41,16 +41,16 @@ export default function WelcomeScreen({ onGetStarted }: WelcomeScreenProps) {
       {/* Feature highlights */}
       <div className="w-full max-w-sm space-y-3 mb-10">
         {[
-          { icon: '⚡', title: 'Instant AI answers', desc: 'Ask anything from the floating search bar' },
-          { icon: '🌐', title: 'Smart web search', desc: 'Open queries in your preferred browser' },
-          { icon: '🔒', title: 'Secure & private', desc: 'API keys stored in Windows Credential Manager' },
+          { title: 'Instant AI answers', desc: 'Ask anything from the floating search bar' },
+          { title: 'Smart web search', desc: 'Open queries in your preferred browser' },
+          { title: 'Secure & private', desc: 'API keys stored in Windows Credential Manager' },
         ].map((f) => (
           <div
             key={f.title}
             className="flex items-start gap-4 p-4 rounded-xl"
             style={{ background: 'var(--clr-input-bg)', border: '1px solid var(--clr-border)' }}
           >
-            <span className="text-xl shrink-0">{f.icon}</span>
+            {/* <span className="text-xl shrink-0">{f.icon}</span> */}
             <div>
               <p className="text-sm font-semibold">{f.title}</p>
               <p className="text-xs mt-0.5" style={{ color: 'var(--clr-text-secondary)' }}>{f.desc}</p>
