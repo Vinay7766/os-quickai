@@ -1,80 +1,97 @@
-import { open } from '@tauri-apps/plugin-shell';
-import { UI_COLORS, APP_METADATA } from '../../../constants/appConstants';
+/*
+ * Copyright 2026 Vinay7766
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
-export function SupportSection() {
+import { open } from '@tauri-apps/plugin-shell';
+
+export default function SupportSection() {
+  const supportItems = [
+    { 
+      title: 'Check for Updates', 
+      desc: 'Ensure you are running the latest version of Quickno.', 
+      buttonText: 'Check Now',
+      url: '#' 
+    },
+    { 
+      title: 'Community Discord', 
+      desc: 'Join the conversation, ask questions, and share ideas.', 
+      buttonText: 'Join Discord',
+      url: 'https://discord.gg/tJXcYePghn' 
+    },
+    { 
+      title: 'Bug Reporting', 
+      desc: 'Found an issue? Let us know so we can fix it.', 
+      buttonText: 'Report Bug',
+      url: 'https://discord.gg/CpMW6AMsKC' 
+    }
+  ];
+
   return (
-    <div className="space-y-8 animate-fade-in-up">
+    <div className="space-y-10 animate-fade-in-up">
       <div>
-        <h2 className="text-xl font-bold mb-1">Support & Community</h2>
-        <p className="text-sm" style={{ color: UI_COLORS.TEXT_SECONDARY }}>Connect with the developers and other users.</p>
+        <h2 className="text-3xl font-bold mb-1 tracking-tight">Support & Community</h2>
+        <p className="text-sm opacity-50 font-medium">Connect with the developers and other users.</p>
       </div>
 
-      <div className="grid gap-3">
-        <div
-          className="p-5 rounded-2xl border flex items-center justify-between gap-4"
-          style={{ background: UI_COLORS.INPUT_BG, borderColor: UI_COLORS.BORDER }}
-        >
-          <div>
-            <h3 className="font-bold text-sm mb-0.5">Application Version</h3>
-            <p className="text-[12px]" style={{ color: UI_COLORS.TEXT_SECONDARY }}>
-              You are currently running Quickno v{APP_METADATA.VERSION}
-            </p>
-          </div>
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-green-500/10 text-green-500 text-[10px] font-bold uppercase tracking-widest border border-green-500/20">
-            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-            Latest Version
-          </div>
-        </div>
-
-        {[
-          { title: 'Community Discord', desc: 'Join the conversation, ask questions, and share ideas.', url: 'https://discord.gg/29a3qkEsX' },
-          { title: 'Bug Reporting', desc: 'Found an issue? Let us know so we can fix it.', url: 'https://discord.gg/CpMW6AMsKC' },
-          { title: 'Feature Requests', desc: 'Suggest new features for future versions.', url: 'https://discord.gg/CpMW6AMsKC' }
-        ].map(item => (
+      <div className="space-y-4">
+        {supportItems.map(item => (
           <div
             key={item.title}
-            className="p-5 rounded-2xl border flex items-center justify-between gap-4"
-            style={{ background: UI_COLORS.INPUT_BG, borderColor: UI_COLORS.BORDER }}
+            className="p-8 rounded-2xl border flex items-center justify-between gap-6 transition-all duration-500 hover:scale-[1.02] hover:border-white/20 group relative overflow-hidden"
+            style={{ background: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.05)' }}
           >
-            <div>
-              <h3 className="font-bold text-sm mb-0.5">{item.title}</h3>
-              <p className="text-[12px]" style={{ color: UI_COLORS.TEXT_SECONDARY }}>{item.desc}</p>
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <div className="relative z-10">
+              <h3 className="font-bold text-xl mb-1 tracking-tight">{item.title}</h3>
+              <p className="text-xs opacity-40 leading-relaxed max-w-sm font-medium">{item.desc}</p>
             </div>
             <button
               onClick={() => open(item.url)}
-              className="px-5 py-2 rounded-lg text-xs font-semibold text-white shrink-0 hover:brightness-110 active:scale-95 transition-all"
-              style={{ background: 'var(--clr-accent)' }}
+              className="px-8 py-3 rounded-xl text-xs font-bold text-white shrink-0 hover:scale-[1.05] active:scale-[0.95] transition-all shadow-xl shadow-blue-500/10 relative z-10"
+              style={{ background: '#3b82f6' }}
             >
-              Open Link
+              {item.buttonText}
             </button>
           </div>
         ))}
       </div>
 
-      <div className="pt-6 border-t" style={{ borderColor: UI_COLORS.BORDER }}>
-        <h3 className="text-sm font-bold mb-4">Support the Project</h3>
-        <div className="grid grid-cols-2 gap-4">
+      <div className="pt-8 space-y-5">
+        <h3 className="text-xl font-bold px-1">Support the Project</h3>
+        <div className="grid grid-cols-2 gap-5">
           <button
             onClick={() => open('https://ko-fi.com/vinay7766')}
-            className="flex flex-col items-center gap-2 p-5 rounded-2xl border transition-all hover:scale-[1.02] active:scale-95 group relative overflow-hidden"
-            style={{ background: UI_COLORS.INPUT_BG, borderColor: UI_COLORS.BORDER }}
+            className="flex flex-col items-center justify-center p-10 rounded-[28px] border border-white/5 transition-all duration-500 hover:scale-[1.03] active:scale-[0.97] hover:border-yellow-500/30 group relative overflow-hidden"
+            style={{ background: 'rgba(255,255,255,0.02)' }}
           >
-            <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/0 to-yellow-500/0 group-hover:from-yellow-500/5 group-hover:to-yellow-500/10 transition-all" />
+            <div className="absolute inset-0 bg-yellow-500/[0.03] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <div className="text-center relative z-10">
-              <div className="text-sm font-bold text-yellow-500">Support Developer</div>
-              <p className="text-[10px] opacity-60">Help keep Quickno fast & free</p>
+              <div className="text-lg font-bold text-yellow-500 mb-0.5">Support Developer</div>
+              <p className="text-[11px] opacity-40 font-medium">Help keep Quickno fast & free</p>
             </div>
           </button>
 
           <button
-            onClick={() => open('https://ko-fi.com/pollinations')}
-            className="flex flex-col items-center gap-2 p-5 rounded-2xl border transition-all hover:scale-[1.02] active:scale-95 group relative overflow-hidden"
-            style={{ background: UI_COLORS.INPUT_BG, borderColor: UI_COLORS.BORDER }}
+            onClick={() => open('https://pollinations.ai/')}
+            className="flex flex-col items-center justify-center p-10 rounded-[28px] border border-white/5 transition-all duration-500 hover:scale-[1.03] active:scale-[0.97] hover:border-green-500/30 group relative overflow-hidden"
+            style={{ background: 'rgba(255,255,255,0.02)' }}
           >
-            <div className="absolute inset-0 bg-gradient-to-br from-green-500/0 to-green-500/0 group-hover:from-green-500/5 group-hover:to-green-500/10 transition-all" />
+            <div className="absolute inset-0 bg-green-500/[0.03] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <div className="text-center relative z-10">
-              <div className="text-xs font-bold text-green-500">Support Pollinations</div>
-              <p className="text-[10px] opacity-60">Back the core AI engine</p>
+              <div className="text-lg font-bold text-green-500 mb-0.5">Support Pollinations</div>
+              <p className="text-[11px] opacity-40 font-medium">Back the core AI engine</p>
             </div>
           </button>
         </div>
