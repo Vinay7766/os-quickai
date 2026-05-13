@@ -1,3 +1,19 @@
+/*
+ * Copyright 2026 Vinay7766
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 // ─────────────────────────────────────────────────────────────────────────────
 // useSettingsStore.ts — Global settings state management
 // ─────────────────────────────────────────────────────────────────────────────
@@ -64,8 +80,6 @@ interface SettingsState {
   updateSetting: (key: string, val: string | boolean | string[] | CustomProvider[]) => Promise<void>;
   saveAll: () => Promise<void>;
   refreshModels: () => Promise<void>;
-  deleteApiKey: (provider: string) => Promise<void>;
-  addCustomProvider: (provider: CustomProvider) => Promise<void>;
 }
 
 // ── Theme Helpers ────────────────────────────────────────────────────────────
@@ -135,13 +149,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       applyThemeToDom(theme);
 
       const customProvidersRaw = await invoke<string | null>('get_setting', { key: 'customProviders' }) ?? '[]';
-      let customProviders: CustomProvider[] = [];
-      try {
-        customProviders = JSON.parse(customProvidersRaw);
-        if (!Array.isArray(customProviders)) customProviders = [];
-      } catch {
-        customProviders = [];
-      }
+      const customProviders: CustomProvider[] = JSON.parse(customProvidersRaw);
       
       const ollamaEnabled = (await invoke<string | null>('get_setting', { key: 'ollamaEnabled' })) === 'true';
       const ollamaUrl = await invoke<string | null>('get_setting', { key: 'ollamaUrl' }) ?? 'http://localhost:11434';
@@ -250,9 +258,8 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     }
 
     try {
-      // 3. Persist to disk (handle objects correctly)
-      const saveValue = typeof val === 'object' ? JSON.stringify(val) : String(val);
-      await invoke('save_setting', { key, value: saveValue });
+      // 3. Persist to disk (always as string)
+      await invoke('save_setting', { key, value: String(val) });
 
       // 4. Broadcast to ALL windows
       await emit('settings-updated', { key, val });
@@ -278,54 +285,20 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       console.error('[Settings] Failed to save all:', e);
     }
   },
-
-  deleteApiKey: async (provider: string) => {
-    try {
-      await invoke('delete_api_key', { provider });
-      await get().refreshModels();
-    } catch (e) {
-      console.error('[Settings] Failed to delete API key:', e);
-    }
-  },
-
-  addCustomProvider: async (provider: CustomProvider) => {
-    try {
-      const current = get().customProviders;
-      const updated = [...current, provider];
-      await get().updateSetting('customProviders', updated);
-      await get().refreshModels();
-    } catch (e) {
-      console.error('[Settings] Failed to add custom provider:', e);
-    }
-  },
 }));
 
 // ── Cross-Window Event Listener (Module-Level) ──────────────────────────────
-// This runs ONCE when the module is first imported, BEFORE any component mounts.
-// It is INDEPENDENT of loadSettings — even if loadSettings fails, events will
-// still be received. This is the primary mechanism for real-time sync.
-//
-// When the Settings window calls updateSetting('browser', 'chrome'), it emits:
-//   { key: 'browser', val: 'chrome' }
-// This listener picks it up and directly updates the Zustand state.
-
 listen('settings-updated', (event: unknown) => {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const payload = (event as any)?.payload;
     if (!payload || !payload.key) return;
 
     const { key, val } = payload;
 
     if (key === 'all') {
-      // Full reload requested (e.g., "Save All" button)
       useSettingsStore.getState().loadSettings();
     } else {
-      // Single setting changed — apply directly to Zustand state
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       useSettingsStore.setState({ [key]: val } as any);
-
-      // If theme changed, also update the DOM
       if (key === 'theme') {
         if (val === 'system') {
           refreshOsThemeCache().then(() => applyThemeToDom(val));
