@@ -38,7 +38,7 @@ jobs:
         with:
           tagName: v__VERSION__ # This will be replaced by the action
           releaseName: "Quickno v__VERSION__"
-          releaseBody: "Official release of Quickno. Visit https://www.quickno.in/ for more information."
+          releaseBody: "Initial public release of Quickno. A lightning-fast, AI-powered global search assistant for Windows.\n\nOfficial Website: https://www.quickno.in/\n\nKey Features:\n- Global Hotkey (Alt+A)\n- Built-in Free AI Models\n- Secure API Key Management (Windows Credential Manager)\n- Smart Web & AI Site Integration\n- High-fidelity Settings Interface with Auto-save"
           releaseDraft: false
           prerelease: false
           args: --verbose
