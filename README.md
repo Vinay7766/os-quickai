@@ -7,7 +7,7 @@
   <br/>
 
   [![GitHub release](https://img.shields.io/github/v/release/Vinay7766/quickno?style=flat-square&color=6366f1)](https://github.com/Vinay7766/quickno/releases/latest)
-  [![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](LICENSE)
+  [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue?style=flat-square)](LICENSE)
   [![Privacy: Local Only](https://img.shields.io/badge/Privacy-Local%20Only-green?style=flat-square)](PRIVACY_POLICY.md)
   [![Built with Tauri](https://img.shields.io/badge/Built_with-Tauri_v2-blue?style=flat-square)](https://tauri.app)
   [![Platform: Windows](https://img.shields.io/badge/Platform-Windows_10%2F11-0078D4?style=flat-square&logo=windows)](https://github.com/Vinay7766/quickno/releases/latest)
