@@ -64,6 +64,8 @@ interface SettingsState {
   updateSetting: (key: string, val: string | boolean | string[] | CustomProvider[]) => Promise<void>;
   saveAll: () => Promise<void>;
   refreshModels: () => Promise<void>;
+  deleteApiKey: (provider: string) => Promise<void>;
+  addCustomProvider: (provider: CustomProvider) => Promise<void>;
 }
 
 // ── Theme Helpers ────────────────────────────────────────────────────────────
@@ -133,7 +135,13 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       applyThemeToDom(theme);
 
       const customProvidersRaw = await invoke<string | null>('get_setting', { key: 'customProviders' }) ?? '[]';
-      const customProviders: CustomProvider[] = JSON.parse(customProvidersRaw);
+      let customProviders: CustomProvider[] = [];
+      try {
+        customProviders = JSON.parse(customProvidersRaw);
+        if (!Array.isArray(customProviders)) customProviders = [];
+      } catch {
+        customProviders = [];
+      }
       
       const ollamaEnabled = (await invoke<string | null>('get_setting', { key: 'ollamaEnabled' })) === 'true';
       const ollamaUrl = await invoke<string | null>('get_setting', { key: 'ollamaUrl' }) ?? 'http://localhost:11434';
@@ -242,8 +250,9 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     }
 
     try {
-      // 3. Persist to disk (always as string)
-      await invoke('save_setting', { key, value: String(val) });
+      // 3. Persist to disk (handle objects correctly)
+      const saveValue = typeof val === 'object' ? JSON.stringify(val) : String(val);
+      await invoke('save_setting', { key, value: saveValue });
 
       // 4. Broadcast to ALL windows
       await emit('settings-updated', { key, val });
@@ -267,6 +276,26 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       await emit('settings-updated', { key: 'all', val: '' });
     } catch (e) {
       console.error('[Settings] Failed to save all:', e);
+    }
+  },
+
+  deleteApiKey: async (provider: string) => {
+    try {
+      await invoke('delete_api_key', { provider });
+      await get().refreshModels();
+    } catch (e) {
+      console.error('[Settings] Failed to delete API key:', e);
+    }
+  },
+
+  addCustomProvider: async (provider: CustomProvider) => {
+    try {
+      const current = get().customProviders;
+      const updated = [...current, provider];
+      await get().updateSetting('customProviders', updated);
+      await get().refreshModels();
+    } catch (e) {
+      console.error('[Settings] Failed to add custom provider:', e);
     }
   },
 }));

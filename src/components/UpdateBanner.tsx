@@ -28,7 +28,7 @@ export function UpdateBanner({ version }: UpdateBannerProps) {
         }}
       >
         <div className="flex items-center gap-3">
-          <span className="text-sm">✨</span>
+          <div className="text-[10px] font-black px-1.5 py-0.5 rounded bg-white/20 uppercase tracking-tighter">New</div>
           <div>
             <p className="text-[12px] font-semibold leading-tight">
               Version {version} available
@@ -37,11 +37,8 @@ export function UpdateBanner({ version }: UpdateBannerProps) {
           </div>
         </div>
 
-        <div className="text-[11px] font-semibold opacity-80 flex items-center gap-1.5">
-          Update
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
-            <path d="M7 17L17 7M17 7H7M17 7V17" />
-          </svg>
+        <div className="text-[11px] font-black uppercase tracking-widest bg-white/20 px-3 py-1 rounded-md">
+          Update Available
         </div>
       </button>
     </div>
