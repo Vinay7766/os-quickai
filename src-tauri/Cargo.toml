@@ -23,12 +23,12 @@ thiserror = "2.0.11"
 keyring = { version = "3.6.1", features = ["windows-native"] }
 open = "5.3"
 urlencoding = "2.1"
-# winreg replaces spawning reg.exe — no terminal popup
-winreg = "0.52"
-
 # Windows AV workaround
 [profile.release]
 codegen-units = 1
 
 [profile.dev]
 codegen-units = 1
+
+[target.'cfg(windows)'.dependencies]
+winreg = "0.52"

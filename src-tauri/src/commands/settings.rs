@@ -102,20 +102,28 @@ pub async fn delete_api_key(provider: String) -> Result<(), AppError> {
 /// Returns "dark" or "light".
 #[tauri::command]
 pub fn get_system_theme() -> String {
-    use winreg::enums::*;
-    use winreg::RegKey;
+    #[cfg(target_os = "windows")]
+    {
+        use winreg::enums::*;
+        use winreg::RegKey;
 
-    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-    let theme_key = hkcu.open_subkey(
-        r"SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize",
-    );
+        let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+        let theme_key = hkcu.open_subkey(
+            r"SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize",
+        );
 
-    match theme_key {
-        Ok(key) => {
-            let uses_light: u32 = key.get_value("AppsUseLightTheme").unwrap_or(1);
-            if uses_light == 0 { "dark".to_string() } else { "light".to_string() }
+        match theme_key {
+            Ok(key) => {
+                let uses_light: u32 = key.get_value("AppsUseLightTheme").unwrap_or(1);
+                if uses_light == 0 { "dark".to_string() } else { "light".to_string() }
+            }
+            Err(_) => "light".to_string(), // Fallback to light if registry read fails
         }
-        Err(_) => "light".to_string(), // Fallback to light if registry read fails
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        "dark".to_string() // Default to dark for Mac/Linux or handle via frontend
     }
 }
 
@@ -190,12 +198,15 @@ pub async fn factory_reset(app: tauri::AppHandle) -> Result<(), AppError> {
         }
     }
 
-    // 3. Remove Registry marker for first run
-    use winreg::enums::*;
-    use winreg::RegKey;
-    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-    if let Ok(key) = hkcu.open_subkey_with_flags(r"SOFTWARE\Quickno", KEY_ALL_ACCESS) {
-        let _ = key.delete_value("v1_0_1Installed");
+    // 3. Remove Registry marker for first run (Windows only)
+    #[cfg(target_os = "windows")]
+    {
+        use winreg::enums::*;
+        use winreg::RegKey;
+        let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+        if let Ok(key) = hkcu.open_subkey_with_flags(r"SOFTWARE\Quickno", KEY_ALL_ACCESS) {
+            let _ = key.delete_value("v1_0_1Installed");
+        }
     }
 
     // 4. Exit the app

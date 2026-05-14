@@ -38,7 +38,9 @@ use tauri::{
     Manager,
 };
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
+#[cfg(target_os = "windows")]
 use winreg::enums::*;
+#[cfg(target_os = "windows")]
 use winreg::RegKey;
 
 // ── Shared State ─────────────────────────────────────────────────────────────
@@ -56,6 +58,7 @@ pub(crate) struct HotkeyState(pub Mutex<String>);
 // avoiding any subprocess spawning (which would flash a terminal window).
 
 /// Registers Quickno to start automatically when the user logs in.
+#[cfg(target_os = "windows")]
 fn set_autostart(exe_path: &str) {
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
     if let Ok(run) = hkcu.open_subkey_with_flags(
@@ -66,7 +69,11 @@ fn set_autostart(exe_path: &str) {
     }
 }
 
+#[cfg(not(target_os = "windows"))]
+fn set_autostart(_exe_path: &str) {}
+
 /// Checks if this is the first time the app has been launched for this version.
+#[cfg(target_os = "windows")]
 fn is_first_run() -> bool {
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
     hkcu.open_subkey(r"SOFTWARE\Quickno")
@@ -74,13 +81,20 @@ fn is_first_run() -> bool {
         .is_err()
 }
 
+#[cfg(not(target_os = "windows"))]
+fn is_first_run() -> bool { false }
+
 /// Marks the app as "installed" for this version.
+#[cfg(target_os = "windows")]
 fn mark_installed() {
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
     if let Ok((key, _)) = hkcu.create_subkey(r"SOFTWARE\Quickno") {
         let _ = key.set_value("v1_0_1Installed", &"1");
     }
 }
+
+#[cfg(not(target_os = "windows"))]
+fn mark_installed() {}
 
 // ── Overlay Toggle ───────────────────────────────────────────────────────────
 
