@@ -334,7 +334,13 @@ pub async fn query_llm(
     // ── Ollama Routing ──────────────────────────────────────────
     if model.starts_with("ollama:") {
         let actual_model = model.replace("ollama:", "");
-        let ollama_url = base_url.unwrap_or_else(|| "http://localhost:11434".to_string());
+        let mut ollama_url = base_url.unwrap_or_else(|| "http://localhost:11434".to_string());
+        
+        // Defensive: ensure URL starts with http:// or https://
+        if !ollama_url.starts_with("http://") && !ollama_url.starts_with("https://") {
+            ollama_url = format!("http://{}", ollama_url);
+        }
+
         let chat_url = format!("{}/api/chat", ollama_url.trim_end_matches('/'));
 
         let response = client
@@ -361,10 +367,15 @@ pub async fn query_llm(
 
     // ── Custom Provider (BYOK) Routing ──────────────────────────
     if let Some(url) = base_url {
-        let chat_url = if url.ends_with("/chat/completions") { 
-            url 
+        let mut base = url;
+        if !base.starts_with("http://") && !base.starts_with("https://") {
+            base = format!("https://{}", base); // Default to https for custom BYOK
+        }
+
+        let chat_url = if base.ends_with("/chat/completions") { 
+            base 
         } else { 
-            format!("{}/chat/completions", url.trim_end_matches('/')) 
+            format!("{}/chat/completions", base.trim_end_matches('/')) 
         };
 
         let response = client
