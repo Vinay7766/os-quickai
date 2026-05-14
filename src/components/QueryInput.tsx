@@ -35,7 +35,7 @@ export function QueryInput() {
     searchMode, setMode, clearAnswer,
     isModeMenuOpen, isModelMenuOpen, setModeMenuOpen, setModelMenuOpen
   } = useAppStore();
-  const { llmModel, updateSetting, availableModels } = useSettingsStore();
+  const { llmModel, updateSetting, availableModels, enableTerminalMode } = useSettingsStore();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -105,7 +105,7 @@ export function QueryInput() {
       if (e.key === '1') { e.preventDefault(); setMode('search'); }
       if (e.key === '2') { e.preventDefault(); setMode('site'); }
       if (e.key === '3') { e.preventDefault(); setMode('app'); }
-      if (e.key === '4') { e.preventDefault(); setMode('terminal'); }
+      if (e.key === '4' && enableTerminalMode) { e.preventDefault(); setMode('terminal'); }
     }
   };
 
@@ -154,8 +154,10 @@ export function QueryInput() {
         
         {isModeMenuOpen && (
           <div className="absolute top-full left-0 mt-2 w-32 glass rounded-xl border border-white/10 shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            {(['search', 'site', 'app', 'terminal'] as const).map(m => (
-              <button
+            {(['search', 'site', 'app', 'terminal'] as const)
+              .filter(m => m !== 'terminal' || enableTerminalMode)
+              .map(m => (
+                <button
                 key={m}
                 className={`w-full text-left px-3 py-2 text-xs font-bold transition-colors hover:bg-white/10 ${searchMode === m ? 'text-[var(--clr-accent)]' : 'text-[var(--clr-text-secondary)]'}`}
                 onClick={() => { setMode(m); setModeMenuOpen(false); }}

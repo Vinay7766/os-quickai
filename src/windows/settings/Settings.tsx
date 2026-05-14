@@ -265,7 +265,7 @@ export default function Settings() {
       <div className="flex-1 overflow-y-auto px-16 py-16 custom-scrollbar">
         <div className="max-w-xl">
           {activeSection === 'models' && <AIModelSection llmModel={llmModel} availableModels={availableModels} storedKeys={storedKeys} activeKeyProvider={activeKeyProvider} keyInput={keyInput} keyStatus={keyStatus} isRefreshingModels={isRefreshingModels} setKeyInput={setKeyInput} setActiveKeyProvider={setActiveKeyProvider} handleSaveKey={handleSaveKey} handleDeleteKey={handleDeleteKey} handleResetAllKeys={handleResetAllKeys} handleRefresh={handleRefresh} updateSetting={handleUpdateSetting} />}
-          {activeSection === 'plugins' && <PluginSection ollamaEnabled={ollamaEnabled} ollamaUrl={ollamaUrl} updateSetting={handleUpdateSetting} refreshModels={refreshModels} />}
+          {activeSection === 'plugins' && <PluginSection ollamaEnabled={ollamaEnabled} ollamaUrl={ollamaUrl} enableTerminalMode={enableTerminalMode} updateSetting={handleUpdateSetting} refreshModels={refreshModels} />}
           {activeSection === 'interface' && <InterfaceSection theme={theme} browser={browser} llmSite={llmSite} enableSiteLauncher={enableSiteLauncher} enableAppLauncher={enableAppLauncher} openLinksInternal={openLinksInternal} updateSetting={handleUpdateSetting} handleBrowserChange={handleBrowserChange} />}
           {activeSection === 'hotkey' && <HotkeySection hotkey={hotkey} hotkeyStatus={hotkeyStatus} updateHotkey={updateHotkey} handleHotkeySave={handleHotkeySave} setHotkeyStatus={setHotkeyStatus} />}
           {activeSection === 'support' && <SupportSection updateVersion={updateVersion} />}

@@ -334,34 +334,53 @@ pub async fn query_llm(
     // ── Ollama Routing ──────────────────────────────────────────
     if model.starts_with("ollama:") {
         let actual_model = model.replace("ollama:", "");
-        let mut ollama_url = base_url.unwrap_or_else(|| "http://localhost:11434".to_string());
+        let base_input = base_url.unwrap_or_else(|| "http://localhost:11434".to_string());
         
-        // Defensive: ensure URL starts with http:// or https://
-        if !ollama_url.starts_with("http://") && !ollama_url.starts_with("https://") {
-            ollama_url = format!("http://{}", ollama_url);
+        // Helper to try a specific URL
+        let try_query = |target_url: String| {
+            let client_ref = &client;
+            let q_ref = &query;
+            let m_ref = &actual_model;
+            async move {
+                let mut url = target_url;
+                if !url.starts_with("http://") && !url.starts_with("https://") {
+                    url = format!("http://{}", url);
+                }
+                let chat_url = format!("{}/api/chat", url.trim_end_matches('/'));
+                client_ref.post(chat_url)
+                    .json(&json!({
+                        "model": m_ref,
+                        "messages": [{"role": "user", "content": q_ref}],
+                        "stream": false
+                    }))
+                    .send()
+                    .await
+            }
+        };
+
+        // Attempt 1: The provided URL
+        let mut response = try_query(base_input.clone()).await;
+
+        // Attempt 2: Smart Failover (localhost -> 127.0.0.1)
+        if response.is_err() && base_input.contains("localhost") {
+            let failover_url = base_input.replace("localhost", "127.0.0.1");
+            response = try_query(failover_url).await;
         }
 
-        let chat_url = format!("{}/api/chat", ollama_url.trim_end_matches('/'));
-
-        let response = client
-            .post(chat_url)
-            .json(&json!({
-                "model": actual_model,
-                "messages": [{"role": "user", "content": &query}],
-                "stream": false
-            }))
-            .send()
-            .await
-            .map_err(|e| AppError::NetworkError(e.to_string()))?;
-
-        if response.status().is_success() {
-            let body: Value = response.json().await.map_err(|e| AppError::NetworkError(e.to_string()))?;
-            return Ok(body["message"]["content"].as_str().unwrap_or("(no response)").to_string());
-        } else {
-            return Err(AppError::ProviderError {
-                status: response.status().as_u16(),
-                message: response.text().await.unwrap_or_default(),
-            });
+        match response {
+            Ok(res) if res.status().is_success() => {
+                let body: Value = res.json().await.map_err(|e| AppError::NetworkError(e.to_string()))?;
+                return Ok(body["message"]["content"].as_str().unwrap_or("(no response)").to_string());
+            }
+            Ok(res) => {
+                return Err(AppError::ProviderError {
+                    status: res.status().as_u16(),
+                    message: res.text().await.unwrap_or_default(),
+                });
+            }
+            Err(e) => return Err(AppError::NetworkError(format!(
+                "Failed to connect to Ollama. Make sure the Ollama app is running.\n\nError: {}", e
+            ))),
         }
     }
 

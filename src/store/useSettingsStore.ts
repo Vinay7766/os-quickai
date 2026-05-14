@@ -65,6 +65,7 @@ interface SettingsState {
   // New toggles
   enableSiteLauncher: boolean;
   enableAppLauncher: boolean;
+  enableTerminalMode: boolean;
   openLinksInternal: boolean;
 
   // BYOK & Ollama
@@ -119,6 +120,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   theme: 'system',
   enableSiteLauncher: true,
   enableAppLauncher: true,
+  enableTerminalMode: true,
   openLinksInternal: true,
   customProviders: [],
   ollamaEnabled: false,
@@ -137,6 +139,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 
       const enableSiteLauncher = (await invoke<string | null>('get_setting', { key: 'enableSiteLauncher' })) !== 'false';
       const enableAppLauncher  = (await invoke<string | null>('get_setting', { key: 'enableAppLauncher' }))  !== 'false';
+      const enableTerminalMode = (await invoke<string | null>('get_setting', { key: 'enableTerminalMode' })) !== 'false';
       const openLinksInternal  = (await invoke<string | null>('get_setting', { key: 'openLinksInternal' }))  !== 'false';
 
       let theme = await invoke<'light' | 'dark' | 'system' | null>('get_setting', { key: 'theme' });
@@ -156,7 +159,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 
       set({ 
         hotkey, llmModel, searchEngine, llmSite, browser, theme, 
-        enableSiteLauncher, enableAppLauncher, openLinksInternal,
+        enableSiteLauncher, enableAppLauncher, enableTerminalMode, openLinksInternal,
         customProviders, ollamaEnabled, ollamaUrl,
         settingsLoaded: true 
       });
