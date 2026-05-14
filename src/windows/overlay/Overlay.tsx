@@ -64,7 +64,7 @@ export default function Overlay() {
   void useSettingsStore((s) => s.theme);
 
   const [copied, setCopied] = useState(false);
-  const hasContent = (searchMode === 'search' && (isLoading || !!answer)) || !!error || !!internalUrl;
+  const hasContent = ((searchMode === 'search' || searchMode === 'terminal') && (isLoading || !!answer)) || !!error || !!internalUrl;
   const isMenuOpen = isModeMenuOpen || isModelMenuOpen;
   const isDragging = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
