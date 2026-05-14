@@ -61,16 +61,16 @@ export default function PluginSection({
 
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h3 className="text-[11px] font-bold uppercase tracking-widest opacity-40">Local AI (Ollama)</h3>
-          <button onClick={() => updateSetting('ollamaEnabled', !ollamaEnabled)} className={`w-11 h-6 rounded-full transition-all relative ${ollamaEnabled ? 'bg-[var(--clr-accent)]' : 'bg-gray-600'}`}><div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${ollamaEnabled ? 'right-1' : 'left-1'}`} /></button>
-        </div>
-
-        <div className="flex items-center justify-between">
           <div className="space-y-1">
             <h3 className="text-[11px] font-bold uppercase tracking-widest opacity-40">Terminal Mode</h3>
             <p className="text-[10px] opacity-40">Enable system command execution (Ctrl + 4)</p>
           </div>
           <button onClick={() => updateSetting('enableTerminalMode', !enableTerminalMode)} className={`w-11 h-6 rounded-full transition-all relative ${enableTerminalMode ? 'bg-[var(--clr-accent)]' : 'bg-gray-600'}`}><div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${enableTerminalMode ? 'right-1' : 'left-1'}`} /></button>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <h3 className="text-[11px] font-bold uppercase tracking-widest opacity-40">Local AI (Ollama)</h3>
+          <button onClick={() => updateSetting('ollamaEnabled', !ollamaEnabled)} className={`w-11 h-6 rounded-full transition-all relative ${ollamaEnabled ? 'bg-[var(--clr-accent)]' : 'bg-gray-600'}`}><div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${ollamaEnabled ? 'right-1' : 'left-1'}`} /></button>
         </div>
 
         {ollamaEnabled && (
