@@ -85,7 +85,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   internalUrl: null,
 
   setQuery: (q: string) => set({ query: q }),
-  setMode: (mode: 'search' | 'site' | 'app') => set({ searchMode: mode }),
+  setMode: (mode: 'search' | 'site' | 'app' | 'terminal') => set({ searchMode: mode }),
   setModeMenuOpen: (open: boolean) => set({ isModeMenuOpen: open }),
   setModelMenuOpen: (open: boolean) => set({ isModelMenuOpen: open }),
   setInternalUrl: (url: string | null) => set({ internalUrl: url }),
