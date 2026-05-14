@@ -130,7 +130,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       // ── Mode: Terminal ───────────────────────────────────────────
       if (searchMode === 'terminal') {
         const result = await invoke<string>('execute_terminal_command', { command: query.trim() });
-        set({ answer: `\`\`\`bash\n${result}\n\`\`\``, isLoading: false, error: null });
+        const displayResult = result.trim() || 'Command executed successfully (no output).';
+        set({ answer: `\`\`\`bash\n${displayResult}\n\`\`\``, isLoading: false, error: null });
         return;
       }
 

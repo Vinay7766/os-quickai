@@ -22,7 +22,6 @@ import { useAppStore } from '../../store/useAppStore';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { QueryInput } from '../../components/QueryInput';
 import { ResultPanel } from '../../components/ResultPanel';
-import { UpdateBanner } from '../../components/UpdateBanner';
 import { useUpdateCheck } from '../../hooks/useUpdateCheck';
 import { searchInBrowser } from '../../lib/tauriCommands';
 import { open } from '@tauri-apps/plugin-shell';
@@ -231,8 +230,6 @@ export default function Overlay() {
         }}
       >
         <div ref={contentRef} className="flex flex-col w-full min-h-full">
-          {updateVersion && <UpdateBanner version={updateVersion} />}
-
           <div
             onMouseDown={(e) => {
               if ((e.target as HTMLElement).closest('button, input, textarea')) return;
