@@ -2,14 +2,16 @@
 // browser.rs — Browser detection and launch commands
 // ─────────────────────────────────────────────────────────────────────────────
 // Provides commands to:
-//   • Open a URL in a specific browser (checks App Paths registry)
+//   • Open a URL in a specific browser
 //   • Verify if a browser is installed on the user's system
 // ─────────────────────────────────────────────────────────────────────────────
 
+#[cfg(target_os = "windows")]
 use std::os::windows::process::CommandExt;
 use std::process::Command;
 
 /// Maps a user-friendly browser name to its executable filename.
+#[cfg(target_os = "windows")]
 fn browser_exe(browser: &str) -> &str {
     match browser {
         "chrome"  => "chrome.exe",
@@ -36,32 +38,20 @@ fn browser_display_name(browser: &str) -> &str {
 }
 
 /// Opens a URL in the specified browser.
-///
-/// Uses a PowerShell script (hidden, no terminal popup) to look up the
-/// browser's installation path from the Windows registry and launch it.
-///
-/// # Errors
-/// Returns an error message if the browser is not found or fails to launch.
 #[tauri::command]
 pub async fn search_in_browser(browser: String, url: String) -> Result<(), String> {
-    let exe_name = browser_exe(&browser);
+    #[cfg(target_os = "windows")]
+    {
+        let exe_name = browser_exe(&browser);
+        let safe_url = url.replace("'", "''");
 
-    // Escape single-quotes for safe PowerShell single-quoted string embedding
-    // In PowerShell, single quotes are escaped by doubling them ('')
-    let safe_url = url.replace("'", "''");
-
-    // PowerShell script that:
-    //   1. Checks HKLM and HKCU App Paths for the browser executable
-    //   2. Falls back to checking PATH
-    //   3. Launches the browser with the URL as an argument
-    let ps_script = format!(
-        r#"
+        let ps_script = format!(
+            r#"
 $exe = '{exe}'
 $url = '{url}'
 $reg1 = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\$exe"
 $reg2 = "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\$exe"
 
-# Opera sometimes registers as opera.exe instead of launcher.exe
 if ($exe -eq 'launcher.exe' -and !(Test-Path $reg1) -and !(Test-Path $reg2)) {{
     $reg1 = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\opera.exe"
     $reg2 = "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\opera.exe"
@@ -82,81 +72,86 @@ if (Test-Path $reg1) {{
     exit 1
 }}
 "#,
-        exe = exe_name,
-        url = safe_url
-    );
+            exe = exe_name,
+            url = safe_url
+        );
 
-    // CREATE_NO_WINDOW flag prevents a terminal window from flashing
-    const CREATE_NO_WINDOW: u32 = 0x08000000;
-    let status = Command::new("powershell")
-        .creation_flags(CREATE_NO_WINDOW)
-        .args(["-NoProfile", "-WindowStyle", "Hidden", "-Command", &ps_script])
-        .status();
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
+        let status = Command::new("powershell")
+            .creation_flags(CREATE_NO_WINDOW)
+            .args(["-NoProfile", "-WindowStyle", "Hidden", "-Command", &ps_script])
+            .status();
 
-    match status {
-        Ok(s) if s.success() => Ok(()),
-        _ => Err(format!(
-            "{} is not installed on your system. Please install it first or choose a different browser.",
-            browser_display_name(&browser)
-        )),
+        if let Ok(s) = status {
+            if s.success() { return Ok(()); }
+        }
     }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        // On Mac/Linux, we use the 'open' crate which handles defaults and paths automatically
+        if open::that(&url).is_ok() {
+            return Ok(());
+        }
+    }
+
+    Err(format!(
+        "{} is not installed on your system. Please install it first or choose a different browser.",
+        browser_display_name(&browser)
+    ))
 }
 
 /// Checks whether a specific browser is installed on the system.
-///
-/// Looks up the browser's executable in the Windows App Paths registry.
-/// Returns `true` if found, `false` otherwise.
 #[tauri::command]
 pub async fn check_browser_exists(browser: String) -> bool {
-    let exe_name = browser_exe(&browser);
-
-    // "default" or unknown browsers are assumed to exist (handled by explorer.exe)
-    if browser == "default" || exe_name == "explorer.exe" {
-        return true;
-    }
-
-    use winreg::enums::*;
-    use winreg::RegKey;
-
-    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-    let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
-    let subkey = format!(
-        r"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\{}",
-        exe_name
-    );
-
-    // Check both HKLM and HKCU for the browser's App Paths entry
-    if hklm.open_subkey(&subkey).is_ok() || hkcu.open_subkey(&subkey).is_ok() {
-        return true;
-    }
-
-    // Special case: Opera may be registered under opera.exe instead of launcher.exe
-    if browser == "opera" {
-        let opera_subkey = r"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\opera.exe";
-        if hklm.open_subkey(opera_subkey).is_ok() || hkcu.open_subkey(opera_subkey).is_ok() {
+    #[cfg(target_os = "windows")]
+    {
+        let exe_name = browser_exe(&browser);
+        if browser == "default" || exe_name == "explorer.exe" {
             return true;
         }
+
+        use winreg::enums::*;
+        use winreg::RegKey;
+
+        let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+        let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
+        let subkey = format!(r"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\{}", exe_name);
+
+        if hklm.open_subkey(&subkey).is_ok() || hkcu.open_subkey(&subkey).is_ok() {
+            return true;
+        }
+
+        if browser == "opera" {
+            let opera_subkey = r"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\opera.exe";
+            if hklm.open_subkey(opera_subkey).is_ok() || hkcu.open_subkey(opera_subkey).is_ok() {
+                return true;
+            }
+        }
+        return false;
     }
-    false
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        // Simple fallback for non-windows: assume common browsers exist or handle via defaults
+        true
+    }
 }
     
-/// Launches an application by its name using Windows shell.
+/// Launches an application by its name.
 #[tauri::command]
 pub async fn launch_app(name: String) -> Result<(), String> {
-    // Escape single quotes
-    let safe_name = name.replace("'", "''");
-    
-    // PowerShell script to find and launch the app
-    let ps_script = format!(
-        r#"
+    #[cfg(target_os = "windows")]
+    {
+        let safe_name = name.replace("'", "''");
+        let ps_script = format!(
+            r#"
 $query = '{name}'
-# Try to find the app by name in the Start Menu or typical install locations
 $app = Get-StartApps | Where-Object {{ $_.Name -like "*$query*" }} | Select-Object -First 1
 if ($app) {{
     Start-Process "shell:AppsFolder\$($app.AppId)"
     exit 0
 }} else {{
-    # Fallback to direct execution if it's a known command (like notepad, calc)
     if (Get-Command $query -ErrorAction SilentlyContinue) {{
         Start-Process $query
         exit 0
@@ -164,17 +159,27 @@ if ($app) {{
     exit 1
 }}
 "#,
-        name = safe_name
-    );
+            name = safe_name
+        );
 
-    const CREATE_NO_WINDOW: u32 = 0x08000000;
-    let status = Command::new("powershell")
-        .creation_flags(CREATE_NO_WINDOW)
-        .args(["-NoProfile", "-WindowStyle", "Hidden", "-Command", &ps_script])
-        .status();
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
+        let status = Command::new("powershell")
+            .creation_flags(CREATE_NO_WINDOW)
+            .args(["-NoProfile", "-WindowStyle", "Hidden", "-Command", &ps_script])
+            .status();
 
-    match status {
-        Ok(s) if s.success() => Ok(()),
-        _ => Err(format!("Could not find or launch application: {}", name)),
+        if let Ok(s) = status {
+            if s.success() { return Ok(()); }
+        }
     }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        // On Mac, try 'open'
+        if open::that(&name).is_ok() {
+            return Ok(());
+        }
+    }
+
+    Err(format!("Could not find or launch application: {}", name))
 }
