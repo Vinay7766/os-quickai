@@ -18,7 +18,7 @@ tauri-plugin-store = "=2.4.3"
 serde = { version = "1.0.217", features = ["derive"] }
 serde_json = { version = "1.0.137" }
 tokio = { version = "1.43.0", features = ["full"] }
-reqwest = { version = "0.12.12", features = ["json", "rustls-tls"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "native-tls", "http2"] }
 thiserror = "2.0.11"
 keyring = { version = "3.6.1", features = ["windows-native"] }
 open = "5.3"
