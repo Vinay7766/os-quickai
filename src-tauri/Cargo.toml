@@ -23,6 +23,7 @@ thiserror = "2.0.11"
 keyring = { version = "3.6.1", features = ["windows-native"] }
 open = "5.3"
 urlencoding = "2.1"
+tauri-plugin-os = "2.3.0"
 # Windows AV workaround
 [profile.release]
 codegen-units = 1

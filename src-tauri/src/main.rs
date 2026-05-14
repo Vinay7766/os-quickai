@@ -136,6 +136,7 @@ fn main() {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
+        .plugin(tauri_plugin_os::init())
         // ── Managed State ────────────────────────────────────────────────
         .manage(HotkeyState(Mutex::new("alt+a".to_string())))
         // ── Tauri Command Handlers ───────────────────────────────────────

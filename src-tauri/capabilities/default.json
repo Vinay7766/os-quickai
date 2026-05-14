@@ -22,6 +22,7 @@
     "clipboard-manager:allow-read-text",
     "global-shortcut:default",
     "shell:default",
-    "store:default"
+    "store:default",
+    "os:default"
   ]
 }
