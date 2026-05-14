@@ -129,6 +129,9 @@ export const useAppStore = create<AppState>((set, get) => ({
 
       // ── Mode: Terminal ───────────────────────────────────────────
       if (searchMode === 'terminal') {
+        if (!settings.enableTerminalMode) {
+          throw new Error('Terminal Mode is disabled. Please turn it on in the Settings.');
+        }
         const result = await invoke<string>('execute_terminal_command', { command: query.trim() });
         const displayResult = result.trim() || 'Command executed successfully (no output).';
         set({ answer: `\`\`\`bash\n${displayResult}\n\`\`\``, isLoading: false, error: null });

@@ -77,7 +77,7 @@ const SIDEBAR_NAV: { id: Section; label: string }[] = [
 export default function Settings() {
   const {
     hotkey, llmModel, browser, llmSite, theme, settingsLoaded,
-    enableSiteLauncher, enableAppLauncher, openLinksInternal,
+    enableSiteLauncher, enableAppLauncher, enableTerminalMode, openLinksInternal,
     availableModels, customProviders, ollamaEnabled, ollamaUrl,
     loadSettings, updateHotkey, updateSetting, refreshModels
   } = useSettingsStore();
