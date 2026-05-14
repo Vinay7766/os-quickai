@@ -311,7 +311,7 @@ pub async fn query_llm(
     }
 
     let client = Client::builder()
-        .timeout(std::time::Duration::from_secs(15)) // Aggressive timeout for speed
+        .timeout(std::time::Duration::from_secs(10)) // Strict timeout for 5-10s target
         .user_agent("Quickno/1.0 (Desktop AI Assistant)")
         .build()
         .map_err(|e| AppError::NetworkError(e.to_string()))?;
