@@ -129,7 +129,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
       // ── Mode: Regular AI Search ─────────────────────────────────────
       const llmModel = settings.llmModel;
-      const isFree = FREE_MODELS.includes(llmModel);
+      const isFree = FREE_MODELS.includes(llmModel) || llmModel.startsWith('ollama:');
 
       let apiKey = '';
       if (!isFree) {
