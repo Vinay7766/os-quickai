@@ -78,6 +78,8 @@ async fn query_pollinations(client: &Client, query: &str, model: &str) -> Result
         }
         _ => {
             // ── Attempt 2: Failover to Anonymous GET Endpoint ────────────────
+            // This endpoint is often on a different server/queue and might be up
+            // even if the OpenAI-compatible one is full.
             let encoded_query = urlencoding::encode(query);
             let url = format!("https://text.pollinations.ai/{}?model={}&system={}", 
                 encoded_query, 
@@ -85,39 +87,32 @@ async fn query_pollinations(client: &Client, query: &str, model: &str) -> Result
                 urlencoding::encode("You are a concise, helpful assistant.")
             );
 
-            if let Ok(failover_res) = client.get(&url).send().await {
-                if failover_res.status().is_success() {
-                    if let Ok(content) = failover_res.text().await {
-                        if !content.is_empty() {
-                            return Ok(clean_pollinations_response(&content));
-                        }
-                    }
+            let failover_res = client.get(&url).send().await.map_err(|e| (500, e.to_string()))?;
+            
+            if failover_res.status().is_success() {
+                let content = failover_res.text().await.map_err(|e| (500, e.to_string()))?;
+                if !content.is_empty() {
+                    return Ok(clean_pollinations_response(&content));
                 }
             }
-            
-            // ── Attempt 3: Failover to Hugging Face (Public Inference) ────────
-            // Using a lightweight, fast model that often works without a key for low volume
-            let hf_url = "https://api-inference.huggingface.co/models/meta-llama/Llama-3.2-3B-Instruct";
-            let hf_response = client
-                .post(hf_url)
-                .json(&json!({
-                    "inputs": format!("<|system|>\nYou are a concise, helpful assistant.<|user|>\n{}<|assistant|>\n", query),
-                    "parameters": { "max_new_tokens": 1024, "return_full_text": false }
-                }))
-                .send()
-                .await;
 
-            if let Ok(res) = hf_response {
-                if res.status().is_success() {
-                    if let Ok(body) = res.json::<Value>().await {
-                        if let Some(text) = body[0]["generated_text"].as_str() {
-                            return Ok(text.trim().to_string());
-                        }
-                    }
+            // ── Attempt 3: Final Failover to Different Model ID ──────────────
+            // Sometimes specific models (openai-fast) are throttled, but others are not.
+            let fallback_url = format!("https://text.pollinations.ai/{}?model=mistral&system={}", 
+                encoded_query,
+                urlencoding::encode("You are a concise, helpful assistant.")
+            );
+
+            let last_res = client.get(&fallback_url).send().await.map_err(|e| (500, e.to_string()))?;
+            if last_res.status().is_success() {
+                let content = last_res.text().await.map_err(|e| (500, e.to_string()))?;
+                if !content.is_empty() {
+                    return Ok(clean_pollinations_response(&content));
                 }
             }
             
-            Err((503, "Free AI services are currently overwhelmed. For instant, guaranteed responses, please add a free Gemini API key in Settings.".to_string()))
+            // If all three fail, return the helpful message
+            Err((500, "Free AI models are currently experiencing high demand. Please try again in a few minutes or use your own API key in Settings.".to_string()))
         }
     }
 }
