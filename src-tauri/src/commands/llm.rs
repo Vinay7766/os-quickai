@@ -137,7 +137,7 @@ fn clean_pollinations_response(content: &str) -> String {
 async fn list_gemini_internal(api_key: &str) -> Result<Vec<String>, AppError> {
     let client = Client::new();
     let url = format!(
-        "https://generativelanguage.googleapis.com/v1beta/models?key={}",
+        "https://generativelanguage.googleapis.com/v1/models?key={}",
         api_key
     );
 
@@ -421,7 +421,7 @@ pub async fn query_llm(
 
     if is_gemini {
         let url = format!(
-            "https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent?key={}",
+            "https://generativelanguage.googleapis.com/v1/models/{}:generateContent?key={}",
             model, api_key
         );
         let response = client

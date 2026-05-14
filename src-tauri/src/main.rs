@@ -161,6 +161,7 @@ fn main() {
             commands::llm::list_openai_compatible,
             commands::llm::pull_ollama_model,
             commands::settings::factory_reset,
+            commands::terminal::execute_terminal_command,
         ])
         .setup(move |app| {
             // ── Transparent overlay background ───────────────────────────

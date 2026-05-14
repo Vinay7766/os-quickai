@@ -105,6 +105,7 @@ export function QueryInput() {
       if (e.key === '1') { e.preventDefault(); setMode('search'); }
       if (e.key === '2') { e.preventDefault(); setMode('site'); }
       if (e.key === '3') { e.preventDefault(); setMode('app'); }
+      if (e.key === '4') { e.preventDefault(); setMode('terminal'); }
     }
   };
 
@@ -115,6 +116,9 @@ export function QueryInput() {
       );
       case 'app': return (
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><line x1="9" y1="3" x2="9" y2="21" /></svg>
+      );
+      case 'terminal': return (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="4 17 10 11 4 5" /><line x1="12" y1="19" x2="20" y2="19" /></svg>
       );
       default: return (
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" /></svg>
@@ -150,7 +154,7 @@ export function QueryInput() {
         
         {isModeMenuOpen && (
           <div className="absolute top-full left-0 mt-2 w-32 glass rounded-xl border border-white/10 shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            {(['search', 'site', 'app'] as const).map(m => (
+            {(['search', 'site', 'app', 'terminal'] as const).map(m => (
               <button
                 key={m}
                 className={`w-full text-left px-3 py-2 text-xs font-bold transition-colors hover:bg-white/10 ${searchMode === m ? 'text-[var(--clr-accent)]' : 'text-[var(--clr-text-secondary)]'}`}
@@ -170,7 +174,12 @@ export function QueryInput() {
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder={searchMode === 'search' ? "Ask anything..." : searchMode === 'site' ? "Enter URL..." : "Enter App Name..."}
+        placeholder={
+          searchMode === 'search' ? "Ask anything..." : 
+          searchMode === 'site' ? "Enter URL..." : 
+          searchMode === 'app' ? "Enter App Name..." : 
+          "Enter Terminal Command..."
+        }
         className="flex-1 bg-transparent border-none focus:outline-none resize-none scrollbar-none disabled:opacity-50"
         style={{
           color: 'var(--clr-text)',

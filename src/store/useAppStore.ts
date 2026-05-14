@@ -31,7 +31,7 @@ interface AppState {
   error: string | null;
 
   /** Current search mode: regular AI search, site launcher, or app launcher */
-  searchMode: 'search' | 'site' | 'app';
+  searchMode: 'search' | 'site' | 'app' | 'terminal';
 
   /** Previous query for 'back' functionality */
   prevQuery: string;
@@ -49,7 +49,7 @@ interface AppState {
   setQuery: (q: string) => void;
 
   /** Change the search mode */
-  setMode: (mode: 'search' | 'site' | 'app') => void;
+  setMode: (mode: 'search' | 'site' | 'app' | 'terminal') => void;
 
   /** Toggle mode menu */
   setModeMenuOpen: (open: boolean) => void;
@@ -124,6 +124,13 @@ export const useAppStore = create<AppState>((set, get) => ({
         }
         await invoke('launch_app', { name: query.trim() });
         set({ isLoading: false, query: '' });
+        return;
+      }
+
+      // ── Mode: Terminal ───────────────────────────────────────────
+      if (searchMode === 'terminal') {
+        const result = await invoke<string>('execute_terminal_command', { command: query.trim() });
+        set({ answer: `\`\`\`bash\n${result}\n\`\`\``, isLoading: false, error: null });
         return;
       }
 

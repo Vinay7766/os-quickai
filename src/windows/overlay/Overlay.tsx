@@ -26,6 +26,7 @@ import { useUpdateCheck } from '../../hooks/useUpdateCheck';
 import { searchInBrowser } from '../../lib/tauriCommands';
 import { open } from '@tauri-apps/plugin-shell';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
+import { type } from '@tauri-apps/plugin-os';
 
 // ── URL Mappings ─────────────────────────────────────────────────────────────
 const SEARCH_URLS: Record<string, string> = {
@@ -59,6 +60,7 @@ export default function Overlay() {
   const searchEngine   = useSettingsStore((s) => s.searchEngine);
   const loadSettings        = useSettingsStore((s) => s.loadSettings);
   const refreshModels       = useSettingsStore((s) => s.refreshModels);
+  const [platform, setPlatform] = useState<string>('');
   
   void useSettingsStore((s) => s.theme);
 
@@ -89,6 +91,7 @@ export default function Overlay() {
 
   useEffect(() => {
     document.body.classList.add('overlay-window');
+    setPlatform(type());
     return () => document.body.classList.remove('overlay-window');
   }, []);
 
@@ -153,6 +156,7 @@ export default function Overlay() {
       if (e.ctrlKey && e.key === '1') { e.preventDefault(); setMode('search'); return; }
       if (e.ctrlKey && e.key === '2') { e.preventDefault(); setMode('site'); return; }
       if (e.ctrlKey && e.key === '3') { e.preventDefault(); setMode('app'); return; }
+      if (e.ctrlKey && e.key === '4') { e.preventDefault(); setMode('terminal'); return; }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
@@ -270,6 +274,21 @@ export default function Overlay() {
               >
                 <span className="text-[10px] font-black uppercase">AI</span>
               </button>
+
+              {platform === 'macos' && (
+                <button
+                  id="settings-btn"
+                  className="w-8 h-8 rounded-full flex items-center justify-center transition-all hover:bg-white/10 active:scale-95"
+                  style={{ color: 'var(--clr-text-secondary)', border: '1px solid rgba(255, 255, 255, 0.1)' }}
+                  onClick={() => invoke('show_settings')}
+                  title="Settings"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37a1.724 1.724 0 002.572-1.065z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </button>
+              )}
             </div>
           </div>
 

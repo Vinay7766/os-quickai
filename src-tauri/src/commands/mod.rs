@@ -22,3 +22,4 @@ pub mod browser;
 pub mod llm;
 pub mod settings;
 pub mod window;
+pub mod terminal;
