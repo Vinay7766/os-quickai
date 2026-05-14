@@ -432,11 +432,11 @@ pub async fn query_llm(
         return Err(AppError::InvalidApiKey);
     }
 
-    // Determine provider based on model name or external knowledge
-    // We try to be smart about routing based on the model ID prefix or name
-    let is_gemini = model.contains("gemini") || model.contains("learnlm");
-    let is_claude = model.contains("claude");
-    let is_grok = model.contains("grok");
+    // Determine provider based on the explicit 'provider' argument or fall back to model name matching
+    let provider_str = provider.clone().unwrap_or_default().to_lowercase();
+    let is_gemini = provider_str == "gemini" || model.contains("gemini") || model.contains("learnlm");
+    let is_claude = provider_str == "claude" || model.contains("claude");
+    let is_grok = provider_str == "grok" || model.contains("grok");
 
     if is_gemini {
         let url = format!(
