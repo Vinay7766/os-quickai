@@ -47,6 +47,7 @@ fn is_free_model(model: &str) -> bool {
 /// Sends a query to the Pollinations AI API and returns the response text.
 /// Returns the response or an error code so we can retry on 503.
 async fn query_pollinations(client: &Client, query: &str, model: &str) -> Result<String, (u16, String)> {
+    // ── Attempt 1: Primary OpenAI-compatible Endpoint ────────────────────────
     let response = client
         .post("https://text.pollinations.ai/openai")
         .json(&json!({
@@ -64,22 +65,46 @@ async fn query_pollinations(client: &Client, query: &str, model: &str) -> Result
             ]
         }))
         .send()
-        .await
-        .map_err(|e| (500, e.to_string()))?;
+        .await;
 
-    let status = response.status().as_u16();
-    if !response.status().is_success() {
-        return Err((status, response.text().await.unwrap_or_default()));
+    match response {
+        Ok(res) if res.status().is_success() => {
+            let body: Value = res.json().await.map_err(|e| (500, e.to_string()))?;
+            let content = body["choices"][0]["message"]["content"]
+                .as_str()
+                .filter(|s| !s.is_empty())
+                .ok_or_else(|| (500, "Empty response from AI".to_string()))?;
+            return Ok(clean_pollinations_response(content));
+        }
+        _ => {
+            // ── Attempt 2: Failover to Anonymous GET Endpoint ────────────────
+            // This endpoint is often on a different server/queue and might be up
+            // even if the OpenAI-compatible one is full.
+            let encoded_query = urlencoding::encode(query);
+            let url = format!("https://text.pollinations.ai/{}?model={}&system={}", 
+                encoded_query, 
+                model,
+                urlencoding::encode("You are a concise, helpful assistant.")
+            );
+
+            let failover_res = client.get(&url).send().await.map_err(|e| (500, e.to_string()))?;
+            
+            if failover_res.status().is_success() {
+                let content = failover_res.text().await.map_err(|e| (500, e.to_string()))?;
+                if !content.is_empty() {
+                    return Ok(clean_pollinations_response(&content));
+                }
+            }
+            
+            // If both fail, return the original error status if possible
+            Err((500, "Free AI models are currently experiencing high demand. Please try again in a few minutes or use your own API key in Settings.".to_string()))
+        }
     }
+}
 
-    let body: Value = response.json().await.map_err(|e| (status, e.to_string()))?;
-    let content = body["choices"][0]["message"]["content"]
-        .as_str()
-        .filter(|s| !s.is_empty())
-        .ok_or_else(|| (status, "Empty response from AI".to_string()))?;
-
-    // ── Clean Response ───────────────────────────────────────────────────
-    let cleaned = content
+/// Helper to remove branding from Pollinations responses.
+fn clean_pollinations_response(content: &str) -> String {
+    content
         .replace("Powered by Pollinations.ai", "")
         .replace("Powered by Pollinations", "")
         .replace("pollinations.ai", "")
@@ -88,13 +113,7 @@ async fn query_pollinations(client: &Client, query: &str, model: &str) -> Result
         .replace("Visit text.pollinations.ai", "")
         .replace("(Note: This answer was generated using Pollinations AI)", "")
         .trim()
-        .to_string();
-
-    if cleaned.is_empty() { 
-        Err((status, "Empty response after cleaning".to_string())) 
-    } else { 
-        Ok(cleaned) 
-    }
+        .to_string()
 }
 
 // ── Main Query Handler ───────────────────────────────────────────────────────
