@@ -24,6 +24,7 @@
 //   • Shows which AI model generated the response
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import rehypeHighlight from 'rehype-highlight';
 import remarkGfm from 'remark-gfm';
@@ -73,19 +74,7 @@ export function ResultPanel() {
 
       {/* ── Error State ───────────────────────────────────────────────── */}
       {error && (
-        <div
-          className="p-4 rounded-xl border text-sm leading-relaxed"
-          style={{
-            background: 'var(--clr-danger-soft)',
-            borderColor: 'rgba(220, 38, 38, 0.15)',
-            color: 'var(--clr-danger)',
-          }}
-        >
-          <div className="flex items-center gap-2 mb-2">
-            <strong className="text-[10px] font-bold uppercase tracking-wider">Error</strong>
-          </div>
-          {error}
-        </div>
+        <ErrorDisplay error={error} />
       )}
 
       {/* ── Answer State ──────────────────────────────────────────────── */}
@@ -124,6 +113,70 @@ export function ResultPanel() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function ErrorDisplay({ error }: { error: string }) {
+  const [showDetails, setShowDetails] = useState(false);
+  const isPollinations = error.toLowerCase().includes('pollinations') || 
+                         error.includes('500') || 
+                         error.toLowerCase().includes('enospc');
+
+  return (
+    <div
+      className="p-5 rounded-2xl border animate-fade-in-up"
+      style={{
+        background: 'rgba(var(--clr-accent-rgb), 0.03)',
+        borderColor: 'var(--clr-border)',
+      }}
+    >
+      <div className="flex items-start gap-4">
+        <div 
+          className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
+          style={{ background: 'var(--clr-accent-soft)', color: 'var(--clr-accent)' }}
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        
+        <div className="flex-1 min-w-0">
+          <h3 className="text-sm font-bold mb-1" style={{ color: 'var(--clr-text)' }}>
+            {isPollinations ? 'Free Provider Under High Load' : 'Provider Connection Issue'}
+          </h3>
+          <p className="text-xs leading-relaxed opacity-70 mb-4" style={{ color: 'var(--clr-text)' }}>
+            {isPollinations 
+              ? "The community-hosted free model is currently experiencing heavy traffic. You can try again in a moment, or switch to a direct provider (Gemini, OpenAI, or Claude) in Settings for instant, guaranteed availability."
+              : "We're having trouble connecting to the AI provider. This is usually a temporary network issue."}
+          </p>
+
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => setShowDetails(!showDetails)}
+              className="text-[10px] font-bold uppercase tracking-widest opacity-50 hover:opacity-100 transition-opacity"
+            >
+              {showDetails ? 'Hide Technical Details' : 'Show Technical Details'}
+            </button>
+            <div className="w-1 h-1 rounded-full bg-white/10" />
+            <button 
+              onClick={() => useAppStore.getState().submitQuery()}
+              className="text-[10px] font-bold uppercase tracking-widest text-[var(--clr-accent)] hover:underline"
+            >
+              Retry Now
+            </button>
+          </div>
+
+          {showDetails && (
+            <div 
+              className="mt-4 p-3 rounded-lg border bg-black/20 font-mono text-[10px] break-all animate-in fade-in slide-in-from-top-2"
+              style={{ borderColor: 'rgba(220, 38, 38, 0.2)', color: 'var(--clr-danger)' }}
+            >
+              {error}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
