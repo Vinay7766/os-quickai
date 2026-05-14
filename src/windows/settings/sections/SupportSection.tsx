@@ -16,13 +16,22 @@
 
 import { open } from '@tauri-apps/plugin-shell';
 
-export default function SupportSection() {
+interface Props {
+  updateVersion: string | null;
+}
+
+export default function SupportSection({ updateVersion }: Props) {
   const supportItems = [
     { 
       title: 'Check for Updates', 
-      desc: 'Ensure you are running the latest version of Quickno.', 
-      buttonText: 'Check Now',
-      url: '#' 
+      desc: updateVersion 
+        ? `A new version (v${updateVersion}) is ready for download!` 
+        : 'Ensure you are running the latest version of Quickno.', 
+      buttonText: updateVersion ? `Update to v${updateVersion}` : 'Check Now',
+      url: updateVersion 
+        ? `https://github.com/Vinay7766/quickno/releases/tag/v${updateVersion}`
+        : 'https://github.com/Vinay7766/quickno/releases/latest',
+      isUpdate: !!updateVersion
     },
     { 
       title: 'Community Discord', 
@@ -49,25 +58,33 @@ export default function SupportSection() {
         {supportItems.map(item => (
           <div
             key={item.title}
-            className="p-8 rounded-2xl border flex items-center justify-between gap-6 transition-all duration-500 hover:scale-[1.02] hover:border-white/20 group relative overflow-hidden"
-            style={{ background: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.05)' }}
+            className={`p-8 rounded-2xl border flex items-center justify-between gap-6 transition-all duration-500 hover:scale-[1.02] ${item.isUpdate ? 'border-[var(--clr-accent)] bg-[var(--clr-accent-soft)]' : 'border-white/5 bg-white/[0.02]'} group relative overflow-hidden`}
           >
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <div className={`absolute inset-0 bg-gradient-to-r ${item.isUpdate ? 'from-[var(--clr-accent)]/10' : 'from-blue-500/[0.03]'} to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
             <div className="relative z-10">
-              <h3 className="font-bold text-xl mb-1 tracking-tight">{item.title}</h3>
+              <div className="flex items-center gap-3 mb-1">
+                <h3 className="font-bold text-xl tracking-tight">{item.title}</h3>
+                {item.isUpdate && (
+                  <span className="px-2 py-0.5 rounded-full bg-[var(--clr-accent)] text-[9px] font-black uppercase text-white animate-pulse">New Update</span>
+                )}
+              </div>
               <p className="text-xs opacity-40 leading-relaxed max-w-sm font-medium">{item.desc}</p>
             </div>
             <button
               onClick={() => open(item.url)}
-              className="px-8 py-3 rounded-xl text-xs font-bold text-white shrink-0 hover:scale-[1.05] active:scale-[0.95] transition-all shadow-xl shadow-blue-500/10 relative z-10"
-              style={{ background: '#3b82f6' }}
+              className="px-8 py-3 rounded-xl text-xs font-bold text-white shrink-0 hover:scale-[1.05] active:scale-[0.95] transition-all shadow-xl relative z-10"
+              style={{ 
+                background: item.isUpdate ? 'var(--clr-accent)' : '#3b82f6',
+                boxShadow: item.isUpdate ? '0 10px 20px -10px var(--clr-accent)' : '0 10px 20px -10px #3b82f6'
+              }}
             >
               {item.buttonText}
             </button>
           </div>
         ))}
       </div>
-
+      
+      {/* ... (rest of the component) ... */}
       <div className="pt-8 space-y-5">
         <h3 className="text-xl font-bold px-1">Support the Project</h3>
         <div className="grid grid-cols-2 gap-5">

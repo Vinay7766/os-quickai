@@ -23,6 +23,7 @@ import { useSettingsStore } from '../../store/useSettingsStore';
 import { saveApiKey, deleteApiKey, getApiKey, updateShortcut, checkBrowserExists } from '../../lib/tauriCommands';
 import WelcomeScreen from './WelcomeScreen';
 import { invoke } from '@tauri-apps/api/core';
+import { useUpdateCheck } from '../../hooks/useUpdateCheck';
 
 // Sections
 import AIModelSection from './sections/AIModelSection';
@@ -80,6 +81,8 @@ export default function Settings() {
     availableModels, customProviders, ollamaEnabled, ollamaUrl,
     loadSettings, updateHotkey, updateSetting, refreshModels
   } = useSettingsStore();
+  
+  const updateVersion = useUpdateCheck();
 
   const [hasCompletedWelcome, setHasCompletedWelcome] = useState<boolean | null>(null);
   const [activeSection, setActiveSection] = useState<Section>('models');
@@ -265,7 +268,7 @@ export default function Settings() {
           {activeSection === 'plugins' && <PluginSection ollamaEnabled={ollamaEnabled} ollamaUrl={ollamaUrl} updateSetting={handleUpdateSetting} refreshModels={refreshModels} />}
           {activeSection === 'interface' && <InterfaceSection theme={theme} browser={browser} llmSite={llmSite} enableSiteLauncher={enableSiteLauncher} enableAppLauncher={enableAppLauncher} openLinksInternal={openLinksInternal} updateSetting={handleUpdateSetting} handleBrowserChange={handleBrowserChange} />}
           {activeSection === 'hotkey' && <HotkeySection hotkey={hotkey} hotkeyStatus={hotkeyStatus} updateHotkey={updateHotkey} handleHotkeySave={handleHotkeySave} setHotkeyStatus={setHotkeyStatus} />}
-          {activeSection === 'support' && <SupportSection />}
+          {activeSection === 'support' && <SupportSection updateVersion={updateVersion} />}
         </div>
       </div>
     </div>

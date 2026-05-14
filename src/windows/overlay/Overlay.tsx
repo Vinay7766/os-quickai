@@ -22,7 +22,6 @@ import { useAppStore } from '../../store/useAppStore';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { QueryInput } from '../../components/QueryInput';
 import { ResultPanel } from '../../components/ResultPanel';
-import { useUpdateCheck } from '../../hooks/useUpdateCheck';
 import { searchInBrowser } from '../../lib/tauriCommands';
 import { open } from '@tauri-apps/plugin-shell';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
@@ -64,7 +63,6 @@ export default function Overlay() {
   
   void useSettingsStore((s) => s.theme);
 
-  const updateVersion = useUpdateCheck();
   const [copied, setCopied] = useState(false);
   const hasContent = (searchMode === 'search' && (isLoading || !!answer)) || !!error || !!internalUrl;
   const isMenuOpen = isModeMenuOpen || isModelMenuOpen;
