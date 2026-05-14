@@ -66,12 +66,25 @@ export default function PluginSection({
 
         {ollamaEnabled && (
           <div className="p-8 rounded-3xl border space-y-6 animate-in fade-in slide-in-from-top-2" style={{ background: 'var(--clr-surface-secondary)', borderColor: 'var(--clr-border)' }}>
-            <div className="flex gap-3">
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-widest opacity-40 ml-1">Ollama Service URL</label>
+              <input 
+                type="text" 
+                value={ollamaUrl} 
+                onChange={e => updateSetting('ollamaUrl', e.target.value)} 
+                placeholder="localhost:11434" 
+                className="w-full px-5 py-3 rounded-xl text-sm border focus:outline-none transition-all focus:border-[var(--clr-accent)]" 
+                style={{ background: 'rgba(0,0,0,0.2)', borderColor: 'var(--clr-border)', color: 'var(--clr-text)' }} 
+              />
+              <p className="text-[10px] opacity-40 px-1">Ensure Ollama is running. Use <code className="opacity-100">127.0.0.1:11434</code> if <code className="opacity-100">localhost</code> fails.</p>
+            </div>
+
+            <div className="flex gap-3 pt-2">
               <input 
                 type="text" 
                 value={ollamaPullInput} 
                 onChange={e => setOllamaPullInput(e.target.value)} 
-                placeholder="Enter model name (e.g. deepseek-r)" 
+                placeholder="Pull new model (e.g. deepseek-r1)" 
                 className="flex-1 px-5 py-3 rounded-xl text-sm border focus:outline-none transition-all focus:border-[var(--clr-accent)]" 
                 style={{ background: 'rgba(0,0,0,0.2)', borderColor: 'var(--clr-border)', color: 'var(--clr-text)' }} 
               />
@@ -84,7 +97,6 @@ export default function PluginSection({
                 {isPulling ? 'Pulling...' : 'Pull Model'}
               </button>
             </div>
-            <p className="text-[10px] opacity-40 text-center">Ollama must be running at <code className="opacity-100 px-1 py-0.5 rounded bg-white/5">localhost:11434</code>. Pulled models will appear in the search bar dropdown automatically.</p>
             {pullError && <p className="text-[10px] text-[var(--clr-danger)] font-bold text-center">{pullError}</p>}
             
             <div className="pt-6 border-t space-y-4" style={{ borderColor: 'var(--clr-border)' }}>
