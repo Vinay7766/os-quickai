@@ -47,6 +47,8 @@ const AI_URLS: Record<string, string> = {
 // ── Layout Constants ─────────────────────────────────────────────────────────
 const SEARCH_BAR_HEIGHT = 52;
 
+import appLogo from '../../assets/app-logo.png';
+
 export default function Overlay() {
   const { 
     answer, isLoading, error, clearAnswer, query, setQuery,
@@ -238,8 +240,12 @@ export default function Overlay() {
             }`}
             style={{ height: `${SEARCH_BAR_HEIGHT}px`, marginBottom: hasContent ? '6px' : '0' }}
           >
-            <div className="flex-1 min-w-0">
-              <QueryInput />
+            <div className="flex items-center gap-3">
+              <img src={appLogo} alt="Logo" className="w-8 h-8 rounded-lg shadow-lg" />
+              <div className="h-4 w-[1px] bg-white/10" />
+              <div className="flex-1 min-w-0">
+                <QueryInput />
+              </div>
             </div>
 
             {isLoading && (

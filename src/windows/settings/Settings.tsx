@@ -24,6 +24,7 @@ import { saveApiKey, deleteApiKey, getApiKey, updateShortcut, checkBrowserExists
 import WelcomeScreen from './WelcomeScreen';
 import { invoke } from '@tauri-apps/api/core';
 import { useUpdateCheck } from '../../hooks/useUpdateCheck';
+import appLogo from '../../assets/app-logo.png';
 
 // Sections
 import AIModelSection from './sections/AIModelSection';
@@ -247,7 +248,7 @@ export default function Settings() {
       {/* Sidebar */}
       <div className="w-64 shrink-0 flex flex-col py-10 px-4 border-r pt-12" style={{ background: 'var(--clr-surface-secondary)', borderColor: 'var(--clr-border)' }}>
         <div className="px-4 mb-10 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold text-white shadow-xl shadow-[var(--clr-accent)]/20" style={{ background: 'var(--clr-accent)' }}>Q</div>
+          <img src={appLogo} alt="Logo" className="w-10 h-10 rounded-xl shadow-xl shadow-[var(--clr-accent)]/10" />
           <div><h1 className="font-bold text-[17px] leading-tight">Quickno</h1><p className="text-[10px] uppercase tracking-wider font-bold opacity-40">Settings</p></div>
         </div>
         <div className="space-y-1.5 flex-1">
