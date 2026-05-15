@@ -41,24 +41,25 @@ export default function WelcomeScreen({ onGetStarted }: WelcomeScreenProps) {
     >
       {/* Stage 1: Cinematic Full-Screen Animation */}
       {stage === 'animation' && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black animate-in fade-in duration-700">
+        <div 
+          className="absolute inset-0 z-50 flex items-center justify-center bg-black animate-in fade-in duration-700 cursor-pointer group"
+          onClick={() => setStage('content')}
+          title="Click to skip"
+        >
           <video 
             autoPlay 
             muted 
             playsInline 
             onEnded={() => setStage('content')}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-contain"
           >
             <source src={welcomeAnim} type="video/webm" />
           </video>
           
-          {/* Skip Button */}
-          <button 
-            onClick={() => setStage('content')}
-            className="absolute bottom-12 right-12 px-6 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[10px] font-bold uppercase tracking-widest text-white/50 hover:text-white hover:bg-white/20 transition-all z-[60]"
-          >
-            Skip Intro →
-          </button>
+          {/* Skip Button Overlay */}
+          <div className="absolute bottom-12 right-12 px-6 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[10px] font-bold uppercase tracking-widest text-white/50 group-hover:text-white group-hover:bg-white/20 transition-all z-[60]">
+            Click anywhere to skip →
+          </div>
         </div>
       )}
 
