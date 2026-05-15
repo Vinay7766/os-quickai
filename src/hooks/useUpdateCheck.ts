@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getVersion } from '@tauri-apps/api/app';
 
-const GITHUB_REPO = 'Vinay7766/os-quickai';
+const GITHUB_REPO = 'Vinay7766/quickno';
 
 export function useUpdateCheck() {
   const [updateAvailable, setUpdateAvailable] = useState<string | null>(null);
