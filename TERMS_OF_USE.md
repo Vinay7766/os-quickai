@@ -69,9 +69,7 @@ This app supports the following open-source models:
 
 | Model | Developer | License |
 |-------|-----------|---------|
-| OpenAI Fast (Free) | Pollinations AI | MIT License |
-| qwen-3.6 | Alibaba Cloud | Apache 2.0 |
-| nemotron | NVIDIA | NVIDIA Nemotron Open Model License |
+| OpenAI Fast (Free) | Pollinations AI | MIT / Apache 2.0 |
 
 Use of these models is subject to their respective licenses. See
 `THIRD_PARTY_NOTICES.md` for full details.
@@ -105,7 +103,7 @@ FROM ACTING ON AI-GENERATED CONTENT.
 ## 9. Intellectual Property
 
 The source code of Quickno is copyright © 2026 Vinay7766 and is
-licensed under the MIT License (see LICENSE file). The app name, logo, and
+licensed under the Apache License 2.0 (see LICENSE file). The app name, logo, and
 branding are the property of Vinay7766.
 
 Contributing to this repository grants Vinay7766 a perpetual, worldwide,

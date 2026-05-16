@@ -12,7 +12,7 @@ open-source components. Their licenses and required attributions are listed belo
 - **License:** MIT / Apache 2.0 (via Pollinations API)
 - **Note:** Quickno uses the Pollinations.ai public proxy to provide free access to high-performance LLMs without requiring a personal API key.
 
-### 2. Google Gemini / Anthropic Claude / OpenAI GPT (BYOK)
+### 2. Gemini / Claude / ChatGPT / Grok / Perplexity (BYOK)
 - **Note:** These models are supported via the 'Bring Your Own Key' (BYOK) system. Their use is subject to the respective provider's terms of service and privacy policies.
 
 ---
@@ -68,4 +68,4 @@ This application uses the following Microsoft Windows APIs:
 | Component | Requirement |
 |-----------|------------|
 | OpenAI Fast / Pollinations | Include attribution for free tier proxy services |
-| Quickno source code | MIT (see LICENSE) |
+| Quickno source code | Apache 2.0 (see LICENSE) |
