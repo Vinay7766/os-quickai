@@ -7,25 +7,13 @@ open-source components. Their licenses and required attributions are listed belo
 
 ## AI Models
 
-### 1. MiniMax M2 / M2.5
-- **Developer:** MiniMax (Shanghai, China)
-- **License:** MIT License
-- **License text:** https://github.com/MiniMax-AI/MiniMax-M2/blob/main/LICENSE
-- **Attribution:** Copyright © MiniMax. Licensed under MIT.
+### 1. OpenAI Fast (via Pollinations.ai)
+- **Developer:** OpenAI / Pollinations AI
+- **License:** MIT / Apache 2.0 (via Pollinations API)
+- **Note:** Quickno uses the Pollinations.ai public proxy to provide free access to high-performance LLMs without requiring a personal API key.
 
-### 2. Qwen3 Series (qwen-3.6)
-- **Developer:** Alibaba Cloud
-- **License:** Apache License 2.0
-- **License text:** https://github.com/QwenLM/Qwen3/blob/main/LICENSE
-- **Attribution:** Copyright © Alibaba Cloud. Licensed under Apache 2.0.
-- **Note:** Qwen3 models are fully permissive for commercial use under Apache 2.0.
-
-### 3. NVIDIA Nemotron
-- **Developer:** NVIDIA Corporation
-- **License:** NVIDIA Nemotron Open Model License
-- **License text:** https://www.nvidia.com/en-us/agreements/enterprise-software/nvidia-nemotron-open-model-license/
-- **Attribution:** Licensed by NVIDIA Corporation under the NVIDIA Nemotron Open Model License.
-- **Note:** Commercial use is permitted. NVIDIA does not claim ownership of outputs generated using the models.
+### 2. Google Gemini / Anthropic Claude / OpenAI GPT (BYOK)
+- **Note:** These models are supported via the 'Bring Your Own Key' (BYOK) system. Their use is subject to the respective provider's terms of service and privacy policies.
 
 ---
 
@@ -79,7 +67,5 @@ This application uses the following Microsoft Windows APIs:
 
 | Component | Requirement |
 |-----------|------------|
-| MiniMax M2/M2.5 | Include MIT license notice in distributed copies |
-| Qwen3 | Include Apache 2.0 notice in distributed copies |
-| NVIDIA Nemotron | Include NVIDIA Nemotron Open Model License notice |
+| OpenAI Fast / Pollinations | Include attribution for free tier proxy services |
 | Quickno source code | MIT (see LICENSE) |

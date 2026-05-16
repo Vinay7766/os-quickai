@@ -1,6 +1,6 @@
 [package]
 name = "quickno"
-version = "1.0.0"
+version = "1.0.2"
 description = "Quickno - Lightning-fast AI assistant for Windows"
 authors = ["Vinay7766"]
 edition = "2021"

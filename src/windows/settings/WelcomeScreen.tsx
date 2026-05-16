@@ -102,7 +102,7 @@ export default function WelcomeScreen({ onGetStarted }: WelcomeScreenProps) {
         </button>
 
         <p className="mt-8 text-[11px]" style={{ color: 'var(--clr-text-tertiary)' }}>
-          Quickno v1.0.1 • Crafted for performance
+          Quickno v1.0.2 • Crafted for performance
         </p>
       </div>
     </div>
