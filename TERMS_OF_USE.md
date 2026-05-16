@@ -69,7 +69,7 @@ This app supports the following open-source models:
 
 | Model | Developer | License |
 |-------|-----------|---------|
-| minimax-2.5 | MiniMax | MIT License |
+| OpenAI Fast (Free) | Pollinations AI | MIT License |
 | qwen-3.6 | Alibaba Cloud | Apache 2.0 |
 | nemotron | NVIDIA | NVIDIA Nemotron Open Model License |
 

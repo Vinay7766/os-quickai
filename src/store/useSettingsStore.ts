@@ -132,7 +132,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   loadSettings: async () => {
     try {
       const hotkey       = await invoke<string | null>('get_setting', { key: 'hotkey' })       ?? 'alt+a';
-      const llmModel     = await invoke<string | null>('get_setting', { key: 'llmModel' })     ?? 'minimax-2.5';
+      const llmModel     = await invoke<string | null>('get_setting', { key: 'llmModel' })     ?? 'free-model';
       const searchEngine = await invoke<string | null>('get_setting', { key: 'searchEngine' }) ?? 'google';
       const llmSite      = await invoke<string | null>('get_setting', { key: 'llmSite' })      ?? 'claude';
       const browser      = await invoke<string | null>('get_setting', { key: 'browser' })      ?? 'default';

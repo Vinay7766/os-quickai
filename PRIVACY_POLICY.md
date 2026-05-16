@@ -67,11 +67,11 @@ Depending on your configuration, the provider receiving your query may be:
 - **OpenAI** — https://openai.com/policies/privacy-policy
 - **Anthropic** — https://www.anthropic.com/privacy
 - **Google (Gemini)** — https://policies.google.com/privacy
-- **MiniMax** — https://www.minimax.io/privacy
+- **Pollinations AI (Free Tier)** — https://pollinations.ai/privacy
 - **Perplexity** — https://www.perplexity.ai/privacy
 
-**If you are using local/free models (minimax-2.5, qwen-3.6, nemotron),
-your queries are routed through a public proxy. No personal data is attached.**
+**If you are using the Free Model (OpenAI Fast), your queries are routed 
+through Pollinations.ai. No personal data or API keys are attached.**
 
 ---
 
