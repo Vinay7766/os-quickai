@@ -119,7 +119,7 @@ Right-click the system tray icon → Settings to configure:
 
 - Your API key is stored only in Windows Credential Manager (hardware-backed, never in plain text)
 - Queries are not logged anywhere
-- Free model queries are routed through a public proxy — no personal data attached
+- Free model queries are routed through Pollinations.ai (public proxy) — no personal data or API keys attached
 - The app never phones home except for optional update notifications from GitHub Releases API
 
 ---
