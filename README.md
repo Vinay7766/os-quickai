@@ -23,15 +23,16 @@
 
 | Feature | Details |
 |---|---|
-| Global Hotkey | Press Alt+A (customisable) to summon the assistant from any app |
-| Built-in AI | Answers powered by free AI models — no API key needed to start |
-| API Key Support | Use your own OpenAI-compatible API key for premium models |
-| Open in Browser | Send your query to Google, Bing, Perplexity or DuckDuckGo |
-| Open in AI | Launch ChatGPT, Claude, Gemini, Grok or Perplexity with your query |
-| Copy Answer | One-click copy of the AI response to clipboard |
-| Themes | Light, Dark and System themes |
-| Privacy First | API keys stored in Windows Credential Manager — never logged |
-| Tiny footprint | ~5 MB install, instant launch, lives in the system tray |
+| **Global Hotkey** | Press Alt+A (customisable) to summon the assistant from any app |
+| **Built-in AI** | High-performance answers powered by free models — no key needed |
+| **Local AI (Ollama)** | Run Llama 3, Mistral, and more entirely on your own machine |
+| **Terminal Mode** | Run shell commands directly from the assistant palette |
+| **Site Launcher** | Instantly launch ChatGPT, Claude, Gemini, or Grok with your query |
+| **Deep Browser Sync** | Search Google, Bing, or Perplexity with a single keyboard shortcut |
+| **Internal Browser** | Optional built-in browser to view results without leaving the assistant |
+| **BYOK Support** | Enter your own API keys for GPT-4o, Claude 3.5, and more |
+| **Privacy First** | API keys stored in Windows Credential Manager — never logged |
+| **Ultra-Lightweight** | Built with Tauri (Rust) for minimal RAM usage and instant startup |
 
 ---
 
@@ -77,16 +78,11 @@ pnpm tauri build
 
 ---
 
-## Getting Started
-
-1. Launch — Quickno starts silently in the system tray (look for the icon near the clock)
-2. Summon — Press Alt+A anywhere on your PC
-3. Ask — Type your question and press Enter for an AI answer
-4. Search — Click Browser or press Alt+Enter to search in your browser
-5. Open AI — Click AI or press Ctrl+Enter to open your preferred AI site
-6. Hide — Press Escape or click anywhere outside the assistant
-
-> Right-click the tray icon → Settings to change hotkeys, AI model, browser, and theme.
+1. **Launch** — Quickno runs in the system tray (near the clock).
+2. **Summon** — Press **Alt + A** to open the palette.
+3. **Ask** — Type and press **Enter** for AI answers.
+4. **Search** — Press **Alt + Enter** for web search.
+5. **Direct AI** — Press **Ctrl + Enter** for AI sites (ChatGPT, etc).
 
 ---
 
@@ -94,24 +90,24 @@ pnpm tauri build
 
 | Shortcut | Action |
 |---|---|
-| Alt + A | Summon / hide the assistant (customisable) |
-| Enter | Ask the built-in AI |
-| Alt + Enter | Search in your web browser |
-| Ctrl + Enter | Open query in AI site |
-| Escape | Hide the assistant |
+| **Alt + A** | Summon / hide the assistant (Customisable) |
+| **Enter** | Get AI answer (or run command in Terminal Mode) |
+| **Alt + Enter** | Search query in your web browser |
+| **Ctrl + Enter** | Launch query in your selected AI site |
+| **Escape** | Clear result / Hide assistant |
+| **Shift + Enter** | Add a new line to your query |
+| **Ctrl + 1-4** | Switch between Search, Site, App, and Terminal modes |
+| **/** | Focus the input field |
 
 ---
 
 ## Settings
 
-Right-click the system tray icon → Settings to configure:
-
-- AI Model — Choose from free models or enter your API key for GPT-4o, Claude, etc.
-- Browser — Chrome, Firefox, Edge, Brave or your system default
-- Search Engine — Google, Bing, DuckDuckGo, Perplexity
-- AI Site — ChatGPT, Claude, Gemini, Grok, Perplexity
-- Hotkey — Change the global shortcut to anything you like
-- Theme — Light, Dark, or System
+Right-click the system tray icon → **Settings** to customize:
+- **Models** — Use Free AI, Local **Ollama**, or your own API keys.
+- **Modes** — Toggle **Terminal Mode** and **App Launcher**.
+- **Interface** — Set default search engine, browser, and themes (Light/Dark).
+- **Hotkeys** — Change the global summon shortcut.
 
 ---
 

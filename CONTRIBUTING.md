@@ -22,16 +22,22 @@ First off, thanks for taking the time to contribute! Contributions are what make
 
 ## Project Structure
 
-- `src/`: React frontend (Vite + Tailwind).
-  - `components/`: Reusable UI elements.
-  - `hooks/`: Custom React hooks (Theme, State, Update logic).
-  - `windows/`: Entry points for separate windows (Overlay, Settings, Guide).
-  - `store/`: State management (Zustand).
+- `src/`: React frontend (Vite + Vanilla CSS).
+  - `assets/`: Images, logos, and animations.
+  - `components/`: Core UI components (QueryInput, Results, etc).
+  - `hooks/`: Custom React hooks (Update logic, etc).
+  - `lib/`: Shared utilities and native command wrappers.
+  - `windows/`: Distinct window entry points (Overlay, Settings).
+  - `store/`: Zustand state stores (App, Settings).
 - `src-tauri/`: Rust backend.
-  - `src/main.rs`: Window management, shortcuts, and tray logic.
-  - `tauri.conf.json`: App configuration.
+  - `src/main.rs`: App initialization and tray logic.
+  - `src/commands/`: Modularized logic (LLM, Settings, Terminal, Browser).
+  - `src/error.rs`: Centralized error handling and types.
+  - `tauri.conf.json`: Tauri 2.0 configuration.
 
 ## Coding Standards
+
+- **License**: All contributions must be compatible with the **Apache License 2.0**.
 
 - **React**: Use functional components and hooks. Prefer CSS variables for theme colors.
 - **Rust**: Follow standard Rust naming conventions. Use `Clippy` to check for lints.
