@@ -16,6 +16,7 @@ pub enum AppError {
     InvalidApiKey,
 
     /// The AI provider has rate-limited the request.
+    #[allow(dead_code)]
     #[error("Rate Limit Exceeded")]
     RateLimitExceeded,
 

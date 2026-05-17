@@ -12,8 +12,7 @@ pub mod pollinations;
 pub mod ollama;
 pub mod providers;
 
-pub use ollama::{list_ollama_models, pull_ollama_model};
-pub use providers::{list_provider_models, list_openai_compatible, list_gemini_internal};
+use providers::list_gemini_internal;
 
 #[tauri::command]
 pub async fn list_gemini_models(api_key: String) -> Result<Vec<String>, AppError> {
