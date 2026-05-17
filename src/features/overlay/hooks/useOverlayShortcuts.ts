@@ -18,24 +18,7 @@ export function useOverlayShortcuts() {
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      // Shift + Escape: Clear current state
-      if (e.key === 'Escape' && e.shiftKey) {
-        clearAnswer();
-        return;
-      }
 
-      // Ctrl + Escape: Undo / Restore previous query
-      if (e.key === 'Escape' && e.ctrlKey) {
-        if (prevAnswer || prevQuery) {
-          useAppStore.setState({ 
-            answer: prevAnswer, 
-            query: prevQuery, 
-            prevAnswer: '', 
-            prevQuery: '' 
-          });
-        }
-        return;
-      }
 
       // Escape: Focus search input
       if (e.key === 'Escape') {

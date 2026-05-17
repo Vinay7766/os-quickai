@@ -95,7 +95,7 @@ export function QueryInput() {
     }
     
     // Esc for collapse (clear)
-    if (e.key === 'Escape' && !e.shiftKey && !e.ctrlKey && !e.altKey) {
+    if (e.key === 'Escape') {
       e.preventDefault();
       clearAnswer();
     }

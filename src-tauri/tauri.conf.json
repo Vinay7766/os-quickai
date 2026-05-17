@@ -16,6 +16,9 @@
       "wix": {
         "language": "en-US",
         "upgradeCode": "B0A84D55-7B38-4E5C-8D9A-AD45F367A811"
+      },
+      "nsis": {
+        "installMode": "currentUser"
       }
     }
   },

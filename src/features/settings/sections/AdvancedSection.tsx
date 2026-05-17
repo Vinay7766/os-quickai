@@ -61,7 +61,21 @@ export default function AdvancedSection({
       setOllamaPullInput('');
       refreshModels();
     } catch (e) {
-      setPullError(String(e));
+      const errStr = String(e);
+      if (errStr.includes("file does not exist")) {
+        setPullError(`Model "${ollamaPullInput}" not found. Please check spelling.`);
+      } else {
+        try {
+          const match = errStr.match(/\{.*\}/);
+          if (match) {
+            setPullError(JSON.parse(match[0]).error || errStr);
+          } else {
+            setPullError(errStr);
+          }
+        } catch {
+          setPullError(errStr);
+        }
+      }
     } finally {
       setIsPulling(false);
     }

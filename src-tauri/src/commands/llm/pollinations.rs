@@ -56,12 +56,13 @@ pub async fn query_pollinations(client: &Client, query: &str, model: &str) -> Re
                 urlencoding::encode("You are a concise, helpful assistant.")
             );
 
-            let failover_res = client.get(&url).send().await.map_err(|e| (500, e.to_string()))?;
-            
-            if failover_res.status().is_success() {
-                let content = failover_res.text().await.map_err(|e| (500, e.to_string()))?;
-                if !content.is_empty() {
-                    return Ok(clean_pollinations_response(&content));
+            if let Ok(failover_res) = client.get(&url).send().await {
+                if failover_res.status().is_success() {
+                    if let Ok(content) = failover_res.text().await {
+                        if !content.is_empty() {
+                            return Ok(clean_pollinations_response(&content));
+                        }
+                    }
                 }
             }
 
@@ -71,15 +72,17 @@ pub async fn query_pollinations(client: &Client, query: &str, model: &str) -> Re
                 urlencoding::encode("You are a concise, helpful assistant.")
             );
 
-            let last_res = client.get(&fallback_url).send().await.map_err(|e| (500, e.to_string()))?;
-            if last_res.status().is_success() {
-                let content = last_res.text().await.map_err(|e| (500, e.to_string()))?;
-                if !content.is_empty() {
-                    return Ok(clean_pollinations_response(&content));
+            if let Ok(last_res) = client.get(&fallback_url).send().await {
+                if last_res.status().is_success() {
+                    if let Ok(content) = last_res.text().await {
+                        if !content.is_empty() {
+                            return Ok(clean_pollinations_response(&content));
+                        }
+                    }
                 }
             }
             
-            Err((500, "Free AI models are currently experiencing high demand. Please try again in a few minutes or use your own API key in Settings.".to_string()))
+            Err((500, "Failed to connect to Free AI Provider (Pollinations). The service may be overloaded or your network is blocking the connection. Please try again later or use your own API Key in Settings.".to_string()))
         }
     }
 }
