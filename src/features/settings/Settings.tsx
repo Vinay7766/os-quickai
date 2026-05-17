@@ -57,6 +57,14 @@ export const BROWSERS = [
   { value: 'comet', label: 'Comet' },
 ];
 
+export const SEARCH_ENGINES = [
+  { value: 'google', label: 'Google (Default)' },
+  { value: 'bing', label: 'Bing' },
+  { value: 'perplexity', label: 'Perplexity' },
+  { value: 'duckduckgo', label: 'DuckDuckGo' },
+  { value: 'custom', label: 'Custom Search Engine' },
+];
+
 export const AI_SITES = [
   { value: 'claude', label: 'Claude (Default)' },
   { value: 'chatgpt', label: 'ChatGPT' },
@@ -77,7 +85,7 @@ const SIDEBAR_NAV: { id: Section; label: string }[] = [
 
 export default function Settings() {
   const {
-    hotkey, llmModel, browser, llmSite, theme, settingsLoaded,
+    hotkey, llmModel, browser, searchEngine, customSearchUrl, llmSite, theme, settingsLoaded,
     enableSiteLauncher, enableAppLauncher, enableTerminalMode, openLinksInternal,
     availableModels, customProviders, ollamaEnabled, ollamaUrl,
     loadSettings, updateHotkey, updateSetting, refreshModels
@@ -267,7 +275,7 @@ export default function Settings() {
         <div className="max-w-xl">
           {activeSection === 'models' && <AIModelSection llmModel={llmModel} availableModels={availableModels} storedKeys={storedKeys} activeKeyProvider={activeKeyProvider} keyInput={keyInput} keyStatus={keyStatus} isRefreshingModels={isRefreshingModels} setKeyInput={setKeyInput} setActiveKeyProvider={setActiveKeyProvider} handleSaveKey={handleSaveKey} handleDeleteKey={handleDeleteKey} handleResetAllKeys={handleResetAllKeys} handleRefresh={handleRefresh} updateSetting={handleUpdateSetting} customProviders={customProviders} refreshModels={refreshModels} />}
           {activeSection === 'plugins' && <PluginSection ollamaEnabled={ollamaEnabled} ollamaUrl={ollamaUrl} enableTerminalMode={enableTerminalMode} updateSetting={handleUpdateSetting} refreshModels={refreshModels} />}
-          {activeSection === 'interface' && <InterfaceSection theme={theme} browser={browser} llmSite={llmSite} enableSiteLauncher={enableSiteLauncher} enableAppLauncher={enableAppLauncher} openLinksInternal={openLinksInternal} updateSetting={handleUpdateSetting} handleBrowserChange={handleBrowserChange} />}
+          {activeSection === 'interface' && <InterfaceSection theme={theme} browser={browser} llmSite={llmSite} searchEngine={searchEngine} customSearchUrl={customSearchUrl} enableSiteLauncher={enableSiteLauncher} enableAppLauncher={enableAppLauncher} openLinksInternal={openLinksInternal} updateSetting={handleUpdateSetting} handleBrowserChange={handleBrowserChange} />}
           {activeSection === 'hotkey' && <HotkeySection hotkey={hotkey} hotkeyStatus={hotkeyStatus} updateHotkey={updateHotkey} handleHotkeySave={handleHotkeySave} setHotkeyStatus={setHotkeyStatus} />}
           {activeSection === 'support' && <SupportSection updateVersion={updateVersion} />}
         </div>

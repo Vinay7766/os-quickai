@@ -14,12 +14,14 @@
  * limitations under the License.
  */
 
-import { BROWSERS, AI_SITES } from '../Settings';
+import { BROWSERS, AI_SITES, SEARCH_ENGINES } from '../Settings';
 
 interface Props {
   theme: string;
   browser: string;
   llmSite: string;
+  searchEngine: string;
+  customSearchUrl: string;
   enableSiteLauncher: boolean;
   enableAppLauncher: boolean;
   openLinksInternal: boolean;
@@ -28,7 +30,7 @@ interface Props {
 }
 
 export default function InterfaceSection({
-  theme, browser, llmSite, enableSiteLauncher, enableAppLauncher, openLinksInternal,
+  theme, browser, llmSite, searchEngine, customSearchUrl, enableSiteLauncher, enableAppLauncher, openLinksInternal,
   updateSetting, handleBrowserChange
 }: Props) {
   return (
@@ -80,6 +82,39 @@ export default function InterfaceSection({
           </div>
         </div>
         <p className="text-[11px] opacity-40 mt-1">Automatically use your OS-level browser preference.</p>
+      </div>
+
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-[11px] font-bold uppercase tracking-widest opacity-40">Preferred Search Engine</h3>
+        </div>
+        <div className="relative">
+          <select 
+            value={searchEngine} 
+            onChange={e => updateSetting('searchEngine', e.target.value)} 
+            className="w-full px-5 py-4 rounded-2xl text-sm font-semibold border cursor-pointer appearance-none outline-none transition-all focus:border-[var(--clr-accent)] pr-12" 
+            style={{ background: 'var(--clr-surface-secondary)', borderColor: 'var(--clr-border)', color: 'var(--clr-text)' }}
+          >
+            {SEARCH_ENGINES.map(se => <option key={se.value} value={se.value}>{se.label}</option>)}
+          </select>
+          <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none opacity-40">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="6 9 12 15 18 9" /></svg>
+          </div>
+        </div>
+        
+        {searchEngine === 'custom' && (
+          <div className="space-y-2 animate-in slide-in-from-top-2 duration-200">
+            <input 
+              type="text" 
+              value={customSearchUrl} 
+              onChange={e => updateSetting('customSearchUrl', e.target.value)} 
+              placeholder="e.g. https://search.brave.com/search?q={query}" 
+              className="w-full px-5 py-3.5 rounded-2xl text-xs border outline-none focus:border-[var(--clr-accent)] placeholder-white/20" 
+              style={{ background: 'var(--clr-surface-secondary)', borderColor: 'var(--clr-border)', color: 'var(--clr-text)' }}
+            />
+            <p className="text-[10px] opacity-45 px-1 font-medium">Use <code>{`{query}`}</code> in the URL where the search terms should go.</p>
+          </div>
+        )}
       </div>
 
       <div className="space-y-4">

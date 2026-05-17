@@ -45,11 +45,27 @@ interface OverlayHeaderProps {
  */
 export function OverlayHeader({ hasContent, isLoading, platform, handleDrag }: OverlayHeaderProps) {
   const { query, setQuery } = useAppStore();
-  const { browser, llmSite, searchEngine } = useSettingsStore();
+  const { browser, llmSite, searchEngine, customSearchUrl } = useSettingsStore();
 
   const handleBrowserSearch = async () => {
     if (!query.trim()) return;
-    const searchUrl = (SEARCH_URLS[searchEngine] ?? SEARCH_URLS.google) + encodeURIComponent(query);
+    
+    let searchUrl = '';
+    const encodedQuery = encodeURIComponent(query);
+    if (searchEngine === 'custom') {
+      if (customSearchUrl.trim()) {
+        if (customSearchUrl.includes('{query}')) {
+          searchUrl = customSearchUrl.replace('{query}', encodedQuery);
+        } else {
+          searchUrl = customSearchUrl + (customSearchUrl.includes('?') ? '&' : '?') + 'q=' + encodedQuery;
+        }
+      } else {
+        searchUrl = SEARCH_URLS.google + encodedQuery;
+      }
+    } else {
+      searchUrl = (SEARCH_URLS[searchEngine] ?? SEARCH_URLS.google) + encodedQuery;
+    }
+
     try {
       if (browser === 'default' || !browser) { await open(searchUrl); }
       else { await searchInBrowser(browser, searchUrl); }

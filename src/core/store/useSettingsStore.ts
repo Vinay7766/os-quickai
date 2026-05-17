@@ -58,6 +58,7 @@ interface SettingsState {
   hotkey: string;
   llmModel: string;
   searchEngine: string;
+  customSearchUrl: string;
   llmSite: string;
   browser: string;
   theme: 'light' | 'dark' | 'system';
@@ -115,6 +116,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   hotkey: 'alt+a',
   llmModel: 'free-model',
   searchEngine: 'google',
+  customSearchUrl: '',
   llmSite: 'claude',
   browser: 'default',
   theme: 'system',
@@ -133,8 +135,9 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     try {
       const hotkey       = await invoke<string | null>('get_setting', { key: 'hotkey' })       ?? 'alt+a';
       const llmModel     = await invoke<string | null>('get_setting', { key: 'llmModel' })     ?? 'free-model';
-      const searchEngine = await invoke<string | null>('get_setting', { key: 'searchEngine' }) ?? 'google';
-      const llmSite      = await invoke<string | null>('get_setting', { key: 'llmSite' })      ?? 'claude';
+      const searchEngine    = await invoke<string | null>('get_setting', { key: 'searchEngine' })    ?? 'google';
+      const customSearchUrl = await invoke<string | null>('get_setting', { key: 'customSearchUrl' }) ?? '';
+      const llmSite         = await invoke<string | null>('get_setting', { key: 'llmSite' })         ?? 'claude';
       const browser      = await invoke<string | null>('get_setting', { key: 'browser' })      ?? 'default';
 
       const enableSiteLauncher = (await invoke<string | null>('get_setting', { key: 'enableSiteLauncher' })) !== 'false';
@@ -158,7 +161,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       const ollamaUrl = await invoke<string | null>('get_setting', { key: 'ollamaUrl' }) ?? 'http://localhost:11434';
 
       set({ 
-        hotkey, llmModel, searchEngine, llmSite, browser, theme, 
+        hotkey, llmModel, searchEngine, customSearchUrl, llmSite, browser, theme, 
         enableSiteLauncher, enableAppLauncher, enableTerminalMode, openLinksInternal,
         customProviders, ollamaEnabled, ollamaUrl,
         settingsLoaded: true 
@@ -279,6 +282,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       await invoke('save_setting', { key: 'hotkey', value: state.hotkey });
       await invoke('save_setting', { key: 'llmModel', value: state.llmModel });
       await invoke('save_setting', { key: 'searchEngine', value: state.searchEngine });
+      await invoke('save_setting', { key: 'customSearchUrl', value: state.customSearchUrl });
       await invoke('save_setting', { key: 'llmSite', value: state.llmSite });
       await invoke('save_setting', { key: 'browser', value: state.browser });
       await invoke('save_setting', { key: 'theme', value: state.theme });

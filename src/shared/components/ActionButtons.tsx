@@ -9,7 +9,7 @@ import { searchInBrowser } from '../../core/lib/tauriCommands';
 export function ActionButtons() {
   const [copied, setCopied] = useState(false);
   const { query, answer } = useAppStore();
-  const { searchEngine, llmSite, browser } = useSettingsStore();
+  const { searchEngine, customSearchUrl, llmSite, browser } = useSettingsStore();
 
   const handleCopy = async () => {
     await writeText(answer);
@@ -22,6 +22,16 @@ export function ActionButtons() {
     let url = `https://www.google.com/search?q=${q}`;
     if (searchEngine === 'bing') url = `https://www.bing.com/search?q=${q}`;
     if (searchEngine === 'perplexity') url = `https://www.perplexity.ai/?q=${q}`;
+    if (searchEngine === 'duckduckgo') url = `https://duckduckgo.com/?q=${q}`;
+    if (searchEngine === 'custom') {
+      if (customSearchUrl.trim()) {
+        if (customSearchUrl.includes('{query}')) {
+          url = customSearchUrl.replace('{query}', q);
+        } else {
+          url = customSearchUrl + (customSearchUrl.includes('?') ? '&' : '?') + 'q=' + q;
+        }
+      }
+    }
     
     try {
       await searchInBrowser(browser || 'chrome', url);
