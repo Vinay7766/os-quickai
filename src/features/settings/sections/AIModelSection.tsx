@@ -15,7 +15,7 @@
  */
 
 import { API_MODELS } from '../Settings';
-import { factoryReset } from '../../../lib/tauriCommands';
+import { factoryReset } from '../../../core/lib/tauriCommands';
 
 interface Props {
   llmModel: string;

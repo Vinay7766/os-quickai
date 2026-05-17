@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { open } from '@tauri-apps/plugin-shell';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 import { Search, Copy, ExternalLink, Check } from 'lucide-react';
-import { useAppStore } from '../store/useAppStore';
-import { useSettingsStore } from '../store/useSettingsStore';
-import { searchInBrowser } from '../lib/tauriCommands';
+import { useAppStore } from '../../core/store/useAppStore';
+import { useSettingsStore } from '../../core/store/useSettingsStore';
+import { searchInBrowser } from '../../core/lib/tauriCommands';
 
 export function ActionButtons() {
   const [copied, setCopied] = useState(false);

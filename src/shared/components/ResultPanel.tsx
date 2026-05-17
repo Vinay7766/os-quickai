@@ -28,8 +28,8 @@ import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import rehypeHighlight from 'rehype-highlight';
 import remarkGfm from 'remark-gfm';
-import { useAppStore } from '../store/useAppStore';
-import { useSettingsStore } from '../store/useSettingsStore';
+import { useAppStore } from '../../core/store/useAppStore';
+import { useSettingsStore } from '../../core/store/useSettingsStore';
 import 'highlight.js/styles/github-dark.css';
 
 export function ResultPanel() {

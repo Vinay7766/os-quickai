@@ -19,11 +19,11 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useEffect, useState, useCallback } from 'react';
-import { useSettingsStore } from '../../store/useSettingsStore';
-import { saveApiKey, deleteApiKey, getApiKey, updateShortcut, checkBrowserExists } from '../../lib/tauriCommands';
+import { useSettingsStore } from '../../core/store/useSettingsStore';
+import { saveApiKey, deleteApiKey, getApiKey, updateShortcut, checkBrowserExists } from '../../core/lib/tauriCommands';
 import WelcomeScreen from './WelcomeScreen';
 import { invoke } from '@tauri-apps/api/core';
-import { useUpdateCheck } from '../../hooks/useUpdateCheck';
+import { useUpdateCheck } from '../../core/hooks/useUpdateCheck';
 import appLogo from '../../assets/app-logo.png';
 
 // Sections

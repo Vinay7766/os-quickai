@@ -32,8 +32,8 @@ const label = getWindowLabel();
 // Using eager imports because all windows are hidden on startup.
 // Lazy loading caused a visible blank flash before Suspense resolved.
 
-import Overlay  from './windows/overlay/Overlay';
-import Settings from './windows/settings/Settings';
+import Overlay  from './features/overlay/Overlay';
+import Settings from './features/settings/Settings';
 
 // ── Fallback ─────────────────────────────────────────────────────────────────
 // Shows a transparent or themed background while the app initializes.

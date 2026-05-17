@@ -173,9 +173,94 @@ if ($app) {{
         }
     }
 
+    #[cfg(target_os = "macos")]
+    {
+        // 1. Try 'open -a "Name"'
+        if Command::new("open").args(["-a", &name]).status().map(|s| s.success()).unwrap_or(false) {
+            return Ok(());
+        }
+
+        // 2. Search common locations for .app bundles
+        let search_dirs = [
+            "/Applications",
+            "/System/Applications",
+            &format!("{}/Applications", std::env::var("HOME").unwrap_or_default())
+        ];
+
+        for dir in search_dirs {
+            if let Ok(entries) = std::fs::read_dir(dir) {
+                for entry in entries.flatten() {
+                    let path = entry.path();
+                    if let Some(filename) = path.file_name().and_then(|n| n.to_str()) {
+                        if filename.to_lowercase().contains(&name.to_lowercase()) && filename.ends_with(".app") {
+                            if Command::new("open").arg(&path).status().map(|s| s.success()).unwrap_or(false) {
+                                return Ok(());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        // 1. Try direct command if it's in PATH
+        if Command::new("sh").args(["-c", &format!("command -v {}", name)]).status().map(|s| s.success()).unwrap_or(false) {
+            if Command::new(&name).spawn().is_ok() {
+                return Ok(());
+            }
+        }
+
+        // 2. Search for .desktop files
+        let desktop_dirs = [
+            "/usr/share/applications",
+            "/usr/local/share/applications",
+            &format!("{}/.local/share/applications", std::env::var("HOME").unwrap_or_default())
+        ];
+
+        for dir in desktop_dirs {
+            if let Ok(entries) = std::fs::read_dir(dir) {
+                for entry in entries.flatten() {
+                    let path = entry.path();
+                    if path.extension().map_or(false, |e| e == "desktop") {
+                        if let Ok(content) = std::fs::read_to_string(&path) {
+                            let mut found_name = false;
+                            for line in content.lines() {
+                                if line.to_lowercase().starts_with("name=") && line.to_lowercase().contains(&name.to_lowercase()) {
+                                    found_name = true;
+                                    break;
+                                }
+                            }
+
+                            if found_name {
+                                // Try launching via gtk-launch
+                                if let Some(file_name) = path.file_name() {
+                                    if Command::new("gtk-launch").arg(file_name).spawn().is_ok() {
+                                        return Ok(());
+                                    }
+                                }
+
+                                // Fallback: Parse Exec line
+                                for line in content.lines() {
+                                    if line.starts_with("Exec=") {
+                                        let exec = line[5..].split_whitespace().next().unwrap_or("");
+                                        if !exec.is_empty() && Command::new(exec).spawn().is_ok() {
+                                            return Ok(());
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Generic fallback for any other Unix-like or if specific searches fail
     #[cfg(not(target_os = "windows"))]
     {
-        // On Mac, try 'open'
         if open::that(&name).is_ok() {
             return Ok(());
         }

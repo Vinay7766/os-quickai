@@ -26,8 +26,8 @@
  */
 
 import { KeyboardEvent, useEffect, useRef } from 'react';
-import { useAppStore } from '../store/useAppStore';
-import { useSettingsStore } from '../store/useSettingsStore';
+import { useAppStore } from '../../core/store/useAppStore';
+import { useSettingsStore } from '../../core/store/useSettingsStore';
 
 export function QueryInput() {
   const { 
@@ -227,7 +227,7 @@ export function QueryInput() {
                 {availableModels.length > 0 && (
                   <>
                     <div className="px-3 py-1.5 text-[9px] uppercase tracking-widest opacity-40 font-bold border-b border-white/5 border-t">Your Models</div>
-                    {availableModels.map(m => (
+                    {availableModels.map((m: string) => (
                       <button
                         key={m}
                         className={`w-full text-left px-3 py-2 text-[11px] font-bold transition-colors hover:bg-white/10 ${llmModel === m ? 'text-[var(--clr-accent)]' : 'text-[var(--clr-text-secondary)]'}`}
