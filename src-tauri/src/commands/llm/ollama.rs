@@ -10,6 +10,7 @@
 
 use reqwest::Client;
 use serde_json::{json, Value};
+use crate::error::AppError;
 
 #[tauri::command]
 pub async fn list_ollama_models(url: String) -> Result<Vec<String>, AppError> {

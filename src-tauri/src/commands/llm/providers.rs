@@ -10,6 +10,7 @@
 
 use reqwest::Client;
 use serde_json::Value;
+use crate::error::AppError;
 
 /// Unified command to list models for a specific provider.
 #[tauri::command]
@@ -85,7 +86,7 @@ pub async fn list_gemini_internal(api_key: &str) -> Result<Vec<String>, AppError
                 if m["supportedGenerationMethods"]
                     .as_array()?
                     .iter()
-                    .any(|g| g.as_str() == Some("generateContent"))
+                    .any(|g: &Value| g.as_str() == Some("generateContent"))
                 {
                     Some(name.replace("models/", ""))
                 } else {

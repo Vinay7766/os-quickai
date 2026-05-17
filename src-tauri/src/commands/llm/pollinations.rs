@@ -10,6 +10,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 use serde_json::{json, Value};
+use reqwest::Client;
 
 /// Checks if a given model name is one of the free (no-key) models.
 pub fn is_free_model(model: &str) -> bool {
