@@ -57,8 +57,15 @@ pub async fn query_llm(
             url = format!("http://{}", url);
         }
 
+        // Dedicated local client that bypasses proxies entirely for local Ollama
+        let local_client = Client::builder()
+            .danger_accept_invalid_certs(true)
+            .no_proxy()
+            .build()
+            .unwrap();
+
         let chat_url = format!("{}/api/chat", url.trim_end_matches('/'));
-        let response = client.post(chat_url)
+        let response = local_client.post(chat_url)
             .json(&json!({
                 "model": actual_model,
                 "messages": [{"role": "user", "content": &query}],
@@ -77,7 +84,7 @@ pub async fn query_llm(
                 if base_input.contains("localhost") {
                     let failover_url = base_input.replace("localhost", "127.0.0.1");
                     let chat_url = format!("{}/api/chat", failover_url.trim_end_matches('/'));
-                    if let Ok(res) = client.post(chat_url)
+                    if let Ok(res) = local_client.post(chat_url)
                         .json(&json!({ "model": actual_model, "messages": [{"role": "user", "content": &query}], "stream": false }))
                         .send().await 
                     {

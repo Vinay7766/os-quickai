@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+import { useState } from 'react';
+import { invoke } from '@tauri-apps/api/core';
 import { API_MODELS } from '../Settings';
 import { factoryReset } from '../../../core/lib/tauriCommands';
 
@@ -32,13 +34,36 @@ interface Props {
   handleResetAllKeys: () => void;
   handleRefresh: () => void;
   updateSetting: (key: string, val: any) => void;
+  customProviders: any[];
+  refreshModels: () => void;
 }
 
 export default function AIModelSection({
   llmModel, availableModels, storedKeys, activeKeyProvider,
   keyInput, keyStatus, isRefreshingModels,
-  setKeyInput, setActiveKeyProvider, handleSaveKey, handleDeleteKey, handleResetAllKeys, handleRefresh, updateSetting
+  setKeyInput, setActiveKeyProvider, handleSaveKey, handleDeleteKey, handleResetAllKeys, handleRefresh, updateSetting,
+  customProviders, refreshModels
 }: Props) {
+  const [showAddCustom, setShowAddCustom] = useState(false);
+  const [newCustom, setNewCustom] = useState({ name: '', baseUrl: '', apiKey: '' });
+
+  const handleAddCustom = async () => {
+    if (!newCustom.name || !newCustom.baseUrl) return;
+    const provider = { ...newCustom, id: Date.now().toString() };
+    const updated = [...customProviders, provider];
+    await updateSetting('customProviders', updated);
+    await invoke('save_setting', { key: 'customProviders', value: JSON.stringify(updated) });
+    setNewCustom({ name: '', baseUrl: '', apiKey: '' });
+    setShowAddCustom(false);
+    refreshModels();
+  };
+
+  const handleRemoveCustom = async (id: string) => {
+    const updated = customProviders.filter(p => p.id !== id);
+    await updateSetting('customProviders', updated);
+    await invoke('save_setting', { key: 'customProviders', value: JSON.stringify(updated) });
+    refreshModels();
+  };
 
   const onFactoryReset = async () => {
     if (confirm("FACTORY RESET: This will wipe ALL settings, API keys, and registry markers. The app will close and you must restart it manually. Continue?")) {
@@ -89,9 +114,69 @@ export default function AIModelSection({
             </div>
           </div>
 
-          <div className="pt-3 border-t border-white/5 flex items-center justify-between">
-            <span className="text-[9px] font-bold uppercase tracking-widest opacity-20">Custom Providers</span>
-            <button className="text-[10px] font-bold uppercase tracking-widest text-[var(--clr-accent)] hover:underline">+ Add New</button>
+          <div className="pt-4 border-t border-white/5 space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-[9px] font-bold uppercase tracking-widest opacity-20">Custom Providers</span>
+              <button 
+                onClick={() => setShowAddCustom(!showAddCustom)} 
+                className="text-[10px] font-bold uppercase tracking-widest text-[var(--clr-accent)] hover:underline"
+              >
+                {showAddCustom ? 'Cancel' : '+ Add New'}
+              </button>
+            </div>
+
+            {showAddCustom && (
+              <div className="p-5 rounded-2xl border border-white/5 space-y-3 bg-black/20 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="grid grid-cols-2 gap-2">
+                  <input 
+                    type="text" 
+                    value={newCustom.name} 
+                    onChange={e => setNewCustom({ ...newCustom, name: e.target.value })} 
+                    placeholder="Friendly Name" 
+                    className="w-full px-3 py-2 rounded-xl text-xs border bg-black/40 border-white/10 outline-none focus:border-[var(--clr-accent)] text-white placeholder-white/20" 
+                  />
+                  <input 
+                    type="text" 
+                    value={newCustom.baseUrl} 
+                    onChange={e => setNewCustom({ ...newCustom, baseUrl: e.target.value })} 
+                    placeholder="Base URL (e.g. https://api.openai.com/v1)" 
+                    className="w-full px-3 py-2 rounded-xl text-xs border bg-black/40 border-white/10 outline-none focus:border-[var(--clr-accent)] text-white placeholder-white/20" 
+                  />
+                </div>
+                <input 
+                  type="password" 
+                  value={newCustom.apiKey} 
+                  onChange={e => setNewCustom({ ...newCustom, apiKey: e.target.value })} 
+                  placeholder="API Key (optional)" 
+                  className="w-full px-3 py-2 rounded-xl text-xs border bg-black/40 border-white/10 outline-none focus:border-[var(--clr-accent)] text-white placeholder-white/20" 
+                />
+                <button 
+                  onClick={handleAddCustom} 
+                  className="w-full py-2.5 rounded-xl text-xs font-bold text-white transition-all bg-[var(--clr-accent)] hover:brightness-110 active:scale-[0.98]"
+                >
+                  Connect & Discover Models
+                </button>
+              </div>
+            )}
+
+            {customProviders && customProviders.length > 0 && (
+              <div className="space-y-1.5 pt-1">
+                {customProviders.map((p: any) => (
+                  <div key={p.id} className="flex items-center justify-between p-3.5 rounded-xl border border-white/5 bg-white/[0.01] group hover:bg-white/[0.03] transition-all">
+                    <div>
+                      <div className="text-xs font-bold text-white">{p.name}</div>
+                      <div className="text-[9px] opacity-35 font-mono truncate max-w-[200px] text-white">{p.baseUrl}</div>
+                    </div>
+                    <button 
+                      onClick={() => handleRemoveCustom(p.id)} 
+                      className="text-[9px] font-bold uppercase tracking-wider text-red-500/50 hover:text-red-500 transition-all opacity-0 group-hover:opacity-100"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

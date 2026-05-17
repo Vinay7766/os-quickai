@@ -16,6 +16,7 @@ use crate::error::AppError;
 pub async fn list_ollama_models(url: String) -> Result<Vec<String>, AppError> {
     let client = Client::builder()
         .danger_accept_invalid_certs(true)
+        .no_proxy()
         .build()
         .unwrap();
     let tags_url = format!("{}/api/tags", url.trim_end_matches('/'));
@@ -47,6 +48,7 @@ pub async fn list_ollama_models(url: String) -> Result<Vec<String>, AppError> {
 pub async fn pull_ollama_model(url: String, name: String) -> Result<(), AppError> {
     let client = Client::builder()
         .danger_accept_invalid_certs(true)
+        .no_proxy()
         .build()
         .unwrap();
     let pull_url = format!("{}/api/pull", url.trim_end_matches('/'));

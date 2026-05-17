@@ -131,9 +131,68 @@ pub async fn check_browser_exists(browser: String) -> bool {
         return false;
     }
 
-    #[cfg(not(target_os = "windows"))]
+    #[cfg(target_os = "macos")]
     {
-        // Simple fallback for non-windows: assume common browsers exist or handle via defaults
+        if browser == "default" {
+            return true;
+        }
+        let paths = match browser.as_str() {
+            "chrome" => vec!["/Applications/Google Chrome.app"],
+            "firefox" => vec!["/Applications/Firefox.app"],
+            "brave" => vec!["/Applications/Brave Browser.app"],
+            "bing" => vec!["/Applications/Microsoft Edge.app"],
+            "opera" => vec!["/Applications/Opera.app"],
+            _ => vec![],
+        };
+
+        for path in paths {
+            if std::path::Path::new(path).exists() {
+                return true;
+            }
+        }
+        
+        let app_name = match browser.as_str() {
+            "chrome" => "Google Chrome",
+            "firefox" => "Firefox",
+            "brave" => "Brave Browser",
+            "bing" => "Microsoft Edge",
+            "opera" => "Opera",
+            _ => &browser,
+        };
+        if Command::new("open").args(["-Ra", app_name]).status().map(|s| s.success()).unwrap_or(false) {
+            return true;
+        }
+        return false;
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        if browser == "default" {
+            return true;
+        }
+        let execs = match browser.as_str() {
+            "chrome" => vec!["google-chrome", "google-chrome-stable", "chromium", "chromium-browser"],
+            "firefox" => vec!["firefox"],
+            "brave" => vec!["brave", "brave-browser"],
+            "bing" => vec!["microsoft-edge", "microsoft-edge-stable"],
+            "opera" => vec!["opera"],
+            "comet" => vec!["comet"],
+            _ => vec![browser.as_str()],
+        };
+
+        for exe in execs {
+            if Command::new("which").arg(exe).status().map(|s| s.success()).unwrap_or(false) {
+                return true;
+            }
+            if Command::new("sh").args(["-c", &format!("command -v {}", exe)]).status().map(|s| s.success()).unwrap_or(false) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
+    {
         true
     }
 }
@@ -183,7 +242,9 @@ if ($app) {{
         // 2. Search common locations for .app bundles
         let search_dirs = [
             "/Applications",
+            "/Applications/Utilities",
             "/System/Applications",
+            "/System/Applications/Utilities",
             &format!("{}/Applications", std::env::var("HOME").unwrap_or_default())
         ];
 
@@ -234,20 +295,31 @@ if ($app) {{
                             }
 
                             if found_name {
-                                // Try launching via gtk-launch
-                                if let Some(file_name) = path.file_name() {
-                                    if Command::new("gtk-launch").arg(file_name).spawn().is_ok() {
-                                        return Ok(());
+                                // Fallback: Parse Exec line and execute it via shell (handles snap, flatpak, quotes, and parameters)
+                                for line in content.lines() {
+                                    if line.starts_with("Exec=") {
+                                        let clean_exec = line[5..]
+                                            .replace("%u", "")
+                                            .replace("%U", "")
+                                            .replace("%f", "")
+                                            .replace("%F", "")
+                                            .replace("%k", "")
+                                            .replace("%v", "")
+                                            .trim()
+                                            .to_string();
+
+                                        if !clean_exec.is_empty() {
+                                            if Command::new("sh").args(["-c", &clean_exec]).spawn().is_ok() {
+                                                return Ok(());
+                                            }
+                                        }
                                     }
                                 }
 
-                                // Fallback: Parse Exec line
-                                for line in content.lines() {
-                                    if line.starts_with("Exec=") {
-                                        let exec = line[5..].split_whitespace().next().unwrap_or("");
-                                        if !exec.is_empty() && Command::new(exec).spawn().is_ok() {
-                                            return Ok(());
-                                        }
+                                // Try launching via gtk-launch as a secondary option
+                                if let Some(file_name) = path.file_name() {
+                                    if Command::new("gtk-launch").arg(file_name).spawn().is_ok() {
+                                        return Ok(());
                                     }
                                 }
                             }
