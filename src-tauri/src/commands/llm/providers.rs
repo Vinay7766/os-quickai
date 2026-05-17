@@ -30,7 +30,10 @@ pub async fn list_provider_models(api_key: String, provider: String) -> Result<V
 
 #[tauri::command]
 pub async fn list_openai_compatible(api_key: String, url: String) -> Result<Vec<String>, AppError> {
-    let client = Client::new();
+    let client = Client::builder()
+        .danger_accept_invalid_certs(true)
+        .build()
+        .unwrap();
     let response = client
         .get(url)
         .bearer_auth(api_key)
@@ -63,7 +66,10 @@ pub async fn list_openai_compatible(api_key: String, url: String) -> Result<Vec<
 }
 
 pub async fn list_gemini_internal(api_key: &str) -> Result<Vec<String>, AppError> {
-    let client = Client::new();
+    let client = Client::builder()
+        .danger_accept_invalid_certs(true)
+        .build()
+        .unwrap();
     let url = format!(
         "https://generativelanguage.googleapis.com/v1/models?key={}",
         api_key
@@ -104,7 +110,10 @@ pub async fn list_gemini_internal(api_key: &str) -> Result<Vec<String>, AppError
 }
 
 pub async fn list_claude_internal(api_key: &str) -> Result<Vec<String>, AppError> {
-    let client = Client::new();
+    let client = Client::builder()
+        .danger_accept_invalid_certs(true)
+        .build()
+        .unwrap();
     let response = client
         .get("https://api.anthropic.com/v1/models")
         .header("x-api-key", api_key)

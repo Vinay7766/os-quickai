@@ -43,6 +43,7 @@ pub async fn query_llm(
     let client = Client::builder()
         .timeout(std::time::Duration::from_secs(10))
         .user_agent("Quickno/1.0 (Desktop AI Assistant)")
+        .danger_accept_invalid_certs(true)
         .build()
         .map_err(|e| AppError::NetworkError(e.to_string()))?;
 

@@ -129,7 +129,10 @@ pub fn get_system_theme() -> String {
 
 #[tauri::command]
 pub async fn test_api_key(key: String) -> Result<bool, AppError> {
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .danger_accept_invalid_certs(true)
+        .build()
+        .unwrap();
     let response = client
         .get("https://api.openai.com/v1/models")
         .bearer_auth(&key)
