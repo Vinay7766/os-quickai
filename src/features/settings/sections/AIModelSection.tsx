@@ -46,6 +46,7 @@ export default function AIModelSection({
 }: Props) {
   const [showAddCustom, setShowAddCustom] = useState(false);
   const [newCustom, setNewCustom] = useState({ name: '', baseUrl: '', apiKey: '' });
+  const [selectedKeyProvider, setSelectedKeyProvider] = useState(API_MODELS[0].provider);
 
   const handleAddCustom = async () => {
     if (!newCustom.name || !newCustom.baseUrl) return;
@@ -83,34 +84,26 @@ export default function AIModelSection({
         <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] opacity-30 px-1">Model Selection</h3>
         <div className="p-6 rounded-[28px] border border-white/5 space-y-6" style={{ background: 'rgba(255,255,255,0.02)' }}>
           <div className="space-y-3">
-            <h4 className="text-[9px] font-bold uppercase tracking-widest opacity-30">Free Models (No API Key)</h4>
-            <button 
-              onClick={() => updateSetting('llmModel', 'free-model')} 
-              className="w-full flex items-center justify-between p-4 rounded-xl transition-all hover:bg-white/5 active:scale-[0.99] group"
-              style={{ background: llmModel === 'free-model' ? 'rgba(37,99,235,0.1)' : 'transparent' }}
-            >
-              <span className={`text-[14px] ${llmModel === 'free-model' ? 'font-bold text-[var(--clr-accent)]' : 'text-white/70'}`}>Free Model</span>
-              {llmModel === 'free-model' && <div className="w-1.5 h-1.5 rounded-full bg-[var(--clr-accent)] shadow-[0_0_8px_var(--clr-accent)]" />}
-            </button>
-          </div>
-
-          <div className="space-y-3">
-            <h4 className="text-[9px] font-bold uppercase tracking-widest opacity-30">BYOK Models</h4>
-            <div className="grid gap-1.5">
-              {API_MODELS.map(m => {
-                const isActive = llmModel.startsWith(m.value) || (availableModels.includes(llmModel) && m.provider === activeKeyProvider);
-                return (
-                  <button 
-                    key={m.value} 
-                    onClick={() => updateSetting('llmModel', m.value)} 
-                    className="w-full flex items-center justify-between p-4 rounded-xl transition-all hover:bg-white/5 active:scale-[0.99] group"
-                    style={{ background: isActive ? 'rgba(37,99,235,0.1)' : 'transparent' }}
-                  >
-                    <span className={`text-[14px] ${isActive ? 'font-bold text-[var(--clr-accent)]' : 'text-white/70'}`}>{m.label}</span>
-                    {isActive && <div className="w-1.5 h-1.5 rounded-full bg-[var(--clr-accent)] shadow-[0_0_8px_var(--clr-accent)]" />}
-                  </button>
-                );
-              })}
+            <h4 className="text-[9px] font-bold uppercase tracking-widest opacity-35">Select Model</h4>
+            <div className="relative">
+              <select 
+                value={llmModel} 
+                onChange={(e) => updateSetting('llmModel', e.target.value)} 
+                className="w-full px-5 py-4 rounded-2xl text-[14px] font-bold text-white bg-black/40 border border-white/10 outline-none focus:border-[var(--clr-accent)] appearance-none cursor-pointer pr-10"
+                style={{ background: 'rgba(0,0,0,0.4)' }}
+              >
+                <option value="free-model" className="bg-[#1c1c1c] text-white">Free Model (No API Key Required)</option>
+                {API_MODELS.map(m => (
+                  <option key={m.value} value={m.value} className="bg-[#1c1c1c] text-white">
+                    {m.label} (BYOK)
+                  </option>
+                ))}
+              </select>
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none opacity-40">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="m6 9 6 6 6-6"/>
+                </svg>
+              </div>
             </div>
           </div>
 
@@ -188,37 +181,80 @@ export default function AIModelSection({
           <p className="text-[11px] opacity-40 font-medium">Stored securely in Windows Credential Manager.</p>
         </div>
         <div className="space-y-5">
-          {API_MODELS.map(m => (
-            <div key={m.provider} className="flex flex-col gap-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <span className="text-[15px] font-bold text-white tracking-tight">{m.label}</span>
-                  <span className={`text-[9px] font-bold uppercase tracking-wider ${storedKeys[m.provider] ? 'text-[var(--clr-accent)]' : 'text-white/10'}`}>
-                    {storedKeys[m.provider] ? 'Connected' : 'Not Configured'}
-                  </span>
-                </div>
-                <div className="flex items-center gap-5">
-                  {storedKeys[m.provider] && (
-                    <button onClick={() => handleDeleteKey(m.provider)} className="text-[9px] font-bold uppercase tracking-wider text-red-500/30 hover:text-red-500 transition-all">Delete</button>
-                  )}
-                  <button 
-                    onClick={() => { setActiveKeyProvider(activeKeyProvider === m.provider ? null : m.provider); setKeyInput(''); }}
-                    className="text-[10px] font-bold uppercase tracking-widest text-[var(--clr-accent)] hover:underline active:scale-95 transition-all"
-                  >
-                    {storedKeys[m.provider] ? 'Update' : 'Add Key'}
-                  </button>
-                </div>
+          <div className="space-y-3">
+            <h4 className="text-[9px] font-bold uppercase tracking-widest opacity-35">Select Provider</h4>
+            <div className="relative">
+              <select 
+                value={selectedKeyProvider} 
+                onChange={(e) => { setSelectedKeyProvider(e.target.value); setActiveKeyProvider(null); setKeyInput(''); }} 
+                className="w-full px-5 py-4 rounded-2xl text-[14px] font-bold text-white bg-black/40 border border-white/10 outline-none focus:border-[var(--clr-accent)] appearance-none cursor-pointer pr-10"
+                style={{ background: 'rgba(0,0,0,0.4)' }}
+              >
+                {API_MODELS.map(m => (
+                  <option key={m.provider} value={m.provider} className="bg-[#1c1c1c] text-white">{m.label} Keys</option>
+                ))}
+              </select>
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none opacity-40">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="m6 9 6 6 6-6"/>
+                </svg>
               </div>
-              {activeKeyProvider === m.provider && (
-                <div className="flex gap-2 animate-in slide-in-from-top-2 duration-200">
-                  <input type="password" value={keyInput} onChange={e => setKeyInput(e.target.value)} placeholder={`Enter ${m.label} Key`} className="flex-1 px-4 py-2.5 rounded-xl text-xs border bg-black/40 border-white/10 outline-none focus:border-[var(--clr-accent)]" />
-                  <button onClick={() => handleSaveKey(m.provider)} className="px-5 py-2.5 rounded-xl text-xs font-bold bg-[var(--clr-accent)] text-white disabled:opacity-50 transition-all" disabled={keyStatus === 'saving'}>
-                    {keyStatus === 'saving' ? '...' : 'Save'}
-                  </button>
-                </div>
-              )}
             </div>
-          ))}
+          </div>
+
+          {(() => {
+            const m = API_MODELS.find(p => p.provider === selectedKeyProvider);
+            if (!m) return null;
+            const isConfigured = storedKeys[m.provider];
+            const isInputActive = activeKeyProvider === m.provider;
+
+            return (
+              <div className="p-5 rounded-2xl border border-white/5 space-y-4 bg-white/[0.01] animate-in fade-in duration-200">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="text-[15px] font-bold text-white tracking-tight">{m.label}</span>
+                    <span className={`text-[9px] font-bold uppercase tracking-wider ${isConfigured ? 'text-[var(--clr-accent)]' : 'text-white/10'}`}>
+                      {isConfigured ? 'Connected' : 'Not Configured'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    {isConfigured && (
+                      <button 
+                        onClick={() => handleDeleteKey(m.provider)} 
+                        className="text-[9px] font-bold uppercase tracking-wider text-red-500/50 hover:text-red-500 transition-all active:scale-95"
+                      >
+                        Delete Key
+                      </button>
+                    )}
+                    <button 
+                      onClick={() => { setActiveKeyProvider(isInputActive ? null : m.provider); setKeyInput(''); }}
+                      className="text-[10px] font-bold uppercase tracking-widest text-[var(--clr-accent)] hover:underline active:scale-95 transition-all"
+                    >
+                      {isInputActive ? 'Cancel' : (isConfigured ? 'Update' : 'Add Key')}
+                    </button>
+                  </div>
+                </div>
+                {isInputActive && (
+                  <div className="flex gap-2 animate-in slide-in-from-top-2 duration-200">
+                    <input 
+                      type="password" 
+                      value={keyInput} 
+                      onChange={e => setKeyInput(e.target.value)} 
+                      placeholder={m.placeholder ? `Enter key (e.g. ${m.placeholder})` : `Enter ${m.label} Key`} 
+                      className="flex-1 px-4 py-2.5 rounded-xl text-xs border bg-black/40 border-white/10 outline-none focus:border-[var(--clr-accent)] text-white placeholder-white/20" 
+                    />
+                    <button 
+                      onClick={() => handleSaveKey(m.provider)} 
+                      className="px-5 py-2.5 rounded-xl text-xs font-bold bg-[var(--clr-accent)] text-white disabled:opacity-50 transition-all hover:brightness-110 active:scale-95" 
+                      disabled={keyStatus === 'saving'}
+                    >
+                      {keyStatus === 'saving' ? '...' : 'Save'}
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </div>
       </div>
 
