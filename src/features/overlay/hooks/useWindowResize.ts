@@ -64,12 +64,18 @@ export function useWindowResize({
       } else if (internalUrl) {
         resizeWindow(600);
       } else if (hasContent) {
-        const searchH = SEARCH_BAR_HEIGHT + 24;
-        const resultH = resultRef.current?.scrollHeight || 200;
-        const footerH = 48;
-        let totalH = searchH + resultH + footerH + 16;
-        const targetH = Math.min(totalH, 750);
-        resizeWindow(targetH);
+        if (answer) {
+          // Lock to a clean, fixed height when an AI answer is present
+          resizeWindow(420);
+        } else {
+          // Dynamic resizing for standard typing/loading/results lists
+          const searchH = SEARCH_BAR_HEIGHT + 24;
+          const resultH = resultRef.current?.scrollHeight || 200;
+          const footerH = 48;
+          let totalH = searchH + resultH + footerH + 16;
+          const targetH = Math.min(totalH, 400);
+          resizeWindow(targetH);
+        }
       } else {
         resizeWindow(SEARCH_BAR_HEIGHT);
       }
