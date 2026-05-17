@@ -35,7 +35,7 @@ const SEARCH_BAR_HEIGHT = 52;
 export default function Overlay() {
   const { 
     answer, isLoading, error, 
-    isModeMenuOpen, isModelMenuOpen, internalUrl 
+    isModeMenuOpen, isModelMenuOpen, internalUrl, searchMode
   } = useAppStore();
   
   const loadSettings = useSettingsStore((s) => s.loadSettings);
@@ -51,7 +51,7 @@ export default function Overlay() {
   useOverlayShortcuts();
   useWindowResize({
     hasContent, isMenuOpen, internalUrl, answer, error, 
-    isLoading, resultRef, loadSettings, refreshModels
+    isLoading, resultRef, loadSettings, refreshModels, searchMode
   });
 
   useEffect(() => {

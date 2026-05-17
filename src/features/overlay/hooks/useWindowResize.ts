@@ -23,6 +23,7 @@ interface UseWindowResizeProps {
   resultRef: React.RefObject<HTMLDivElement>;
   loadSettings: () => Promise<void>;
   refreshModels: () => Promise<void>;
+  searchMode: string;
 }
 
 /**
@@ -37,13 +38,14 @@ export function useWindowResize({
   isLoading,
   resultRef,
   loadSettings,
-  refreshModels
+  refreshModels,
+  searchMode
 }: UseWindowResizeProps) {
   const resizeWindow = useCallback(async (h: number) => {
     try {
       const win = getCurrentWindow();
       const size = await win.innerSize();
-      const FIXED_WIDTH = 480;
+      const FIXED_WIDTH = searchMode === 'search' ? 480 : 380;
       
       const factor = await win.scaleFactor();
       const currentH = size.height / factor;
@@ -53,7 +55,7 @@ export function useWindowResize({
          await win.setSize(new LogicalSize(FIXED_WIDTH, h));
       }
     } catch { /* Ignore */ }
-  }, []);
+  }, [searchMode]);
 
   useEffect(() => {
     const trigger = () => {

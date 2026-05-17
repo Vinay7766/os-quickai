@@ -262,7 +262,8 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 
     try {
       // 3. Persist to disk (always as string)
-      await invoke('save_setting', { key, value: String(val) });
+      const stringifiedValue = typeof val === 'object' ? JSON.stringify(val) : String(val);
+      await invoke('save_setting', { key, value: stringifiedValue });
 
       // 4. Broadcast to ALL windows
       await emit('settings-updated', { key, val });

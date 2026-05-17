@@ -77,7 +77,7 @@ fn set_autostart(_exe_path: &str) {}
 fn is_first_run() -> bool {
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
     hkcu.open_subkey(r"SOFTWARE\Quickno")
-        .and_then(|k| k.get_value::<String, _>("v1_0_2Installed"))
+        .and_then(|k| k.get_value::<String, _>("v1_0_0Installed"))
         .is_err()
 }
 
@@ -89,7 +89,7 @@ fn is_first_run() -> bool { false }
 fn mark_installed() {
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
     if let Ok((key, _)) = hkcu.create_subkey(r"SOFTWARE\Quickno") {
-        let _ = key.set_value("v1_0_2Installed", &"1");
+        let _ = key.set_value("v1_0_0Installed", &"1");
     }
 }
 
