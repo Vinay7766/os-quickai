@@ -148,7 +148,7 @@ export function BrandMenuPopover({ onClose }: BrandMenuPopoverProps) {
 
           {/* Version Footer */}
           <div className="p-3 text-center border-t border-white/5 bg-black/10 shrink-0">
-            <span className="text-[9px] text-[var(--clr-text-secondary)] opacity-55 font-bold uppercase tracking-wider">Version 1.0.0</span>
+            <span className="text-[9px] text-[var(--clr-text-secondary)] opacity-55 font-bold uppercase tracking-wider">Version 1.0.1</span>
           </div>
         </>
       )}
