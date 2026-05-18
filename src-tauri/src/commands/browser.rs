@@ -204,6 +204,7 @@ pub struct AppInfo {
     pub app_id: String,
 }
 
+#[cfg(target_os = "windows")]
 #[derive(serde::Deserialize)]
 #[allow(non_snake_case)]
 struct AppInfoRaw {
@@ -321,6 +322,7 @@ pub async fn list_installed_apps() -> Result<Vec<AppInfo>, String> {
 
 /// Launches an application by its name or app_id.
 #[tauri::command]
+#[allow(unused_variables)]
 pub async fn launch_app(name: String, app_id: Option<String>) -> Result<(), String> {
     #[cfg(target_os = "windows")]
     {
