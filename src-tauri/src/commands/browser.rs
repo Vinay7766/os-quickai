@@ -413,14 +413,46 @@ if ($app) {{
 
     #[cfg(target_os = "linux")]
     {
-        // 1. Try direct command if it's in PATH
-        if Command::new("sh").args(["-c", &format!("command -v {}", name)]).status().map(|s| s.success()).unwrap_or(false) {
-            if Command::new(&name).spawn().is_ok() {
+        // 1. If app_id is provided, try launching directly from the desktop file path
+        if let Some(ref path_str) = app_id {
+            if !path_str.is_empty() {
+                let path = std::path::Path::new(path_str);
+                if path.exists() {
+                    if let Ok(content) = std::fs::read_to_string(path) {
+                        for line in content.lines() {
+                            if line.starts_with("Exec=") {
+                                let clean_exec = line[5..]
+                                    .replace("%u", "")
+                                    .replace("%U", "")
+                                    .replace("%f", "")
+                                    .replace("%F", "")
+                                    .replace("%k", "")
+                                    .replace("%v", "")
+                                    .trim()
+                                    .to_string();
+
+                                if !clean_exec.is_empty() {
+                                    // Spawning via shell handles snaps, flatpaks, quotes and args perfectly
+                                    if Command::new("sh").args(["-c", &clean_exec]).spawn().is_ok() {
+                                        return Ok(());
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 2. Try direct command if it's in PATH
+        let escaped_name = name.replace("'", "'\\''");
+        if Command::new("sh").args(["-c", &format!("command -v '{}'", escaped_name)]).status().map(|s| s.success()).unwrap_or(false) {
+            if Command::new("sh").args(["-c", &name]).spawn().is_ok() {
                 return Ok(());
             }
         }
 
-        // 2. Search for .desktop files
+        // 3. Search for .desktop files
         let desktop_dirs = [
             "/usr/share/applications",
             "/usr/local/share/applications",

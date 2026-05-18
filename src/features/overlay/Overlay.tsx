@@ -35,14 +35,14 @@ const SEARCH_BAR_HEIGHT = 52;
 export default function Overlay() {
   const { 
     answer, isLoading, error, 
-    isModeMenuOpen, isModelMenuOpen, internalUrl, searchMode
+    isModeMenuOpen, isModelMenuOpen, isBrandMenuOpen, internalUrl, searchMode
   } = useAppStore();
   
   const loadSettings = useSettingsStore((s) => s.loadSettings);
   const refreshModels = useSettingsStore((s) => s.refreshModels);
   
   const [platform, setPlatform] = useState<string>('');
-  const isMenuOpen = isModeMenuOpen || isModelMenuOpen;
+  const isMenuOpen = isModeMenuOpen || isModelMenuOpen || isBrandMenuOpen;
   const hasContent = (isLoading || !!answer) || !!error || !!internalUrl;
   
   const resultRef = useRef<HTMLDivElement>(null);

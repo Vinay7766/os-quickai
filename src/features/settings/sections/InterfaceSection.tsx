@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { BROWSERS, AI_SITES, SEARCH_ENGINES } from '../Settings';
+import { BROWSERS, AI_SITES, SEARCH_ENGINES } from '../../../core/constants';
 
 interface Props {
   theme: string;
@@ -75,7 +75,7 @@ export default function InterfaceSection({
             className="w-full px-5 py-4 rounded-2xl text-sm font-semibold border cursor-pointer appearance-none outline-none transition-all focus:border-[var(--clr-accent)] pr-12" 
             style={{ background: 'var(--clr-surface-secondary)', borderColor: 'var(--clr-border)', color: 'var(--clr-text)' }}
           >
-            {BROWSERS.map(b => <option key={b.value} value={b.value}>{b.label}</option>)}
+            {BROWSERS.map((b: any) => <option key={b.value} value={b.value}>{b.label}</option>)}
           </select>
           <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none opacity-40">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="6 9 12 15 18 9" /></svg>
@@ -95,7 +95,7 @@ export default function InterfaceSection({
             className="w-full px-5 py-4 rounded-2xl text-sm font-semibold border cursor-pointer appearance-none outline-none transition-all focus:border-[var(--clr-accent)] pr-12" 
             style={{ background: 'var(--clr-surface-secondary)', borderColor: 'var(--clr-border)', color: 'var(--clr-text)' }}
           >
-            {SEARCH_ENGINES.map(se => <option key={se.value} value={se.value}>{se.label}</option>)}
+            {SEARCH_ENGINES.map((se: any) => <option key={se.value} value={se.value}>{se.label}</option>)}
           </select>
           <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none opacity-40">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="6 9 12 15 18 9" /></svg>
@@ -128,7 +128,7 @@ export default function InterfaceSection({
             className="w-full px-5 py-4 rounded-2xl text-sm font-semibold border cursor-pointer appearance-none outline-none transition-all focus:border-[var(--clr-accent)] pr-12" 
             style={{ background: 'var(--clr-surface-secondary)', borderColor: 'var(--clr-border)', color: 'var(--clr-text)' }}
           >
-            {AI_SITES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+            {AI_SITES.map((s: any) => <option key={s.value} value={s.value}>{s.label}</option>)}
           </select>
           <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none opacity-40">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="6 9 12 15 18 9" /></svg>

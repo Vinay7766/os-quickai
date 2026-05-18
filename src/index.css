@@ -2,9 +2,8 @@
  * index.css — Global Styles & Design System for Quickno
  * ───────────────────────────────────────────────────────────────────────────── */
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
 
 /* ── Transparent Background Override ────────────────────────────────────────── */
 html,

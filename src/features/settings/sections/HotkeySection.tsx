@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+import { useState } from 'react';
+
 interface Props {
   hotkey: string;
   hotkeyStatus: string;
@@ -25,6 +27,8 @@ interface Props {
 export default function HotkeySection({
   hotkey, hotkeyStatus, updateHotkey, handleHotkeySave, setHotkeyStatus
 }: Props) {
+  const [isFocused, setIsFocused] = useState(false);
+
   const shortcuts = [
     { label: 'Submit query to internal AI', key: 'Enter' },
     { label: 'Open query in external AI site', key: 'Ctrl + Enter' },
@@ -45,12 +49,20 @@ export default function HotkeySection({
         <h3 className="text-[11px] font-bold uppercase tracking-widest opacity-40">Global Toggle Key</h3>
         <div className="flex items-center gap-6">
           <div 
-            className="flex-1 px-6 py-4 rounded-2xl border flex items-center justify-between transition-all cursor-pointer group"
+            className="flex-1 px-6 py-4 rounded-2xl border flex items-center justify-between transition-all cursor-pointer group outline-none"
             style={{ 
               background: 'rgba(0,0,0,0.2)', 
-              borderColor: hotkeyStatus === 'err' ? 'var(--clr-danger)' : 'var(--clr-border)' 
+              borderColor: hotkeyStatus === 'err' 
+                ? 'var(--clr-danger)' 
+                : isFocused 
+                  ? 'var(--clr-accent)' 
+                  : 'var(--clr-border)',
+              boxShadow: isFocused ? '0 0 0 2px rgba(var(--clr-accent-rgb), 0.2)' : 'none'
             }}
             tabIndex={0}
+            onClick={(e) => e.currentTarget.focus()}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
             onKeyDown={(e) => {
               e.preventDefault();
               setHotkeyStatus('saving');
@@ -65,7 +77,9 @@ export default function HotkeySection({
               setHotkeyStatus('idle');
             }}
           >
-            <span className="text-[10px] font-bold uppercase tracking-widest opacity-40">Click to Change:</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest opacity-40">
+              {isFocused ? 'Recording... Type Shortcut:' : 'Click to Change:'}
+            </span>
             <span className="text-sm font-bold text-[var(--clr-accent)] uppercase tracking-[0.2em]">{hotkey.replace(/\+/g, ' + ')}</span>
           </div>
           <button 

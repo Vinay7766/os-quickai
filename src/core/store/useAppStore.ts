@@ -12,15 +12,11 @@
 
 import { create } from 'zustand';
 import { queryLlm, getApiKey } from '../lib/tauriCommands';
-import { useSettingsStore, FREE_MODELS } from './useSettingsStore';
+import { useSettingsStore } from './useSettingsStore';
+import { FREE_MODELS } from '../constants';
 import { invoke } from '@tauri-apps/api/core';
 
-// ── Store Interface ──────────────────────────────────────────────────────────
-
-export interface AppInfo {
-  name: string;
-  appId: string;
-}
+import { AppInfo } from '../types';
 
 interface AppState {
   /** The current query text in the search input */
@@ -50,6 +46,9 @@ interface AppState {
   /** Whether the model switcher menu is currently open */
   isModelMenuOpen: boolean;
 
+  /** Whether the custom brand settings menu is currently open */
+  isBrandMenuOpen: boolean;
+
   /** Update the query text */
   setQuery: (q: string) => void;
 
@@ -61,6 +60,9 @@ interface AppState {
 
   /** Toggle model menu */
   setModelMenuOpen: (open: boolean) => void;
+
+  /** Toggle brand popover menu */
+  setBrandMenuOpen: (open: boolean) => void;
 
   /** URL for internal browser view */
   internalUrl: string | null;
@@ -157,6 +159,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   searchMode: 'search',
   isModeMenuOpen: false,
   isModelMenuOpen: false,
+  isBrandMenuOpen: false,
   internalUrl: null,
   installedApps: [],
   appSuggestions: [],
@@ -185,6 +188,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   setModeMenuOpen: (open: boolean) => set({ isModeMenuOpen: open }),
   setModelMenuOpen: (open: boolean) => set({ isModelMenuOpen: open }),
+  setBrandMenuOpen: (open: boolean) => set({ isBrandMenuOpen: open }),
   setInternalUrl: (url: string | null) => set({ internalUrl: url }),
   setActiveAppIndex: (index: number) => set({ activeAppIndex: index }),
 

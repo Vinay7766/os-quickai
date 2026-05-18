@@ -14,6 +14,7 @@ import { QueryInput } from '../../../shared/components/QueryInput';
 import { open } from '@tauri-apps/plugin-shell';
 import appLogo from '../../../assets/app-logo.png';
 import { searchInBrowser } from '../../../core/lib/tauriCommands';
+import { BrandMenuPopover } from './BrandMenuPopover';
 
 const SEARCH_BAR_HEIGHT = 52;
 
@@ -44,7 +45,7 @@ interface OverlayHeaderProps {
  * Handles the logo, search input, and quick action buttons.
  */
 export function OverlayHeader({ hasContent, isLoading, platform, handleDrag }: OverlayHeaderProps) {
-  const { query, setQuery } = useAppStore();
+  const { query, setQuery, isBrandMenuOpen, setBrandMenuOpen } = useAppStore();
   const { browser, llmSite, searchEngine, customSearchUrl } = useSettingsStore();
 
   const handleBrowserSearch = async () => {
@@ -97,7 +98,16 @@ export function OverlayHeader({ hasContent, isLoading, platform, handleDrag }: O
       style={{ height: `${SEARCH_BAR_HEIGHT}px`, marginBottom: hasContent ? '6px' : '0' }}
     >
       <div className="flex-1 flex items-center gap-3">
-        <img src={appLogo} alt="Logo" className="w-8 h-8 rounded-lg shadow-lg" />
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setBrandMenuOpen(!isBrandMenuOpen);
+          }}
+          className="w-8 h-8 rounded-lg shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center justify-center overflow-hidden shrink-0 outline-none select-none"
+          title="Quickno Menu"
+        >
+          <img src={appLogo} alt="Logo" className="w-full h-full object-cover" />
+        </button>
         <div className="h-4 w-[1px] bg-white/10" />
         <div className="flex-1 min-w-0">
           <QueryInput />
@@ -145,6 +155,9 @@ export function OverlayHeader({ hasContent, isLoading, platform, handleDrag }: O
           </button>
         )}
       </div>
+      {isBrandMenuOpen && (
+        <BrandMenuPopover onClose={() => setBrandMenuOpen(false)} />
+      )}
     </div>
   );
 }

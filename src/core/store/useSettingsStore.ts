@@ -41,17 +41,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { emit, listen } from '@tauri-apps/api/event';
 import { getSystemTheme } from '../lib/tauriCommands';
 
-// ── Free Model Identifiers ───────────────────────────────────────────────────
-export const FREE_MODELS = ['free-model'];
-
-// ── Store Interface ──────────────────────────────────────────────────────────
-
-export interface CustomProvider {
-  id: string;
-  name: string;
-  baseUrl: string;
-  apiKey: string;
-}
+import { CustomProvider } from '../types';
 
 interface SettingsState {
   settingsLoaded: boolean;
@@ -242,10 +232,10 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     }
   },
 
-  // ── Update Hotkey ──────────────────────────────────────────────────────
   updateHotkey: async (hk: string) => {
     set({ hotkey: hk });
     try {
+      await invoke('update_shortcut', { newShortcut: hk });
       await invoke('save_setting', { key: 'hotkey', value: hk });
     } catch (e) {
       console.error('[Settings] Failed to save hotkey:', e);

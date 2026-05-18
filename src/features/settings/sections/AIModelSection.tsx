@@ -16,7 +16,7 @@
 
 import { useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import { API_MODELS } from '../Settings';
+import { API_MODELS } from '../../../core/constants';
 import { factoryReset } from '../../../core/lib/tauriCommands';
 
 interface Props {
@@ -93,7 +93,7 @@ export default function AIModelSection({
                 style={{ background: 'rgba(0,0,0,0.4)' }}
               >
                 <option value="free-model" className="bg-[#1c1c1c] text-white">Free Model (No API Key Required)</option>
-                {API_MODELS.map(m => (
+                {API_MODELS.map((m: any) => (
                   <option key={m.value} value={m.value} className="bg-[#1c1c1c] text-white">
                     {m.label} (BYOK)
                   </option>
@@ -190,7 +190,7 @@ export default function AIModelSection({
                 className="w-full px-5 py-4 rounded-2xl text-[14px] font-bold text-white bg-black/40 border border-white/10 outline-none focus:border-[var(--clr-accent)] appearance-none cursor-pointer pr-10"
                 style={{ background: 'rgba(0,0,0,0.4)' }}
               >
-                {API_MODELS.map(m => (
+                {API_MODELS.map((m: any) => (
                   <option key={m.provider} value={m.provider} className="bg-[#1c1c1c] text-white">{m.label} Keys</option>
                 ))}
               </select>
@@ -203,7 +203,7 @@ export default function AIModelSection({
           </div>
 
           {(() => {
-            const m = API_MODELS.find(p => p.provider === selectedKeyProvider);
+            const m = API_MODELS.find((p: any) => p.provider === selectedKeyProvider);
             if (!m) return null;
             const isConfigured = storedKeys[m.provider];
             const isInputActive = activeKeyProvider === m.provider;
