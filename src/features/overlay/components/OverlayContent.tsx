@@ -14,7 +14,7 @@ import { open } from '@tauri-apps/plugin-shell';
 
 interface OverlayContentProps {
   handleDrag: () => void;
-  resultRef: React.RefObject<HTMLDivElement>;
+  resultRef: React.RefObject<HTMLDivElement | null>;
 }
 
 /**

@@ -21,7 +21,7 @@ interface UseWindowResizeProps {
   answer: string | null;
   error: string | null;
   isLoading: boolean;
-  resultRef: React.RefObject<HTMLDivElement>;
+  resultRef: React.RefObject<HTMLDivElement | null>;
   loadSettings: () => Promise<void>;
   refreshModels: () => Promise<void>;
   searchMode: string;
