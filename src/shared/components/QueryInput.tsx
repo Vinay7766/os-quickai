@@ -292,14 +292,6 @@ export function QueryInput() {
                   <div className="flex-1 flex flex-col min-w-0">
                     <span className="text-[13px] font-medium leading-tight truncate">{app.name}</span>
                   </div>
-                  {isActive && (
-                    <span 
-                      className="text-[9px] font-bold uppercase tracking-widest animate-pulse shrink-0"
-                      style={{ color: 'var(--clr-accent)' }}
-                    >
-                      Enter to Launch
-                    </span>
-                  )}
                 </button>
               );
             })}
