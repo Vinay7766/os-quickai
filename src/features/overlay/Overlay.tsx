@@ -54,9 +54,12 @@ export default function Overlay() {
     isLoading, resultRef, loadSettings, refreshModels, searchMode
   });
 
+  const loadInstalledApps = useAppStore((s) => s.loadInstalledApps);
+
   useEffect(() => {
     document.body.classList.add('overlay-window');
     setPlatform(type());
+    loadInstalledApps();
     return () => document.body.classList.remove('overlay-window');
   }, []);
 

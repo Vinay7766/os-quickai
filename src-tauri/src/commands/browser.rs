@@ -197,11 +197,156 @@ pub async fn check_browser_exists(browser: String) -> bool {
     }
 }
     
-/// Launches an application by its name.
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
+pub struct AppInfo {
+    pub name: String,
+    #[serde(rename = "appId")]
+    pub app_id: String,
+}
+
+#[derive(serde::Deserialize)]
+#[allow(non_snake_case)]
+struct AppInfoRaw {
+    Name: String,
+    #[serde(alias = "AppId", alias = "AppID")]
+    AppId: String,
+}
+
+/// Lists all installed applications on the system.
 #[tauri::command]
-pub async fn launch_app(name: String) -> Result<(), String> {
+pub async fn list_installed_apps() -> Result<Vec<AppInfo>, String> {
     #[cfg(target_os = "windows")]
     {
+        let ps_script = "Get-StartApps | Select-Object Name, AppId | ConvertTo-Json -Compress";
+
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
+        let output = Command::new("powershell")
+            .creation_flags(CREATE_NO_WINDOW)
+            .args(["-NoProfile", "-WindowStyle", "Hidden", "-Command", ps_script])
+            .output();
+
+        match output {
+            Ok(out) => {
+                let stdout = String::from_utf8_lossy(&out.stdout).trim().to_string();
+                if stdout.is_empty() {
+                    return Ok(Vec::new());
+                }
+                if stdout.starts_with('{') {
+                    if let Ok(item) = serde_json::from_str::<AppInfoRaw>(&stdout) {
+                        return Ok(vec![AppInfo {
+                            name: item.Name,
+                            app_id: item.AppId,
+                        }]);
+                    }
+                } else if stdout.starts_with('[') {
+                    if let Ok(items) = serde_json::from_str::<Vec<AppInfoRaw>>(&stdout) {
+                        return Ok(items.into_iter().map(|item| AppInfo {
+                            name: item.Name,
+                            app_id: item.AppId,
+                        }).collect());
+                    }
+                }
+                Ok(Vec::new())
+            }
+            Err(e) => Err(e.to_string()),
+        }
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        let search_dirs = [
+            "/Applications",
+            "/Applications/Utilities",
+            "/System/Applications",
+            "/System/Applications/Utilities",
+        ];
+        let mut apps = Vec::new();
+        for dir in search_dirs {
+            if let Ok(entries) = std::fs::read_dir(dir) {
+                for entry in entries.flatten() {
+                    let path = entry.path();
+                    if path.extension().map_or(false, |e| e == "app") {
+                        if let Some(name) = path.file_stem().and_then(|n| n.to_str()) {
+                            apps.push(AppInfo {
+                                name: name.to_string(),
+                                app_id: path.to_string_lossy().to_string(),
+                            });
+                        }
+                    }
+                }
+            }
+        }
+        Ok(apps)
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        let desktop_dirs = [
+            "/usr/share/applications",
+            "/usr/local/share/applications",
+        ];
+        let mut apps = Vec::new();
+        for dir in desktop_dirs {
+            if let Ok(entries) = std::fs::read_dir(dir) {
+                for entry in entries.flatten() {
+                    let path = entry.path();
+                    if path.extension().map_or(false, |e| e == "desktop") {
+                        if let Ok(content) = std::fs::read_to_string(&path) {
+                            let mut name_opt = None;
+                            for line in content.lines() {
+                                if line.starts_with("Name=") {
+                                    name_opt = Some(line[5..].trim().to_string());
+                                    break;
+                                }
+                            }
+                            if let Some(name) = name_opt {
+                                apps.push(AppInfo {
+                                    name,
+                                    app_id: path.to_string_lossy().to_string(),
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        Ok(apps)
+    }
+
+    #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
+    {
+        Ok(Vec::new())
+    }
+}
+
+/// Launches an application by its name or app_id.
+#[tauri::command]
+pub async fn launch_app(name: String, app_id: Option<String>) -> Result<(), String> {
+    #[cfg(target_os = "windows")]
+    {
+        if let Some(ref id) = app_id {
+            if !id.is_empty() {
+                let safe_id = id.replace("'", "''");
+                let ps_script = format!(
+                    r#"
+Start-Process "shell:AppsFolder\{}"
+exit 0
+"#,
+                    safe_id
+                );
+
+                const CREATE_NO_WINDOW: u32 = 0x08000000;
+                let status = Command::new("powershell")
+                    .creation_flags(CREATE_NO_WINDOW)
+                    .args(["-NoProfile", "-WindowStyle", "Hidden", "-Command", &ps_script])
+                    .status();
+
+                if let Ok(s) = status {
+                    if s.success() { return Ok(()); }
+                }
+            }
+        }
+
         let safe_name = name.replace("'", "''");
         let ps_script = format!(
             r#"

@@ -69,7 +69,61 @@ fn set_autostart(exe_path: &str) {
     }
 }
 
-#[cfg(not(target_os = "windows"))]
+#[cfg(target_os = "macos")]
+fn set_autostart(exe_path: &str) {
+    if let Some(home) = std::env::var_os("HOME") {
+        let plist_dir = std::path::Path::new(&home).join("Library").join("LaunchAgents");
+        let _ = std::fs::create_dir_all(&plist_dir);
+        let plist_path = plist_dir.join("com.quickno.app.plist");
+        
+        let plist_content = format!(
+            r#"<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.quickno.app</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>{}</string>
+        <string>--autostart</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+</dict>
+</plist>"#,
+            exe_path
+        );
+        let _ = std::fs::write(plist_path, plist_content);
+    }
+}
+
+#[cfg(target_os = "linux")]
+fn set_autostart(exe_path: &str) {
+    if let Some(home) = std::env::var_os("HOME") {
+        let autostart_dir = std::path::Path::new(&home).join(".config").join("autostart");
+        let _ = std::fs::create_dir_all(&autostart_dir);
+        let desktop_path = autostart_dir.join("quickno.desktop");
+
+        let desktop_content = format!(
+            r#"[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Quickno
+Comment=Quickno AI Desktop Assistant
+Exec="{}" --autostart
+Icon=quickno
+Terminal=false
+StartupNotify=false
+Categories=Utility;
+"#,
+            exe_path
+        );
+        let _ = std::fs::write(desktop_path, desktop_content);
+    }
+}
+
+#[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
 fn set_autostart(_exe_path: &str) {}
 
 /// Checks if this is the first time the app has been launched for this version.
@@ -156,6 +210,7 @@ fn main() {
             commands::window::update_shortcut,
             commands::browser::check_browser_exists,
             commands::browser::launch_app,
+            commands::browser::list_installed_apps,
             commands::llm::list_gemini_models,
             commands::llm::providers::list_provider_models,
             commands::llm::ollama::list_ollama_models,

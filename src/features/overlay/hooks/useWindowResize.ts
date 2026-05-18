@@ -10,6 +10,7 @@
 import { useEffect, useCallback } from 'react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { LogicalSize } from '@tauri-apps/api/dpi';
+import { useAppStore } from '../../../core/store/useAppStore';
 
 const SEARCH_BAR_HEIGHT = 52;
 
@@ -41,6 +42,8 @@ export function useWindowResize({
   refreshModels,
   searchMode
 }: UseWindowResizeProps) {
+  const appSuggestions = useAppStore((s) => s.appSuggestions);
+
   const resizeWindow = useCallback(async (h: number) => {
     try {
       const win = getCurrentWindow();
@@ -63,6 +66,10 @@ export function useWindowResize({
         resizeWindow(300);
       } else if (internalUrl) {
         resizeWindow(600);
+      } else if (searchMode === 'app' && appSuggestions.length > 0) {
+        // Dynamic expansion for suggestion panel
+        const listH = Math.min(appSuggestions.length * 48 + 16, 280);
+        resizeWindow(SEARCH_BAR_HEIGHT + listH);
       } else if (hasContent) {
         if (answer) {
           // Lock to a clean, fixed height when an AI answer is present
@@ -84,7 +91,7 @@ export function useWindowResize({
     trigger();
     const timers = [10, 50, 100, 200, 500, 1000].map(ms => setTimeout(trigger, ms));
     return () => timers.forEach(t => clearTimeout(t));
-  }, [hasContent, isMenuOpen, internalUrl, answer, error, isLoading, resizeWindow, resultRef]);
+  }, [hasContent, isMenuOpen, internalUrl, answer, error, isLoading, resizeWindow, resultRef, searchMode, appSuggestions]);
 
   useEffect(() => {
     loadSettings().then(() => refreshModels());

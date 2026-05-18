@@ -17,6 +17,11 @@ import { invoke } from '@tauri-apps/api/core';
 
 // ── Store Interface ──────────────────────────────────────────────────────────
 
+export interface AppInfo {
+  name: string;
+  appId: string;
+}
+
 interface AppState {
   /** The current query text in the search input */
   query: string;
@@ -68,6 +73,76 @@ interface AppState {
 
   /** Clear all query state (input, answer, error, internalUrl) */
   clearAnswer: () => void;
+
+  // ── App Launcher suggestions state ──────────────────────────────────────────
+  installedApps: AppInfo[];
+  appSuggestions: AppInfo[];
+  activeAppIndex: number;
+  loadInstalledApps: () => Promise<void>;
+  setActiveAppIndex: (index: number) => void;
+}
+
+// Helper to score app query matching (fuzzy, abbreviation/acronym, and substring)
+function getAppMatchScore(appName: string, query: string): number {
+  const name = appName.toLowerCase();
+  const q = query.toLowerCase().trim();
+  if (!q) return 0;
+
+  // 1. Exact match
+  if (name === q) return 1000;
+
+  // 2. Starts with / Prefix match
+  if (name.startsWith(q)) return 800 - (name.length - q.length);
+
+  // 3. Substring match
+  const idx = name.indexOf(q);
+  if (idx !== -1) return 600 - idx - (name.length - q.length);
+
+  // 4. Space-insensitive substring match
+  const nameNoSpace = name.replace(/\s+/g, '');
+  const qNoSpace = q.replace(/\s+/g, '');
+  if (nameNoSpace.includes(qNoSpace)) {
+    return 400 - (nameNoSpace.length - qNoSpace.length);
+  }
+
+  // 5. Acronym / First letter abbreviation match (e.g. "vs code" -> "Visual Studio Code")
+  const words = name.split(/[\s\-_]+/);
+  const initials = words.map(w => w[0]).join('');
+  if (initials.includes(qNoSpace)) {
+    return 300;
+  }
+  
+  let isAcronymWordMatch = true;
+  let currentWordIdx = 0;
+  const queryWords = q.split(/\s+/);
+  for (const qw of queryWords) {
+    let found = false;
+    for (let i = currentWordIdx; i < words.length; i++) {
+      if (words[i].startsWith(qw)) {
+        currentWordIdx = i + 1;
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      isAcronymWordMatch = false;
+      break;
+    }
+  }
+  if (isAcronymWordMatch) {
+    return 500;
+  }
+
+  // 6. Subsequence match
+  let qIdx = 0;
+  for (let i = 0; i < name.length; i++) {
+    if (name[i] === q[qIdx]) {
+      qIdx++;
+      if (qIdx === q.length) return 200;
+    }
+  }
+
+  return 0;
 }
 
 // ── Zustand Store ────────────────────────────────────────────────────────────
@@ -83,14 +158,46 @@ export const useAppStore = create<AppState>((set, get) => ({
   isModeMenuOpen: false,
   isModelMenuOpen: false,
   internalUrl: null,
+  installedApps: [],
+  appSuggestions: [],
+  activeAppIndex: 0,
 
-  setQuery: (q: string) => set({ query: q }),
-  setMode: (mode: 'search' | 'site' | 'app' | 'terminal') => set({ searchMode: mode }),
+  setQuery: (q: string) => {
+    set({ query: q });
+    const { searchMode, installedApps } = get();
+    if (searchMode === 'app') {
+      if (!q.trim()) {
+        set({ appSuggestions: [], activeAppIndex: 0 });
+        return;
+      }
+      const scored = installedApps
+        .map(app => ({ app, score: getAppMatchScore(app.name, q) }))
+        .filter(x => x.score > 0)
+        .sort((a, b) => b.score - a.score)
+        .map(x => x.app);
+      set({ appSuggestions: scored.slice(0, 5), activeAppIndex: 0 });
+    }
+  },
+
+  setMode: (mode: 'search' | 'site' | 'app' | 'terminal') => {
+    set({ searchMode: mode, appSuggestions: [], activeAppIndex: 0 });
+  },
+
   setModeMenuOpen: (open: boolean) => set({ isModeMenuOpen: open }),
   setModelMenuOpen: (open: boolean) => set({ isModelMenuOpen: open }),
   setInternalUrl: (url: string | null) => set({ internalUrl: url }),
+  setActiveAppIndex: (index: number) => set({ activeAppIndex: index }),
 
-  clearAnswer: () => set({ answer: '', query: '', error: null, internalUrl: null, isLoading: false }),
+  loadInstalledApps: async () => {
+    try {
+      const apps = await invoke<AppInfo[]>('list_installed_apps');
+      set({ installedApps: apps || [] });
+    } catch (e) {
+      console.error('Failed to load installed apps:', e);
+    }
+  },
+
+  clearAnswer: () => set({ answer: '', query: '', error: null, internalUrl: null, isLoading: false, appSuggestions: [], activeAppIndex: 0 }),
 
   submitQuery: async () => {
     const { query, answer, searchMode } = get();
@@ -122,8 +229,16 @@ export const useAppStore = create<AppState>((set, get) => ({
         if (!settings.enableAppLauncher) {
           throw new Error('App Launcher is disabled. Please turn it on in the Settings.');
         }
-        await invoke('launch_app', { name: query.trim() });
-        set({ isLoading: false, query: '' });
+        
+        const { appSuggestions, activeAppIndex } = get();
+        if (appSuggestions.length > 0 && activeAppIndex >= 0 && activeAppIndex < appSuggestions.length) {
+          const selected = appSuggestions[activeAppIndex];
+          await invoke('launch_app', { name: selected.name, appId: selected.appId });
+        } else {
+          await invoke('launch_app', { name: query.trim(), appId: null });
+        }
+        
+        set({ isLoading: false, query: '', appSuggestions: [], activeAppIndex: 0 });
         return;
       }
 

@@ -33,7 +33,8 @@ export function QueryInput() {
   const { 
     query, setQuery, submitQuery, isLoading, 
     searchMode, setMode, clearAnswer,
-    isModeMenuOpen, isModelMenuOpen, setModeMenuOpen, setModelMenuOpen
+    isModeMenuOpen, isModelMenuOpen, setModeMenuOpen, setModelMenuOpen,
+    appSuggestions, activeAppIndex, setActiveAppIndex
   } = useAppStore();
   const { llmModel, updateSetting, availableModels, enableTerminalMode } = useSettingsStore();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -81,6 +82,19 @@ export function QueryInput() {
 
   // ── Keyboard Shortcuts ─────────────────────────────────────────────────
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (searchMode === 'app' && appSuggestions.length > 0) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setActiveAppIndex((activeAppIndex + 1) % appSuggestions.length);
+        return;
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setActiveAppIndex((activeAppIndex - 1 + appSuggestions.length) % appSuggestions.length);
+        return;
+      }
+    }
+
     if (e.key === 'Enter') {
       if (e.ctrlKey) {
         e.preventDefault();
@@ -135,7 +149,7 @@ export function QueryInput() {
                            llmModel.includes('gpt') ? 'ChatGPT' : llmModel;
 
   return (
-    <div ref={containerRef} className="flex items-center w-full gap-2">
+    <div ref={containerRef} className="flex items-center w-full gap-2 relative">
       {/* Mode Switcher */}
       <div className="relative">
         <button
@@ -241,6 +255,55 @@ export function QueryInput() {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* App suggestions list dropdown */}
+      {searchMode === 'app' && appSuggestions.length > 0 && (
+        <div 
+          className="absolute top-full left-0 right-0 mt-3 glass rounded-2xl border border-white/10 shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200"
+          style={{
+            background: 'var(--clr-glass)',
+            backdropFilter: 'blur(20px)',
+          }}
+        >
+          <div className="p-1 flex flex-col gap-0.5 max-h-[280px] overflow-y-auto scrollbar-thin">
+            {appSuggestions.map((app, index) => {
+              const isActive = index === activeAppIndex;
+              return (
+                <button
+                  key={app.appId}
+                  className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-left text-xs font-semibold transition-all ${
+                    isActive 
+                      ? 'bg-white/15 text-white scale-[1.01] shadow-lg border-l-4 border-[var(--clr-accent)]' 
+                      : 'text-[var(--clr-text-secondary)] hover:bg-white/5 hover:text-white'
+                  }`}
+                  onClick={() => {
+                    setActiveAppIndex(index);
+                    submitQuery();
+                  }}
+                  onMouseEnter={() => setActiveAppIndex(index)}
+                >
+                  <div className={`w-6 h-6 rounded-lg flex items-center justify-center font-bold text-xs uppercase transition-all ${
+                    isActive ? 'bg-[var(--clr-accent)] text-black' : 'bg-white/5 text-[var(--clr-text-secondary)]'
+                  }`}>
+                    {app.name.charAt(0)}
+                  </div>
+                  <div className="flex-1 flex flex-col min-w-0">
+                    <span className="text-[13px] font-medium leading-tight truncate">{app.name}</span>
+                  </div>
+                  {isActive && (
+                    <span 
+                      className="text-[9px] font-bold uppercase tracking-widest animate-pulse shrink-0"
+                      style={{ color: 'var(--clr-accent)' }}
+                    >
+                      Enter to Launch
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>
