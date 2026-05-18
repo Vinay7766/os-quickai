@@ -39,6 +39,8 @@ export function BrandMenuPopover({ onClose }: BrandMenuPopoverProps) {
     hotkey,
     browser,
     searchEngine,
+    llmModel,
+    availableModels,
     updateSetting,
     updateHotkey,
   } = useSettingsStore();
@@ -81,7 +83,14 @@ export function BrandMenuPopover({ onClose }: BrandMenuPopoverProps) {
       )}
 
       {view === 'browser' && (
-        <BrowserPanel browser={browser} searchEngine={searchEngine} updateSetting={updateSetting} onBack={() => setView('main')} />
+        <BrowserPanel 
+          browser={browser} 
+          searchEngine={searchEngine} 
+          llmModel={llmModel}
+          availableModels={availableModels}
+          updateSetting={updateSetting} 
+          onBack={() => setView('main')} 
+        />
       )}
 
       {view === 'support' && (
