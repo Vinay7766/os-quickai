@@ -116,7 +116,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   openLinksInternal: true,
   customProviders: [],
   ollamaEnabled: false,
-  ollamaUrl: 'http://localhost:11434',
+  ollamaUrl: 'http://127.0.0.1:11434',
   availableModels: [],
   modelProviderMap: {},
 
@@ -148,7 +148,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       const customProviders: CustomProvider[] = JSON.parse(customProvidersRaw);
       
       const ollamaEnabled = (await invoke<string | null>('get_setting', { key: 'ollamaEnabled' })) === 'true';
-      const ollamaUrl = await invoke<string | null>('get_setting', { key: 'ollamaUrl' }) ?? 'http://localhost:11434';
+      const ollamaUrl = await invoke<string | null>('get_setting', { key: 'ollamaUrl' }) ?? 'http://127.0.0.1:11434';
 
       set({ 
         hotkey, llmModel, searchEngine, customSearchUrl, llmSite, browser, theme, 

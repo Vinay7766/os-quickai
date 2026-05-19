@@ -49,7 +49,7 @@ pub async fn query_llm(
     // ── Ollama Routing ──────────────────────────────────────────
     if model.starts_with("ollama:") {
         let actual_model = model.replace("ollama:", "");
-        let base_input = base_url.unwrap_or_else(|| "http://localhost:11434".to_string());
+        let base_input = base_url.unwrap_or_else(|| "http://127.0.0.1:11434".to_string());
         
         let mut url = base_input.clone();
         if !url.starts_with("http://") && !url.starts_with("https://") {
