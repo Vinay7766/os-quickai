@@ -53,6 +53,9 @@ pub(crate) static OVERLAY_OPEN: AtomicBool = AtomicBool::new(false);
 /// changes their shortcut preference.
 pub(crate) struct HotkeyState(pub Mutex<String>);
 
+/// Holds background indexed user files for fast system-wide search.
+pub struct FileIndexState(pub std::sync::RwLock<Vec<commands::browser::FileInfo>>);
+
 // ── Registry Helpers ─────────────────────────────────────────────────────────
 // These use the `winreg` crate to interact with the Windows registry directly,
 // avoiding any subprocess spawning (which would flash a terminal window).
@@ -128,27 +131,29 @@ fn set_autostart(_exe_path: &str) {}
 
 /// Checks if this is the first time the app has been launched for this version.
 #[cfg(target_os = "windows")]
-fn is_first_run() -> bool {
+fn is_first_run(version: &str) -> bool {
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+    let key_name = format!("v{}_installed", version.replace('.', "_"));
     hkcu.open_subkey(r"SOFTWARE\Quickno")
-        .and_then(|k| k.get_value::<String, _>("v1_0_0Installed"))
+        .and_then(|k| k.get_value::<String, _>(&key_name))
         .is_err()
 }
 
 #[cfg(not(target_os = "windows"))]
-fn is_first_run() -> bool { false }
+fn is_first_run(_version: &str) -> bool { false }
 
 /// Marks the app as "installed" for this version.
 #[cfg(target_os = "windows")]
-fn mark_installed() {
+fn mark_installed(version: &str) {
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+    let key_name = format!("v{}_installed", version.replace('.', "_"));
     if let Ok((key, _)) = hkcu.create_subkey(r"SOFTWARE\Quickno") {
-        let _ = key.set_value("v1_0_0Installed", &"1");
+        let _ = key.set_value(&key_name, &"1");
     }
 }
 
 #[cfg(not(target_os = "windows"))]
-fn mark_installed() {}
+fn mark_installed(_version: &str) {}
 
 // ── Overlay Toggle ───────────────────────────────────────────────────────────
 
@@ -193,6 +198,7 @@ fn main() {
         .plugin(tauri_plugin_os::init())
         // ── Managed State ────────────────────────────────────────────────
         .manage(HotkeyState(Mutex::new("alt+a".to_string())))
+        .manage(FileIndexState(std::sync::RwLock::new(Vec::new())))
         // ── Tauri Command Handlers ───────────────────────────────────────
         // These are the Rust functions that the frontend can call via `invoke()`.
         .invoke_handler(tauri::generate_handler![
@@ -211,6 +217,7 @@ fn main() {
             commands::browser::check_browser_exists,
             commands::browser::launch_app,
             commands::browser::list_installed_apps,
+            commands::browser::list_local_files,
             commands::llm::list_gemini_models,
             commands::llm::providers::list_provider_models,
             commands::llm::ollama::list_ollama_models,
@@ -218,6 +225,7 @@ fn main() {
             commands::llm::ollama::pull_ollama_model,
             commands::settings::factory_reset,
             commands::terminal::execute_terminal_command,
+            commands::automation::execute_desktop_command,
         ])
         .setup(move |app| {
             // ── Transparent overlay background ───────────────────────────
@@ -342,13 +350,33 @@ fn main() {
             // ── Show Main Window Logic ─────────────────────────
             // We only show the settings/welcome window on the very first run.
             // After that, the app starts silently in the tray.
-            if is_first_run() {
+            let version = app.package_info().version.to_string();
+            if is_first_run(&version) {
                 if let Some(s) = app.get_webview_window("settings") {
                     let _ = s.show();
                     let _ = s.set_focus();
-                    mark_installed();
+                    mark_installed(&version);
                 }
             }
+            // Spawn the low-priority background directory indexer thread
+            let app_handle = app.handle().clone();
+            std::thread::spawn(move || {
+                let root_dir = if cfg!(target_os = "windows") {
+                    "C:\\".to_string()
+                } else {
+                    "/".to_string()
+                };
+
+                let root_path = std::path::Path::new(&root_dir);
+                let mut indexed_files = Vec::new();
+                index_user_files_recursive(root_path, 1, &mut indexed_files);
+                
+                if let Some(state) = app_handle.try_state::<FileIndexState>() {
+                    if let Ok(mut writer) = state.0.write() {
+                        *writer = indexed_files;
+                    }
+                }
+            });
 
             Ok(())
         })
@@ -366,4 +394,50 @@ fn main() {
         })
         .run(tauri::generate_context!())
         .expect("tauri error");
+}
+
+fn index_user_files_recursive(dir: &std::path::Path, depth: usize, files: &mut Vec<commands::browser::FileInfo>) {
+    if depth > 6 { return; }
+    if let Ok(entries) = std::fs::read_dir(dir) {
+        for entry in entries.flatten() {
+            if let Ok(file_type) = entry.file_type() {
+                let path = entry.path();
+                let file_name = path.file_name().and_then(|n| n.to_str()).unwrap_or_default();
+                
+                // Exclude hidden folders, node_modules, AppData, etc.
+                if file_name.starts_with('.') || 
+                   file_name == "node_modules" || 
+                   file_name == "AppData" ||
+                   file_name == "Local Settings" ||
+                   file_name == "Application Data" ||
+                   file_name == "Cookies" ||
+                   file_name == "SendTo" ||
+                   file_name == "Templates" ||
+                   file_name == "PrintHood" ||
+                   file_name == "NetHood" ||
+                   file_name == "Recent" ||
+                   // Root Drive Exclusions
+                   file_name == "Windows" ||
+                   file_name == "Program Files" ||
+                   file_name == "Program Files (x86)" ||
+                   file_name == "ProgramData" ||
+                   file_name == "System Volume Information" ||
+                   file_name == "$Recycle.Bin" ||
+                   file_name == "Recovery" ||
+                   file_name == "Documents and Settings" ||
+                   file_name == "MSOCache" {
+                    continue;
+                }
+
+                if file_type.is_dir() {
+                    index_user_files_recursive(&path, depth + 1, files);
+                } else if file_type.is_file() {
+                    files.push(commands::browser::FileInfo {
+                        name: file_name.to_string(),
+                        path: path.to_string_lossy().to_string(),
+                    });
+                }
+            }
+        }
+    }
 }

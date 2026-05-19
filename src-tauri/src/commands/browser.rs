@@ -320,10 +320,126 @@ pub async fn list_installed_apps() -> Result<Vec<AppInfo>, String> {
     }
 }
 
+#[derive(serde::Serialize, Clone)]
+pub struct FileInfo {
+    pub name: String,
+    pub path: String,
+}
+
+fn scan_dir_recursive(dir: &std::path::Path, depth: usize, max_depth: usize, files: &mut Vec<FileInfo>) {
+    if depth > max_depth { return; }
+    if let Ok(entries) = std::fs::read_dir(dir) {
+        for entry in entries.flatten() {
+            if let Ok(file_type) = entry.file_type() {
+                let path = entry.path();
+                let file_name = path.file_name().and_then(|n| n.to_str()).unwrap_or_default();
+                
+                // Ignore hidden/system folders
+                if file_name.starts_with('.') || 
+                   file_name == "node_modules" || 
+                   file_name == "AppData" ||
+                   file_name == "Local Settings" ||
+                   file_name == "Application Data" {
+                    continue;
+                }
+
+                if file_type.is_dir() {
+                    scan_dir_recursive(&path, depth + 1, max_depth, files);
+                } else if file_type.is_file() {
+                    files.push(FileInfo {
+                        name: file_name.to_string(),
+                        path: path.to_string_lossy().to_string(),
+                    });
+                }
+            }
+        }
+    }
+}
+
+#[tauri::command]
+pub async fn list_local_files(
+    state: tauri::State<'_, crate::FileIndexState>
+) -> Result<Vec<FileInfo>, String> {
+    let mut priority_files = Vec::new();
+    
+    #[cfg(target_os = "windows")]
+    {
+        if let Ok(user_profile) = std::env::var("USERPROFILE") {
+            let profile_path = std::path::Path::new(&user_profile);
+            let dirs = ["Desktop", "Documents", "Downloads"];
+            for d in dirs {
+                let target_dir = profile_path.join(d);
+                scan_dir_recursive(&target_dir, 1, 2, &mut priority_files);
+            }
+        }
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        if let Ok(home) = std::env::var("HOME") {
+            let home_path = std::path::Path::new(&home);
+            let dirs = ["Desktop", "Documents", "Downloads"];
+            for d in dirs {
+                let target_dir = home_path.join(d);
+                scan_dir_recursive(&target_dir, 1, 2, &mut priority_files);
+            }
+        }
+    }
+
+    // Merge priority scanned files with lazy background-indexed files
+    let mut all_files = priority_files;
+    if let Ok(reader) = state.0.read() {
+        for f in reader.iter() {
+            // Avoid duplicating files already found in priority search
+            if !all_files.iter().any(|p| p.path == f.path) {
+                all_files.push(f.clone());
+            }
+        }
+    }
+
+    // Sort files alphabetically
+    all_files.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+    
+    // Limit to max 500 files to avoid frontend lag
+    if all_files.len() > 500 {
+        all_files.truncate(500);
+    }
+
+    Ok(all_files)
+}
+
 /// Launches an application by its name or app_id.
 #[tauri::command]
 #[allow(unused_variables)]
 pub async fn launch_app(name: String, app_id: Option<String>) -> Result<(), String> {
+    // Check if either app_id or name is a valid file or folder path
+    let path_to_open = if let Some(ref path) = app_id {
+        if path.starts_with("file://") || std::path::Path::new(path).exists() {
+            Some(path.clone())
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+
+    let path_to_open = path_to_open.or_else(|| {
+        if name.starts_with("file://") || std::path::Path::new(&name).exists() {
+            Some(name.clone())
+        } else {
+            None
+        }
+    });
+
+    if let Some(path) = path_to_open {
+        let clean_path = path.trim_start_matches("file://");
+        if open::that(clean_path).is_ok() {
+            return Ok(());
+        } else {
+            return Err(format!("Failed to open local path: {}", clean_path));
+        }
+    }
+
     #[cfg(target_os = "windows")]
     {
         if let Some(ref id) = app_id {

@@ -58,6 +58,13 @@ interface SettingsState {
   enableAppLauncher: boolean;
   enableTerminalMode: boolean;
   openLinksInternal: boolean;
+  enableLocalFileAccess: boolean;
+  
+  // Custom power command trigger lists
+  customLockCommand: string;
+  customSleepCommand: string;
+  customRestartCommand: string;
+  customShutdownCommand: string;
 
   // BYOK & Ollama
   customProviders: CustomProvider[];
@@ -114,11 +121,16 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   enableAppLauncher: true,
   enableTerminalMode: true,
   openLinksInternal: true,
+  enableLocalFileAccess: false,
   customProviders: [],
   ollamaEnabled: false,
   ollamaUrl: 'http://127.0.0.1:11434',
   availableModels: [],
   modelProviderMap: {},
+  customLockCommand: 'lock, lock pc, lock laptop, lock computer, lock my pc, lock my laptop, lock my computer',
+  customSleepCommand: 'sleep, sleep pc, sleep laptop, sleep computer, sleep my pc, sleep my laptop, sleep my computer, hibernate',
+  customRestartCommand: 'restart, reboot, restart pc, restart computer, reboot pc, reboot computer',
+  customShutdownCommand: 'shutdown, power off, turn off, turn off pc, turn off computer, power off pc, power off computer',
 
   // ── Load Settings from Disk ────────────────────────────────────────────
   loadSettings: async () => {
@@ -132,8 +144,17 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 
       const enableSiteLauncher = (await invoke<string | null>('get_setting', { key: 'enableSiteLauncher' })) !== 'false';
       const enableAppLauncher  = (await invoke<string | null>('get_setting', { key: 'enableAppLauncher' }))  !== 'false';
-      const enableTerminalMode = (await invoke<string | null>('get_setting', { key: 'enableTerminalMode' })) !== 'false';
       const openLinksInternal  = (await invoke<string | null>('get_setting', { key: 'openLinksInternal' }))  !== 'false';
+
+      let enableTerminalMode = false;
+      try {
+        const { type } = await import('@tauri-apps/plugin-os');
+        if (type() === 'linux') {
+          enableTerminalMode = (await invoke<string | null>('get_setting', { key: 'enableTerminalMode' })) !== 'false';
+        }
+      } catch (e) {
+        console.error('[Settings] failed to check OS type:', e);
+      }
 
       let theme = await invoke<'light' | 'dark' | 'system' | null>('get_setting', { key: 'theme' });
       if (!theme) {
@@ -150,10 +171,19 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       const ollamaEnabled = (await invoke<string | null>('get_setting', { key: 'ollamaEnabled' })) === 'true';
       const ollamaUrl = await invoke<string | null>('get_setting', { key: 'ollamaUrl' }) ?? 'http://127.0.0.1:11434';
 
+      const enableLocalFileAccess = (await invoke<string | null>('get_setting', { key: 'enableLocalFileAccess' })) === 'true';
+
+      const customLockCommand = await invoke<string | null>('get_setting', { key: 'customLockCommand' }) ?? 'lock, lock pc, lock laptop, lock computer, lock my pc, lock my laptop, lock my computer';
+      const customSleepCommand = await invoke<string | null>('get_setting', { key: 'customSleepCommand' }) ?? 'sleep, sleep pc, sleep laptop, sleep computer, sleep my pc, sleep my laptop, sleep my computer, hibernate';
+      const customRestartCommand = await invoke<string | null>('get_setting', { key: 'customRestartCommand' }) ?? 'restart, reboot, restart pc, restart computer, reboot pc, reboot computer';
+      const customShutdownCommand = await invoke<string | null>('get_setting', { key: 'customShutdownCommand' }) ?? 'shutdown, power off, turn off, turn off pc, turn off computer, power off pc, power off computer';
+
       set({ 
         hotkey, llmModel, searchEngine, customSearchUrl, llmSite, browser, theme, 
         enableSiteLauncher, enableAppLauncher, enableTerminalMode, openLinksInternal,
+        enableLocalFileAccess,
         customProviders, ollamaEnabled, ollamaUrl,
+        customLockCommand, customSleepCommand, customRestartCommand, customShutdownCommand,
         settingsLoaded: true 
       });
 
@@ -244,6 +274,19 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 
   // ── Update Any Setting ─────────────────────────────────────────────────
   updateSetting: async (key: string, val: string | boolean | string[] | CustomProvider[]) => {
+    if (key === 'enableTerminalMode') {
+      try {
+        const { type } = await import('@tauri-apps/plugin-os');
+        if (type() !== 'linux') {
+          set({ enableTerminalMode: false });
+          return;
+        }
+      } catch {
+        set({ enableTerminalMode: false });
+        return;
+      }
+    }
+
     // 1. Update local Zustand state immediately
     set({ [key]: val } as any);
 

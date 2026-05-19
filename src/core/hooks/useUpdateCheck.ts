@@ -16,10 +16,26 @@ export function useUpdateCheck() {
         if (!response.ok) return;
         
         const data = await response.json();
-        const latestVersion = data.tag_name.replace('v', '');
+        const latestVersion = data.tag_name.replace('v', '').trim();
 
-        // Simple semver check (works for major.minor.patch)
-        if (latestVersion !== currentVersion) {
+        // Strict SemVer check: only trigger update if latest version is strictly greater
+        const latestParts = latestVersion.split('.').map(Number);
+        const currentParts = currentVersion.split('.').map(Number);
+        let isNewer = false;
+        
+        for (let i = 0; i < Math.max(latestParts.length, currentParts.length); i++) {
+          const l = latestParts[i] || 0;
+          const c = currentParts[i] || 0;
+          if (l > c) {
+            isNewer = true;
+            break;
+          }
+          if (l < c) {
+            break;
+          }
+        }
+
+        if (isNewer) {
             setUpdateAvailable(latestVersion);
         }
       } catch (err) {

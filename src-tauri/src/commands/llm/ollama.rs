@@ -12,6 +12,15 @@ use reqwest::Client;
 use serde_json::{json, Value};
 use crate::error::AppError;
 
+fn normalize_url(url: &str) -> String {
+    let trimmed = url.trim();
+    if trimmed.starts_with("http://") || trimmed.starts_with("https://") {
+        trimmed.to_string()
+    } else {
+        format!("http://{}", trimmed)
+    }
+}
+
 #[tauri::command]
 pub async fn list_ollama_models(url: String) -> Result<Vec<String>, AppError> {
     let client = Client::builder()
@@ -19,7 +28,8 @@ pub async fn list_ollama_models(url: String) -> Result<Vec<String>, AppError> {
         .no_proxy()
         .build()
         .unwrap();
-    let tags_url = format!("{}/api/tags", url.trim_end_matches('/'));
+    let final_url = normalize_url(&url);
+    let tags_url = format!("{}/api/tags", final_url.trim_end_matches('/'));
     
     let response = client
         .get(tags_url)
@@ -51,7 +61,8 @@ pub async fn pull_ollama_model(url: String, name: String) -> Result<(), AppError
         .no_proxy()
         .build()
         .unwrap();
-    let pull_url = format!("{}/api/pull", url.trim_end_matches('/'));
+    let final_url = normalize_url(&url);
+    let pull_url = format!("{}/api/pull", final_url.trim_end_matches('/'));
     
     let response = client
         .post(pull_url)

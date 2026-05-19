@@ -33,7 +33,7 @@ import { useSettingsStore } from '../../core/store/useSettingsStore';
 import 'highlight.js/styles/github-dark.css';
 
 export function ResultPanel() {
-  const { answer, isLoading, error } = useAppStore();
+  const { answer, isLoading, error, pendingCommand, confirmCommand, cancelCommand } = useAppStore();
   const { llmModel } = useSettingsStore();
 
   const handleLinkClick = async (e: MouseEvent<HTMLAnchorElement>, url: string) => {
@@ -102,6 +102,24 @@ export function ResultPanel() {
               {answer}
             </ReactMarkdown>
           </div>
+
+          {pendingCommand && (
+            <div className="mt-6 flex items-center gap-4 animate-fade-in">
+              <button 
+                onClick={confirmCommand}
+                className="px-5 py-2.5 rounded-xl text-xs font-bold bg-red-600 hover:bg-red-700 text-white transition-all cursor-pointer shadow-lg"
+              >
+                Proceed anyway
+              </button>
+              <button 
+                onClick={cancelCommand}
+                className="px-5 py-2.5 rounded-xl text-xs font-bold border hover:bg-white/5 transition-all cursor-pointer"
+                style={{ borderColor: 'var(--clr-border)', color: 'var(--clr-text)' }}
+              >
+                Cancel
+              </button>
+            </div>
+          )}
 
           <div
             className="mt-5 pt-3 border-t flex items-center gap-2 opacity-50"

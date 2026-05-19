@@ -40,6 +40,12 @@ interface OverlayHeaderProps {
   handleDrag: () => void;
 }
 
+function isURL(str: string): boolean {
+  const trimmed = str.trim();
+  if (trimmed.includes(' ')) return false;
+  return /^(https?:\/\/)?(www\.)?[a-zA-Z0-9][-a-zA-Z0-9]{0,62}(\.[a-zA-Z0-9][-a-zA-Z0-9]{0,62})+\/?/.test(trimmed);
+}
+
 /**
  * Header component for the search overlay.
  * Handles the logo, search input, and quick action buttons.
@@ -49,7 +55,22 @@ export function OverlayHeader({ hasContent, isLoading, platform, handleDrag }: O
   const { browser, llmSite, searchEngine, customSearchUrl } = useSettingsStore();
 
   const handleBrowserSearch = async () => {
-    if (!query.trim()) return;
+    const trimmed = query.trim();
+    if (!trimmed) return;
+    
+    // Direct URL navigation check
+    if (isURL(trimmed)) {
+      let finalUrl = trimmed;
+      if (!/^https?:\/\//i.test(finalUrl)) {
+        finalUrl = 'https://' + finalUrl;
+      }
+      try {
+        if (browser === 'default' || !browser) { await open(finalUrl); }
+        else { await searchInBrowser(browser, finalUrl); }
+        setQuery('');
+        return;
+      } catch (e) { alert(String(e)); }
+    }
     
     let searchUrl = '';
     const encodedQuery = encodeURIComponent(query);
@@ -124,6 +145,7 @@ export function OverlayHeader({ hasContent, isLoading, platform, handleDrag }: O
 
       <div className="flex items-center gap-1.5 shrink-0">
         <button
+          id="web-btn"
           className="w-8 h-8 rounded-full flex items-center justify-center transition-all hover:bg-green-500/20 active:scale-95"
           style={{ color: 'var(--clr-success)', border: '1px solid rgba(34, 197, 94, 0.2)' }}
           onClick={handleBrowserSearch}
@@ -133,6 +155,7 @@ export function OverlayHeader({ hasContent, isLoading, platform, handleDrag }: O
         </button>
 
         <button
+          id="ai-btn"
           className="w-8 h-8 rounded-full flex items-center justify-center transition-all hover:bg-blue-500/20 active:scale-95"
           style={{ color: 'var(--clr-accent)', border: '1px solid rgba(59, 130, 246, 0.2)' }}
           onClick={handleAIOpen}

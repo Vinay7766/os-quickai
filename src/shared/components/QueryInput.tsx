@@ -82,7 +82,7 @@ export function QueryInput() {
 
   // ── Keyboard Shortcuts ─────────────────────────────────────────────────
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (searchMode === 'app' && appSuggestions.length > 0) {
+    if (appSuggestions.length > 0) {
       if (e.key === 'ArrowDown') {
         e.preventDefault();
         setActiveAppIndex((activeAppIndex + 1) % appSuggestions.length);
@@ -259,7 +259,7 @@ export function QueryInput() {
       )}
 
       {/* App suggestions list dropdown */}
-      {searchMode === 'app' && appSuggestions.length > 0 && (
+      {appSuggestions.length > 0 && (
         <div 
           className="absolute top-full left-0 right-0 mt-3 glass rounded-2xl border border-white/10 shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200"
           style={{
@@ -270,10 +270,12 @@ export function QueryInput() {
           <div className="p-1 flex flex-col gap-0.5 max-h-[280px] overflow-y-auto scrollbar-thin">
             {appSuggestions.map((app, index) => {
               const isActive = index === activeAppIndex;
+              const isFile = app.appId.startsWith('file://');
+              const cleanPath = isFile ? app.appId.replace('file://', '') : '';
               return (
                 <button
                   key={app.appId}
-                  className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-left text-xs font-semibold transition-all ${
+                  className={`w-full flex items-center gap-3 px-3.5 py-2 rounded-xl text-left text-xs font-semibold transition-all ${
                     isActive 
                       ? 'bg-white/15 text-white scale-[1.01] shadow-lg border-l-4 border-[var(--clr-accent)]' 
                       : 'text-[var(--clr-text-secondary)] hover:bg-white/5 hover:text-white'
@@ -287,10 +289,15 @@ export function QueryInput() {
                   <div className={`w-6 h-6 rounded-lg flex items-center justify-center font-bold text-xs uppercase transition-all ${
                     isActive ? 'bg-[var(--clr-accent)] text-black' : 'bg-white/5 text-[var(--clr-text-secondary)]'
                   }`}>
-                    {app.name.charAt(0)}
+                    {isFile ? '📄' : app.name.charAt(0)}
                   </div>
                   <div className="flex-1 flex flex-col min-w-0">
                     <span className="text-[13px] font-medium leading-tight truncate">{app.name}</span>
+                    {isFile && (
+                      <span className="text-[10px] opacity-40 leading-none truncate mt-0.5">
+                        {cleanPath}
+                      </span>
+                    )}
                   </div>
                 </button>
               );

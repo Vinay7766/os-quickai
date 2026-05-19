@@ -43,6 +43,13 @@ interface AppState {
   /** Whether the mode switcher menu is currently open */
   isModeMenuOpen: boolean;
 
+  /** Safety command gating */
+  pendingCommand: string | null;
+  pendingMode: 'search' | 'site' | 'app' | 'terminal' | null;
+  isConfirmed: boolean;
+  confirmCommand: () => Promise<void>;
+  cancelCommand: () => void;
+
   /** Whether the model switcher menu is currently open */
   isModelMenuOpen: boolean;
 
@@ -113,7 +120,7 @@ function getAppMatchScore(appName: string, query: string): number {
   if (initials.includes(qNoSpace)) {
     return 300;
   }
-  
+
   let isAcronymWordMatch = true;
   let currentWordIdx = 0;
   const queryWords = q.split(/\s+/);
@@ -164,21 +171,41 @@ export const useAppStore = create<AppState>((set, get) => ({
   installedApps: [],
   appSuggestions: [],
   activeAppIndex: 0,
+  pendingCommand: null,
+  pendingMode: null,
+  isConfirmed: false,
 
   setQuery: (q: string) => {
     set({ query: q });
     const { searchMode, installedApps } = get();
-    if (searchMode === 'app') {
-      if (!q.trim()) {
-        set({ appSuggestions: [], activeAppIndex: 0 });
-        return;
+
+    const trimmed = q.trim();
+    const isAppMode = searchMode === 'app';
+    const isSearchMode = searchMode === 'search';
+
+    let appQuery = '';
+    if (isAppMode) {
+      appQuery = trimmed;
+    } else if (isSearchMode) {
+      const qLower = trimmed.toLowerCase();
+      if (qLower.startsWith('open ')) {
+        appQuery = trimmed.substring(5).trim();
+      } else if (qLower.startsWith('run ')) {
+        appQuery = trimmed.substring(4).trim();
+      } else if (qLower.startsWith('launch ')) {
+        appQuery = trimmed.substring(7).trim();
       }
+    }
+
+    if (appQuery) {
       const scored = installedApps
-        .map(app => ({ app, score: getAppMatchScore(app.name, q) }))
+        .map(app => ({ app, score: getAppMatchScore(app.name, appQuery) }))
         .filter(x => x.score > 0)
         .sort((a, b) => b.score - a.score)
         .map(x => x.app);
       set({ appSuggestions: scored.slice(0, 5), activeAppIndex: 0 });
+    } else {
+      set({ appSuggestions: [], activeAppIndex: 0 });
     }
   },
 
@@ -195,25 +222,203 @@ export const useAppStore = create<AppState>((set, get) => ({
   loadInstalledApps: async () => {
     try {
       const apps = await invoke<AppInfo[]>('list_installed_apps');
-      set({ installedApps: apps || [] });
+      const settings = useSettingsStore.getState();
+      
+      if (settings.enableLocalFileAccess) {
+        try {
+          const files = await invoke<{ name: string; path: string }[]>('list_local_files');
+          const fileApps: AppInfo[] = files.map(f => ({
+            name: f.name,
+            appId: `file://${f.path}`
+          }));
+          set({ installedApps: [...(apps || []), ...fileApps] });
+        } catch (e) {
+          console.error('Failed to load local files:', e);
+          set({ installedApps: apps || [] });
+        }
+      } else {
+        set({ installedApps: apps || [] });
+      }
     } catch (e) {
       console.error('Failed to load installed apps:', e);
     }
   },
 
-  clearAnswer: () => set({ answer: '', query: '', error: null, internalUrl: null, isLoading: false, appSuggestions: [], activeAppIndex: 0 }),
+  clearAnswer: () => set({ answer: '', query: '', error: null, internalUrl: null, isLoading: false, appSuggestions: [], activeAppIndex: 0, pendingCommand: null, pendingMode: null, isConfirmed: false }),
+
+  confirmCommand: async () => {
+    const { pendingCommand, pendingMode } = get();
+    if (!pendingCommand) return;
+    set({ isConfirmed: true, query: pendingCommand, searchMode: pendingMode || 'search', pendingCommand: null, pendingMode: null });
+    await get().submitQuery();
+  },
+
+  cancelCommand: () => {
+    set({ pendingCommand: null, pendingMode: null, isConfirmed: false, answer: '', isLoading: false, query: '' });
+  },
 
   submitQuery: async () => {
-    const { query, answer, searchMode } = get();
+    const { query, answer, searchMode, isConfirmed } = get();
     const settings = useSettingsStore.getState();
 
     // Don't submit empty queries
     if (!query.trim()) return;
 
+    // Detect potentially dangerous system commands
+    const trimmedQuery = query.trim();
+    const qLower = trimmedQuery.toLowerCase();
+    let isDangerous = false;
+    let dangerReason = '';
+
+    if (searchMode === 'terminal') {
+      const dangerousTerms = ['rm ', 'del ', 'rd ', 'format ', 'mkfs', 'dd ', 'shutdown', 'reboot', 'restart'];
+      for (const term of dangerousTerms) {
+        if (qLower.includes(term)) {
+          isDangerous = true;
+          dangerReason = `destructive terminal command: "${term.trim()}"`;
+          break;
+        }
+      }
+    } else {
+      // File deletions
+      if (qLower.startsWith('delete ') || qLower.startsWith('remove ')) {
+        isDangerous = true;
+        dangerReason = 'irreversible file or folder deletion';
+      }
+      
+      // Power commands (Restart/Shutdown)
+      const matchesTrigger = (triggersCsv: string, input: string) => {
+        for (const trigger of triggersCsv.split(',')) {
+          const t = trigger.trim().toLowerCase();
+          if (t && (input === t || input.startsWith(t + ' ') || input.endsWith(' ' + t))) {
+            return true;
+          }
+        }
+        return false;
+      };
+
+      if (matchesTrigger(settings.customRestartCommand, qLower)) {
+        isDangerous = true;
+        dangerReason = 'system restart';
+      } else if (matchesTrigger(settings.customShutdownCommand, qLower)) {
+        isDangerous = true;
+        dangerReason = 'system shutdown';
+      }
+    }
+
+    if (isDangerous && !isConfirmed) {
+      set({ 
+        pendingCommand: trimmedQuery,
+        pendingMode: searchMode,
+        answer: `WARNING: The command you entered is potentially dangerous or destructive (${dangerReason}).\n\nDo you want to proceed with executing: \`${trimmedQuery}\`?`,
+        isLoading: false,
+        error: null 
+      });
+      return;
+    }
+
+    // Reset confirmation flag
+    set({ isConfirmed: false });
+
     // Save history
     set({ prevQuery: query, prevAnswer: answer, isLoading: true, error: null, answer: '' });
 
     try {
+      // ── Intercept Native Desktop Automation Commands ──
+      try {
+        const desktopResult = await invoke<string>('execute_desktop_command', { command: query.trim() });
+        set({ answer: desktopResult, isLoading: false, error: null });
+        return;
+      } catch (err: any) {
+        if (err !== 'Not a recognized desktop command') {
+          throw new Error(err);
+        }
+      }
+
+      // ── Intercept "open <app>" or "run <app>" in Regular Search mode ──
+      if (searchMode === 'search') {
+        const trimmed = query.trim();
+        const qLower = trimmed.toLowerCase();
+        let targetApp = '';
+        if (qLower.startsWith('open ')) {
+          targetApp = trimmed.substring(5).trim();
+        } else if (qLower.startsWith('run ')) {
+          targetApp = trimmed.substring(4).trim();
+        } else if (qLower.startsWith('launch ')) {
+          targetApp = trimmed.substring(7).trim();
+        }
+
+        if (targetApp) {
+          const trimmedApp = targetApp.trim();
+          const mainPart = trimmedApp.split(/\s+in\s+/i)[0].trim();
+          
+          const isURL = (str: string): boolean => {
+            const t = str.trim();
+            if (t.includes(' ')) return false;
+            return /^(https?:\/\/)?(www\.)?[a-zA-Z0-9][-a-zA-Z0-9]{0,62}(\.[a-zA-Z0-9][-a-zA-Z0-9]{0,62})+\/?/.test(t);
+          };
+
+          if (isURL(mainPart)) {
+            let targetBrowser = '';
+            let urlToOpen = trimmedApp;
+            const parts = trimmedApp.split(/\s+in\s+/i);
+            if (parts.length > 1) {
+              const potentialBrowser = parts[parts.length - 1].toLowerCase().trim();
+              if (['chrome', 'firefox', 'brave', 'edge', 'bing', 'opera', 'safari', 'comet'].includes(potentialBrowser)) {
+                targetBrowser = potentialBrowser === 'edge' ? 'bing' : potentialBrowser;
+                urlToOpen = parts.slice(0, -1).join(' in ').trim();
+              }
+            }
+
+            let finalUrl = urlToOpen;
+            if (!/^https?:\/\//i.test(finalUrl)) {
+              finalUrl = 'https://' + finalUrl;
+            }
+
+            const { useSettingsStore } = await import('./useSettingsStore');
+            const { browser } = useSettingsStore.getState();
+
+            try {
+              if (targetBrowser) {
+                const exists = await invoke<boolean>('check_browser_exists', { browser: targetBrowser });
+                if (exists) {
+                  await invoke('search_in_browser', { browser: targetBrowser, url: finalUrl });
+                } else {
+                  if (browser === 'default' || !browser) {
+                    const { open } = await import('@tauri-apps/plugin-shell');
+                    await open(finalUrl);
+                  } else {
+                    await invoke('search_in_browser', { browser, url: finalUrl });
+                  }
+                }
+              } else {
+                if (browser === 'default' || !browser) {
+                  const { open } = await import('@tauri-apps/plugin-shell');
+                  await open(finalUrl);
+                } else {
+                  await invoke('search_in_browser', { browser, url: finalUrl });
+                }
+              }
+            } catch (e) {
+              console.error('Failed to open link:', e);
+            }
+
+            set({ isLoading: false, query: '', appSuggestions: [], activeAppIndex: 0 });
+            return;
+          }
+
+          const { appSuggestions, activeAppIndex } = get();
+          if (appSuggestions.length > 0 && activeAppIndex >= 0 && activeAppIndex < appSuggestions.length) {
+            const selected = appSuggestions[activeAppIndex];
+            await invoke('launch_app', { name: selected.name, appId: selected.appId });
+          } else {
+            await invoke('launch_app', { name: targetApp, appId: null });
+          }
+          set({ isLoading: false, query: '', appSuggestions: [], activeAppIndex: 0 });
+          return;
+        }
+      }
+
       // ── Mode: Site Launcher ──────────────────────────────────────────
       if (searchMode === 'site') {
         if (!settings.enableSiteLauncher) {
@@ -223,7 +428,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         if (!url.startsWith('http')) {
           url = `https://${url}`;
         }
-        
+
         set({ internalUrl: url, isLoading: false, query: '' });
         return;
       }
@@ -233,7 +438,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         if (!settings.enableAppLauncher) {
           throw new Error('App Launcher is disabled. Please turn it on in the Settings.');
         }
-        
+
         const { appSuggestions, activeAppIndex } = get();
         if (appSuggestions.length > 0 && activeAppIndex >= 0 && activeAppIndex < appSuggestions.length) {
           const selected = appSuggestions[activeAppIndex];
@@ -241,7 +446,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         } else {
           await invoke('launch_app', { name: query.trim(), appId: null });
         }
-        
+
         set({ isLoading: false, query: '', appSuggestions: [], activeAppIndex: 0 });
         return;
       }
@@ -265,10 +470,10 @@ export const useAppStore = create<AppState>((set, get) => ({
       if (!isFree) {
         // Identify the provider for the selected model
         const provider = llmModel.includes('gemini') ? 'gemini' :
-                         llmModel.includes('gpt')    ? 'openai' :
-                         llmModel.includes('grok')   ? 'grok'   :
-                         llmModel.includes('claude') ? 'claude' : 'openai';
-        
+          llmModel.includes('gpt') ? 'openai' :
+            llmModel.includes('grok') ? 'grok' :
+              llmModel.includes('claude') ? 'claude' : 'openai';
+
         apiKey = (await getApiKey(provider)) || '';
         if (!apiKey) {
           throw new Error(`API Key for ${provider.toUpperCase()} not found. Please add it in Settings.`);
@@ -278,10 +483,10 @@ export const useAppStore = create<AppState>((set, get) => ({
       // Send the query to the Rust backend
       const mapping = settings.modelProviderMap[llmModel];
       const answer = await queryLlm(
-        query, 
-        llmModel, 
-        apiKey || '', 
-        mapping?.provider, 
+        query,
+        llmModel,
+        apiKey || '',
+        mapping?.provider,
         mapping?.baseUrl
       );
       set({ answer, isLoading: false, error: null });
@@ -291,3 +496,17 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   },
 }));
+
+// Subscribe to settings changes to refresh installed apps and files
+import { listen } from '@tauri-apps/api/event';
+
+listen('settings-updated', (event: any) => {
+  try {
+    const payload = event?.payload;
+    if (payload && (payload.key === 'enableLocalFileAccess' || payload.key === 'all')) {
+      useAppStore.getState().loadInstalledApps();
+    }
+  } catch (err) {
+    console.error('Failed to update installed apps on settings event:', err);
+  }
+}).catch(err => console.error('Failed to listen to settings updates in app store:', err));

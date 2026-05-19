@@ -9,12 +9,14 @@
  */
 import { useEffect } from 'react';
 import { useAppStore } from '../../../core/store/useAppStore';
+import { useSettingsStore } from '../../../core/store/useSettingsStore';
 
 /**
  * Hook to manage global keyboard shortcuts for the search overlay.
  */
 export function useOverlayShortcuts() {
   const { clearAnswer, prevAnswer, prevQuery, setMode } = useAppStore();
+  const { enableTerminalMode } = useSettingsStore();
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -30,10 +32,10 @@ export function useOverlayShortcuts() {
       if (e.ctrlKey && e.key === '1') { e.preventDefault(); setMode('search'); return; }
       if (e.ctrlKey && e.key === '2') { e.preventDefault(); setMode('site'); return; }
       if (e.ctrlKey && e.key === '3') { e.preventDefault(); setMode('app'); return; }
-      if (e.ctrlKey && e.key === '4') { e.preventDefault(); setMode('terminal'); return; }
+      if (e.ctrlKey && e.key === '4' && enableTerminalMode) { e.preventDefault(); setMode('terminal'); return; }
     };
 
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [clearAnswer, prevAnswer, prevQuery, setMode]);
+  }, [clearAnswer, prevAnswer, prevQuery, setMode, enableTerminalMode]);
 }

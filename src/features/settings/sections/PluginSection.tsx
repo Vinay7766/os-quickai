@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/core';
+import { type } from '@tauri-apps/plugin-os';
 
 interface Props {
   ollamaEnabled: boolean;
@@ -31,6 +32,15 @@ export default function PluginSection({
   const [ollamaPullInput, setOllamaPullInput] = useState('');
   const [isPulling, setIsPulling] = useState(false);
   const [pullError, setPullError] = useState<string | null>(null);
+  const [osName, setOsName] = useState<string>('');
+
+  useEffect(() => {
+    try {
+      setOsName(type());
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
 
   // Mocked installed models to match screenshot visual
   const installedModels = [
@@ -74,13 +84,15 @@ export default function PluginSection({
       </div>
 
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <h3 className="text-[11px] font-bold uppercase tracking-widest opacity-40">Terminal Mode</h3>
-            <p className="text-[10px] opacity-40">Enable system command execution (Ctrl + 4)</p>
+        {osName === 'linux' && (
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <h3 className="text-[11px] font-bold uppercase tracking-widest opacity-40">Terminal Mode</h3>
+              <p className="text-[10px] opacity-40">Enable system command execution (Ctrl + 4)</p>
+            </div>
+            <button onClick={() => updateSetting('enableTerminalMode', !enableTerminalMode)} className={`w-11 h-6 rounded-full transition-all relative ${enableTerminalMode ? 'bg-[var(--clr-accent)]' : 'bg-gray-600'}`}><div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${enableTerminalMode ? 'right-1' : 'left-1'}`} /></button>
           </div>
-          <button onClick={() => updateSetting('enableTerminalMode', !enableTerminalMode)} className={`w-11 h-6 rounded-full transition-all relative ${enableTerminalMode ? 'bg-[var(--clr-accent)]' : 'bg-gray-600'}`}><div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${enableTerminalMode ? 'right-1' : 'left-1'}`} /></button>
-        </div>
+        )}
 
         <div className="flex items-center justify-between">
           <h3 className="text-[11px] font-bold uppercase tracking-widest opacity-40">Local AI (Ollama)</h3>

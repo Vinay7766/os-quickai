@@ -66,7 +66,7 @@ export function useWindowResize({
         resizeWindow(300);
       } else if (internalUrl) {
         resizeWindow(600);
-      } else if (searchMode === 'app' && appSuggestions.length > 0) {
+      } else if (appSuggestions.length > 0) {
         // Dynamic expansion for suggestion panel
         const listH = Math.min(appSuggestions.length * 48 + 16, 280);
         resizeWindow(SEARCH_BAR_HEIGHT + listH);
