@@ -5,15 +5,18 @@
 // of Quickno is available on GitHub. Clicking it opens the releases page.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { open } from '@tauri-apps/plugin-shell';
-
 interface UpdateBannerProps {
   version: string;
 }
 
 export function UpdateBanner({ version }: UpdateBannerProps) {
   const handleDownload = async () => {
-    await open('https://github.com/Vinay7766/quickno/releases/latest');
+    try {
+      const { open } = await import('@tauri-apps/plugin-shell');
+      await open('https://github.com/Vinay7766/quickno/releases/latest');
+    } catch {
+      // ignore
+    }
   };
 
   return (

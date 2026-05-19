@@ -24,7 +24,7 @@
 //   • Shows which AI model generated the response
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { useState } from 'react';
+import { useState, MouseEvent, ReactNode } from 'react';
 import ReactMarkdown from 'react-markdown';
 import rehypeHighlight from 'rehype-highlight';
 import remarkGfm from 'remark-gfm';
@@ -36,7 +36,7 @@ export function ResultPanel() {
   const { answer, isLoading, error } = useAppStore();
   const { llmModel } = useSettingsStore();
 
-  const handleLinkClick = async (e: React.MouseEvent<HTMLAnchorElement>, url: string) => {
+  const handleLinkClick = async (e: MouseEvent<HTMLAnchorElement>, url: string) => {
     e.preventDefault();
     
     // Ctrl+Click always opens in system browser
@@ -88,10 +88,10 @@ export function ResultPanel() {
               remarkPlugins={[remarkGfm]} 
               rehypePlugins={[rehypeHighlight]}
               components={{
-                a: ({ href, children }) => (
+                a: ({ href, children }: { href?: string; children?: ReactNode }) => (
                   <a 
                     href={href} 
-                    onClick={(e) => handleLinkClick(e, href || '')}
+                    onClick={(e: MouseEvent<HTMLAnchorElement>) => handleLinkClick(e, href || '')}
                     className="text-[var(--clr-accent)] hover:underline font-bold"
                   >
                     {children}
