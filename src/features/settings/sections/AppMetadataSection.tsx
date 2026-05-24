@@ -14,11 +14,20 @@
  * limitations under the License.
  */
 
+import { useState, useEffect } from 'react';
+import { getVersion } from '@tauri-apps/api/app';
+
 export default function AppMetadataSection() {
+  const [appVersion, setAppVersion] = useState('1.0.2');
+
+  useEffect(() => {
+    getVersion().then(setAppVersion).catch(console.error);
+  }, []);
+
   const metadata = [
     { label: 'Product Name', value: 'Quickno' },
     { label: 'Identifier', value: 'com.quickno.app' },
-    { label: 'Version', value: '1.0.0' },
+    { label: 'Version', value: appVersion },
     { label: 'Website', value: 'www.quickno.in' },
     { label: 'Environment', value: 'Production' },
   ];
