@@ -22,7 +22,7 @@ interface OverlayContentProps {
  * Handles AI responses and internal browser iframe.
  */
 export function OverlayContent({ handleDrag, resultRef }: OverlayContentProps) {
-  const { answer, clearAnswer, internalUrl, setInternalUrl } = useAppStore();
+  const { answer, clearAnswer, internalUrl, setInternalUrl, fileProgress } = useAppStore();
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -74,6 +74,27 @@ export function OverlayContent({ handleDrag, resultRef }: OverlayContentProps) {
         </div>
       ) : (
         <>
+          {fileProgress && (
+            <div className="mx-6 mt-4 p-4 rounded-xl bg-white/5 border border-white/10 shadow-lg animate-fade-in-up">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-[var(--clr-text-secondary)]">
+                  {fileProgress.operation}
+                </span>
+                <span className="text-[10px] opacity-70 max-w-[200px] truncate" title={fileProgress.file}>
+                  {fileProgress.file}
+                </span>
+                <span className="text-xs font-bold text-[var(--clr-accent)]">
+                  {fileProgress.progress}%
+                </span>
+              </div>
+              <div className="w-full h-1.5 bg-black/40 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-[var(--clr-accent)] transition-all duration-300 ease-out shadow-[0_0_10px_var(--clr-accent-soft)]"
+                  style={{ width: `${fileProgress.progress}%` }}
+                />
+              </div>
+            </div>
+          )}
           <div ref={resultRef} className="flex-1 min-h-[100px] overflow-auto scrollbar-thin scrollbar-thumb-[var(--clr-accent-soft)]">
             <div className="px-6 py-4"><ResultPanel /></div>
           </div>

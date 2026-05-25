@@ -16,10 +16,10 @@ pub async fn execute_desktop_command(app: tauri::AppHandle, command: String) -> 
 
     // 2. File Operations (copy, move, delete)
     if cmd_lower.starts_with("copy ") {
-        return handle_file_copy(&command).await;
+        return handle_file_copy(app, &command).await;
     }
     if cmd_lower.starts_with("move ") {
-        return handle_file_move(&command).await;
+        return handle_file_move(app, &command).await;
     }
     if cmd_lower.starts_with("delete ") || cmd_lower.starts_with("remove ") {
         let file_path = if cmd_lower.starts_with("delete ") {
@@ -27,7 +27,7 @@ pub async fn execute_desktop_command(app: tauri::AppHandle, command: String) -> 
         } else {
             &command[7..]
         }.trim();
-        return handle_file_delete(file_path).await;
+        return handle_file_delete(app, file_path).await;
     }
     if cmd_lower.starts_with("create folder ") {
         let folder_path = &command[14..].trim();
@@ -113,7 +113,10 @@ async fn close_system_process(app_name: &str) -> Result<String, String> {
     }
 }
 
-async fn handle_file_copy(cmd: &str) -> Result<String, String> {
+async fn handle_file_copy(app: tauri::AppHandle, cmd: &str) -> Result<String, String> {
+    use tauri::Emitter;
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
     let parts: Vec<&str> = cmd.splitn(2, " to ").collect();
     if parts.len() != 2 {
         let parts_upper: Vec<&str> = cmd.splitn(2, " TO ").collect();
@@ -136,18 +139,46 @@ async fn handle_file_copy(cmd: &str) -> Result<String, String> {
         }
     }
 
-    if let Err(e) = std::fs::copy(src_path, &dest_path_buf) {
-        return Err(format!("Failed to copy file: {}", e));
+    let file_name = src_path.file_name().unwrap_or_default().to_string_lossy().to_string();
+
+    let mut src_file = tokio::fs::File::open(&src_path).await.map_err(|e| format!("Failed to open source: {}", e))?;
+    let mut dest_file = tokio::fs::File::create(&dest_path_buf).await.map_err(|e| format!("Failed to create destination: {}", e))?;
+    
+    let metadata = src_file.metadata().await.map_err(|e| format!("Failed to read metadata: {}", e))?;
+    let total_size = metadata.len();
+    
+    let mut buffer = vec![0; 65536];
+    let mut copied = 0u64;
+    let mut last_emit = std::time::Instant::now();
+    
+    let _ = app.emit("file-progress", serde_json::json!({ "progress": 0, "operation": "Copying", "file": file_name }));
+
+    loop {
+        let n = src_file.read(&mut buffer).await.map_err(|e| format!("Read error: {}", e))?;
+        if n == 0 { break; }
+        dest_file.write_all(&buffer[..n]).await.map_err(|e| format!("Write error: {}", e))?;
+        copied += n as u64;
+        
+        if last_emit.elapsed().as_millis() > 50 || copied == total_size {
+            let progress = if total_size == 0 { 100 } else { ((copied as f64 / total_size as f64) * 100.0) as u8 };
+            let _ = app.emit("file-progress", serde_json::json!({ "progress": progress, "operation": "Copying", "file": file_name }));
+            last_emit = std::time::Instant::now();
+        }
     }
+
+    let _ = app.emit("file-progress", serde_json::json!({ "progress": 100, "operation": "Copying", "file": file_name }));
 
     Ok(format!(
         "Successfully copied '{}' to '{}'!",
-        src_path.file_name().unwrap_or_default().to_string_lossy(),
+        file_name,
         dest_path_buf.to_string_lossy()
     ))
 }
 
-async fn handle_file_move(cmd: &str) -> Result<String, String> {
+async fn handle_file_move(app: tauri::AppHandle, cmd: &str) -> Result<String, String> {
+    use tauri::Emitter;
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
     let parts: Vec<&str> = cmd.splitn(2, " to ").collect();
     if parts.len() != 2 {
         return Err("Invalid move command format. Use: 'move [file] to [destination]'".to_string());
@@ -167,24 +198,53 @@ async fn handle_file_move(cmd: &str) -> Result<String, String> {
         }
     }
 
-    if let Err(e) = std::fs::rename(src_path, &dest_path_buf) {
+    let file_name = src_path.file_name().unwrap_or_default().to_string_lossy().to_string();
+
+    let _ = app.emit("file-progress", serde_json::json!({ "progress": 0, "operation": "Moving", "file": file_name }));
+
+    // Try rename first (instant if same drive)
+    if let Err(e) = tokio::fs::rename(src_path, &dest_path_buf).await {
+        // If rename fails (e.g. cross-device link), fallback to copy + delete
         if src_path.is_file() {
-            if std::fs::copy(src_path, &dest_path_buf).is_ok() {
-                let _ = std::fs::remove_file(src_path);
-                return Ok(format!("Successfully moved '{}' to '{}'!", src_path.file_name().unwrap_or_default().to_string_lossy(), dest_path_buf.to_string_lossy()));
+            let mut src_file = tokio::fs::File::open(&src_path).await.map_err(|err| format!("Failed to open source: {}", err))?;
+            let mut dest_file = tokio::fs::File::create(&dest_path_buf).await.map_err(|err| format!("Failed to create destination: {}", err))?;
+            
+            let metadata = src_file.metadata().await.map_err(|err| format!("Failed to read metadata: {}", err))?;
+            let total_size = metadata.len();
+            
+            let mut buffer = vec![0; 65536];
+            let mut copied = 0u64;
+            let mut last_emit = std::time::Instant::now();
+            
+            loop {
+                let n = src_file.read(&mut buffer).await.map_err(|err| format!("Read error: {}", err))?;
+                if n == 0 { break; }
+                dest_file.write_all(&buffer[..n]).await.map_err(|err| format!("Write error: {}", err))?;
+                copied += n as u64;
+                
+                if last_emit.elapsed().as_millis() > 50 || copied == total_size {
+                    let progress = if total_size == 0 { 100 } else { ((copied as f64 / total_size as f64) * 100.0) as u8 };
+                    let _ = app.emit("file-progress", serde_json::json!({ "progress": progress, "operation": "Moving", "file": file_name }));
+                    last_emit = std::time::Instant::now();
+                }
             }
+            let _ = tokio::fs::remove_file(src_path).await;
+            let _ = app.emit("file-progress", serde_json::json!({ "progress": 100, "operation": "Moving", "file": file_name }));
+            return Ok(format!("Successfully moved '{}' to '{}'!", file_name, dest_path_buf.to_string_lossy()));
         }
         return Err(format!("Failed to move file: {}", e));
     }
 
+    let _ = app.emit("file-progress", serde_json::json!({ "progress": 100, "operation": "Moving", "file": file_name }));
+
     Ok(format!(
         "Successfully moved '{}' to '{}'!",
-        src_path.file_name().unwrap_or_default().to_string_lossy(),
+        file_name,
         dest_path_buf.to_string_lossy()
     ))
 }
 
-async fn handle_file_delete(path: &str) -> Result<String, String> {
+async fn handle_file_delete(app: tauri::AppHandle, path: &str) -> Result<String, String> {
     let clean_path = path.trim_matches('"');
     let target = std::path::Path::new(clean_path);
     if !target.exists() {

@@ -73,7 +73,7 @@ export function ResultPanel() {
       )}
 
       {/* ── Error State ───────────────────────────────────────────────── */}
-      {error && (
+      {error && !pendingCommand && (
         <ErrorDisplay error={error} />
       )}
 
@@ -104,20 +104,38 @@ export function ResultPanel() {
           </div>
 
           {pendingCommand && (
-            <div className="mt-6 flex items-center gap-4 animate-fade-in">
-              <button 
-                onClick={confirmCommand}
-                className="px-5 py-2.5 rounded-xl text-xs font-bold bg-red-600 hover:bg-red-700 text-white transition-all cursor-pointer shadow-lg"
-              >
-                Proceed anyway
-              </button>
-              <button 
-                onClick={cancelCommand}
-                className="px-5 py-2.5 rounded-xl text-xs font-bold border hover:bg-white/5 transition-all cursor-pointer"
-                style={{ borderColor: 'var(--clr-border)', color: 'var(--clr-text)' }}
-              >
-                Cancel
-              </button>
+            <div className="mt-6 border border-red-500/30 bg-red-500/10 rounded-2xl p-5 shadow-[0_0_20px_rgba(220,38,38,0.15)] animate-fade-in-up relative overflow-hidden backdrop-blur-md">
+              <div className="absolute top-0 left-0 w-1 h-full bg-red-500 shadow-[0_0_10px_rgba(220,38,38,0.8)]" />
+              <div className="flex items-center gap-3 mb-3">
+                <svg className="w-6 h-6 text-red-500 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <h3 className="text-sm font-black text-red-500 uppercase tracking-[0.2em]">Security Alert</h3>
+              </div>
+              <p className="text-xs text-red-200/80 leading-relaxed mb-4 font-medium">
+                Quickno intercepted a potentially destructive command. 
+                <br/>Threat detected: <span className="font-bold text-red-400">{(useAppStore.getState().error || "Hidden destructive instruction")}</span>
+              </p>
+              
+              <div className="bg-black/40 rounded-xl p-3 mb-5 border border-red-500/20">
+                <p className="text-[10px] uppercase tracking-widest text-red-500/50 mb-1.5 font-bold">Raw Instruction:</p>
+                <code className="text-xs text-red-300 font-mono break-all">{pendingCommand}</code>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <button 
+                  onClick={cancelCommand}
+                  className="flex-1 py-2.5 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/20 text-white transition-all cursor-pointer shadow-lg"
+                >
+                  Block & Cancel
+                </button>
+                <button 
+                  onClick={confirmCommand}
+                  className="flex-1 py-2.5 rounded-xl text-[10px] font-bold border border-red-500/20 hover:bg-red-500/20 transition-all cursor-pointer text-red-400 uppercase tracking-wider"
+                >
+                  Proceed Anyway
+                </button>
+              </div>
             </div>
           )}
 

@@ -81,6 +81,10 @@ interface AppState {
   /** Set screen capture */
   setImageBase64: (base64: string | null) => void;
 
+  /** File operation progress */
+  fileProgress: { progress: number; operation: string; file: string } | null;
+  setFileProgress: (progress: { progress: number; operation: string; file: string } | null) => void;
+
   /** Submit the current query to the selected AI model */
   submitQuery: () => Promise<void>;
 
@@ -173,6 +177,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   isBrandMenuOpen: false,
   internalUrl: null,
   imageBase64: null,
+  fileProgress: null,
   installedApps: [],
   appSuggestions: [],
   activeAppIndex: 0,
@@ -223,6 +228,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   setBrandMenuOpen: (open: boolean) => set({ isBrandMenuOpen: open }),
   setInternalUrl: (url: string | null) => set({ internalUrl: url }),
   setImageBase64: (base64: string | null) => set({ imageBase64: base64 }),
+  setFileProgress: (p) => set({ fileProgress: p }),
   setActiveAppIndex: (index: number) => set({ activeAppIndex: index }),
 
   loadInstalledApps: async () => {
@@ -293,9 +299,9 @@ export const useAppStore = create<AppState>((set, get) => ({
             set({ 
               pendingCommand: cmd,
               pendingMode: mode as any,
-              answer: `WARNING: The command you entered is potentially dangerous or destructive (${reason}).\n\nDo you want to proceed with executing: \`${cmd}\`?`,
+              answer: '',
               isLoading: false,
-              error: null 
+              error: reason 
             });
           },
           launchApp: async (name: string, appId: string | null) => {

@@ -22,6 +22,7 @@ import { useSettingsStore } from '../../core/store/useSettingsStore';
 import { useWindowResize } from './hooks/useWindowResize';
 import { useOverlayShortcuts } from './hooks/useOverlayShortcuts';
 import { useClipboardListener } from './hooks/useClipboardListener';
+import { useFileProgressListener } from './hooks/useFileProgressListener';
 import { OverlayHeader } from './components/OverlayHeader';
 import { OverlayContent } from './components/OverlayContent';
 
@@ -51,6 +52,7 @@ export default function Overlay() {
   // ── Custom Hooks ───────────────────────────────────────────────────────────
   useOverlayShortcuts();
   useClipboardListener();
+  useFileProgressListener();
   useWindowResize({
     hasContent, isMenuOpen, internalUrl, answer, error, 
     isLoading, resultRef, loadSettings, refreshModels, searchMode
