@@ -26,3 +26,4 @@ pub mod terminal;
 pub mod automation;
 pub mod ui_automation;
 pub mod vision;
+pub mod plugins;

@@ -34,6 +34,12 @@ export default function PluginSection({
   const [pullError, setPullError] = useState<string | null>(null);
   const [osName, setOsName] = useState<string>('');
 
+  // Sandbox state
+  const [pluginCode, setPluginCode] = useState("return `Hello from Quickno Plugin Engine! Input was: ${PluginInput.name}`;");
+  const [pluginInput, setPluginInput] = useState('{ "name": "User" }');
+  const [pluginOutput, setPluginOutput] = useState<string | null>(null);
+  const [isRunningPlugin, setIsRunningPlugin] = useState(false);
+
   useEffect(() => {
     try {
       setOsName(type());
@@ -73,6 +79,20 @@ export default function PluginSection({
       }
     } finally {
       setIsPulling(false);
+    }
+  };
+
+  const handleRunPlugin = async () => {
+    setIsRunningPlugin(true);
+    setPluginOutput(null);
+    try {
+      const parsedInput = JSON.parse(pluginInput);
+      const res = await invoke<string>('run_plugin', { code: pluginCode, input: JSON.stringify(parsedInput) });
+      setPluginOutput(res);
+    } catch (e) {
+      setPluginOutput(`Error: ${String(e)}`);
+    } finally {
+      setIsRunningPlugin(false);
     }
   };
 
@@ -147,6 +167,55 @@ export default function PluginSection({
             </div>
           </div>
         )}
+      </div>
+
+      <div className="pt-6 mt-10 border-t space-y-6" style={{ borderColor: 'var(--clr-border)' }}>
+        <div>
+          <h2 className="text-xl font-bold mb-1">Developer Sandbox</h2>
+          <p className="text-sm opacity-60">Test the secure Rust-embedded JavaScript engine (Boa).</p>
+        </div>
+        
+        <div className="p-6 rounded-3xl border space-y-4" style={{ background: 'var(--clr-surface-secondary)', borderColor: 'var(--clr-border)' }}>
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold uppercase tracking-widest opacity-40 ml-1">Plugin Code (JS)</label>
+            <textarea
+              value={pluginCode}
+              onChange={e => setPluginCode(e.target.value)}
+              className="w-full h-32 px-5 py-3 rounded-xl text-xs font-mono border focus:outline-none transition-all focus:border-[var(--clr-accent)]"
+              style={{ background: 'rgba(0,0,0,0.2)', borderColor: 'var(--clr-border)', color: 'var(--clr-text)' }}
+              placeholder="Write your JS plugin here..."
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold uppercase tracking-widest opacity-40 ml-1">Test Input (JSON)</label>
+            <input
+              type="text"
+              value={pluginInput}
+              onChange={e => setPluginInput(e.target.value)}
+              className="w-full px-5 py-3 rounded-xl text-sm font-mono border focus:outline-none transition-all focus:border-[var(--clr-accent)]"
+              style={{ background: 'rgba(0,0,0,0.2)', borderColor: 'var(--clr-border)', color: 'var(--clr-text)' }}
+            />
+          </div>
+
+          <div className="pt-2">
+            <button
+              onClick={handleRunPlugin}
+              disabled={isRunningPlugin}
+              className="px-6 py-2.5 rounded-xl text-xs font-bold text-white shadow-lg transition-all hover:brightness-110 active:scale-95 disabled:opacity-50"
+              style={{ background: 'var(--clr-accent)' }}
+            >
+              {isRunningPlugin ? 'Running...' : 'Run Sandboxed Plugin'}
+            </button>
+          </div>
+
+          {pluginOutput !== null && (
+            <div className="mt-4 p-4 rounded-xl border font-mono text-xs overflow-auto max-h-40 animate-fade-in-up" 
+                 style={{ background: 'black', borderColor: 'var(--clr-border)', color: pluginOutput.startsWith('Error') ? 'var(--clr-danger)' : 'var(--clr-success)' }}>
+              {pluginOutput}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

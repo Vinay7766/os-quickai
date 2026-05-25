@@ -228,6 +228,7 @@ fn main() {
             commands::automation::execute_desktop_command,
             commands::ui_automation::execute_ui_actions,
             commands::vision::capture_screen,
+            commands::plugins::run_plugin,
         ])
         .setup(move |app| {
             // ── Transparent overlay background ───────────────────────────

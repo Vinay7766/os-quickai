@@ -27,6 +27,7 @@ tauri-plugin-os = "2.3.0"
 screenshots = "0.8.10"
 base64 = "0.22.1"
 enigo = "0.2.1"
+boa_engine = "0.21.1"
 # Windows AV workaround
 [profile.release]
 codegen-units = 1
