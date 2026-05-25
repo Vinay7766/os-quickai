@@ -38,6 +38,7 @@ use tauri::{
     Manager, Emitter,
 };
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
+use enigo::{Enigo, Keyboard, Settings, Direction, Key};
 #[cfg(target_os = "windows")]
 use winreg::enums::*;
 #[cfg(target_os = "windows")]
@@ -165,6 +166,19 @@ fn toggle_overlay(app: &tauri::AppHandle) {
             let _ = win.hide();
             OVERLAY_OPEN.store(false, Ordering::Relaxed);
         } else {
+            // FAKE CTRL+C MAGIC:
+            // Before we steal focus by showing the overlay, we simulate a Ctrl+C keystroke.
+            // This grabs whatever text the user has highlighted in their current app (Chrome, Word, etc.)
+            // and puts it in the clipboard so Quickno can instantly auto-paste it!
+            if let Ok(mut enigo) = Enigo::new(&Settings::default()) {
+                let _ = enigo.key(Key::Control, Direction::Press);
+                let _ = enigo.key(Key::Unicode('c'), Direction::Click);
+                let _ = enigo.key(Key::Control, Direction::Release);
+            }
+            
+            // Wait 50ms for the OS clipboard to actually register the copy
+            std::thread::sleep(std::time::Duration::from_millis(50));
+
             let _ = win.show();
             let _ = win.set_focus();
             OVERLAY_OPEN.store(true, Ordering::Relaxed);
