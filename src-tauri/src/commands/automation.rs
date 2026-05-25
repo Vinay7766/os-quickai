@@ -114,8 +114,12 @@ async fn close_system_process(app_name: &str) -> Result<String, String> {
 }
 
 async fn handle_file_copy(app: tauri::AppHandle, cmd: &str) -> Result<String, String> {
-    use tauri::Emitter;
+    use tauri::{Emitter, Manager};
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+    if let Some(pet) = app.get_webview_window("pet") {
+        let _ = pet.show();
+    }
 
     let parts: Vec<&str> = cmd.splitn(2, " to ").collect();
     if parts.len() != 2 {
@@ -176,8 +180,12 @@ async fn handle_file_copy(app: tauri::AppHandle, cmd: &str) -> Result<String, St
 }
 
 async fn handle_file_move(app: tauri::AppHandle, cmd: &str) -> Result<String, String> {
-    use tauri::Emitter;
+    use tauri::{Emitter, Manager};
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+    if let Some(pet) = app.get_webview_window("pet") {
+        let _ = pet.show();
+    }
 
     let parts: Vec<&str> = cmd.splitn(2, " to ").collect();
     if parts.len() != 2 {

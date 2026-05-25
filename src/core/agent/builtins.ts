@@ -239,8 +239,27 @@ export const llmSearchTool: AgentTool = {
     }
 
     const mapping = settings.modelProviderMap[llmModel];
+
+    // ReAct Loop System Prompt (Injected into user query)
+    const systemPrompt = `You are Quickno, an Autonomous Windows OS Agent.
+You have access to the following tools:
+1. terminal: Runs PowerShell scripts on Windows to adjust system settings (WiFi, volume, brightness) or perform system tasks.
+
+If the user asks you to perform a system action or change a setting (e.g. brightness, volume, wifi), you MUST respond ONLY with a JSON block in this exact format:
+\`\`\`json
+{
+  "tool": "terminal",
+  "command": "<powershell script here>"
+}
+\`\`\`
+Do not include any other text. Just the JSON block.
+
+If you do not need to use a tool, answer normally with Markdown.
+
+User Request: ${query}`;
+
     const answer = await queryLlm(
-      query,
+      systemPrompt,
       llmModel,
       apiKey || '',
       mapping?.provider,
@@ -248,17 +267,34 @@ export const llmSearchTool: AgentTool = {
       ctx.imageBase64
     );
 
+    // Parse for Tool Execution (The ReAct Loop)
+    const jsonMatch = answer.match(/```json\s*(\{[\s\S]*?\})\s*```/);
+    if (jsonMatch) {
+      try {
+        const toolCall = JSON.parse(jsonMatch[1]);
+        if (toolCall.tool === 'terminal' && toolCall.command) {
+          ctx.callbacks.setAnswer(`Executing autonomous action...\n\n\`\`\`bash\n${toolCall.command}\n\`\`\``);
+          const result = await invoke<string>('execute_terminal_command', { command: toolCall.command });
+          const displayResult = result.trim() || 'Action completed successfully.';
+          ctx.callbacks.setAnswer(`**Action Complete:**\n\`\`\`bash\n${displayResult}\n\`\`\``);
+          return { type: 'handled' };
+        }
+      } catch (e) {
+        console.error("Failed to parse agent tool call", e);
+      }
+    }
+
     // Parse for UI actions (Ghost Mode)
     // The LLM should respond with a markdown block like ```json\n[\n  {"action": "move_mouse", "x": 100, "y": 100}\n]\n```
-    const jsonMatch = answer.match(/```(?:json)?\s*(\[\s*\{\s*"action"[\s\S]*?\])\s*```/i);
-    if (jsonMatch && jsonMatch[1]) {
+    const ghostMatch = answer.match(/```(?:json)?\s*(\[\s*\{\s*"action"[\s\S]*?\])\s*```/i);
+    if (ghostMatch && ghostMatch[1]) {
       try {
-        const actions = JSON.parse(jsonMatch[1]);
+        const actions = JSON.parse(ghostMatch[1]);
         if (Array.isArray(actions) && actions.length > 0 && actions[0].action) {
           const { executeUiActions } = await import('../lib/tauriCommands');
-          ctx.callbacks.setAnswer(`Executing UI Automation (${actions.length} steps)...\n\n${answer.replace(jsonMatch[0], '')}`);
+          ctx.callbacks.setAnswer(`Executing UI Automation (${actions.length} steps)...\n\n${answer.replace(ghostMatch[0], '')}`);
           await executeUiActions(actions);
-          ctx.callbacks.setAnswer(`UI Automation complete.\n\n${answer.replace(jsonMatch[0], '')}`);
+          ctx.callbacks.setAnswer(`UI Automation complete.\n\n${answer.replace(ghostMatch[0], '')}`);
           return { type: 'handled' };
         }
       } catch (err) {

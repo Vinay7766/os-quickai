@@ -34,6 +34,7 @@ const label = getWindowLabel();
 
 import Overlay  from './features/overlay/Overlay';
 import Settings from './features/settings/Settings';
+import Pet      from './features/pet/Pet';
 
 // ── Fallback ─────────────────────────────────────────────────────────────────
 // Shows a transparent or themed background while the app initializes.
@@ -43,7 +44,7 @@ const Fallback = () => (
     style={{
       width: '100vw',
       height: '100vh',
-      background: label === 'overlay' ? 'transparent' : 'var(--clr-surface)',
+      background: (label === 'overlay' || label === 'pet') ? 'transparent' : 'var(--clr-surface)',
     }}
   />
 );
@@ -54,6 +55,7 @@ const Fallback = () => (
 function App() {
   if (label === 'overlay')  return <Overlay />;
   if (label === 'settings') return <Settings />;
+  if (label === 'pet')      return <Pet />;
   return null;
 }
 
