@@ -330,6 +330,15 @@ fn main() {
                     toggle_overlay(app);
                 }
             });
+            
+            // Secondary Hotkey for "Instant Search" (e.g. Alt+S)
+            // This emits an event to tell the frontend to auto-paste and auto-search immediately
+            let _ = app.global_shortcut().on_shortcut("alt+s", |app, _shortcut, event| {
+                if event.state == ShortcutState::Pressed {
+                    toggle_overlay(app);
+                    let _ = app.emit("instant-search", ());
+                }
+            });
 
             if let Err(_) = registration_result {
                 // If custom failed, AND it wasn't already alt+a, then fallback
