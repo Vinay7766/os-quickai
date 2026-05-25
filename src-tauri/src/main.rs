@@ -342,6 +342,20 @@ fn main() {
                 }
             });
 
+            // Voice Control (Jarvis Mode) - Alt+V
+            let _ = app.global_shortcut().on_shortcut("alt+v", |app, _shortcut, event| {
+                if event.state == ShortcutState::Pressed {
+                    if let Some(window) = app.get_webview_window("main") {
+                        if !window.is_visible().unwrap_or(false) {
+                            toggle_overlay(app);
+                        }
+                    }
+                    let _ = app.emit("voice-start", ());
+                } else if event.state == ShortcutState::Released {
+                    let _ = app.emit("voice-stop", ());
+                }
+            });
+
             if let Err(_) = registration_result {
                 // If custom failed, AND it wasn't already alt+a, then fallback
                 if saved_hotkey != "alt+a" {

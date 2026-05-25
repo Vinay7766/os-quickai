@@ -14,6 +14,7 @@ import { QueryInput } from '../../../shared/components/QueryInput';
 import { open } from '@tauri-apps/plugin-shell';
 import appLogo from '../../../assets/app-logo.png';
 import { searchInBrowser, captureScreen } from '../../../core/lib/tauriCommands';
+import { useVoiceRecognition } from '../hooks/useVoiceRecognition';
 import { BrandMenuPopover } from './BrandMenuPopover';
 
 const SEARCH_BAR_HEIGHT = 52;
@@ -53,6 +54,7 @@ function isURL(str: string): boolean {
 export function OverlayHeader({ hasContent, isLoading, platform, handleDrag }: OverlayHeaderProps) {
   const { query, setQuery, isBrandMenuOpen, setBrandMenuOpen, imageBase64, setImageBase64 } = useAppStore();
   const { browser, llmSite, searchEngine, customSearchUrl } = useSettingsStore();
+  const { isListening, toggleListening } = useVoiceRecognition();
 
   const handleBrowserSearch = async () => {
     const trimmed = query.trim();
@@ -167,6 +169,19 @@ export function OverlayHeader({ hasContent, isLoading, platform, handleDrag }: O
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+        </button>
+
+        <button
+          className={`w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-95 ${
+            isListening ? 'bg-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.4)] animate-pulse' : 'hover:bg-red-500/10'
+          }`}
+          style={{ color: 'var(--clr-danger, #ef4444)', border: '1px solid rgba(239, 68, 68, 0.2)' }}
+          onClick={toggleListening}
+          title="Voice Control (Alt+V to hold)"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
           </svg>
         </button>
 
