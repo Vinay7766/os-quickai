@@ -66,9 +66,9 @@ export default function WelcomeScreen({ onGetStarted }: WelcomeScreenProps) {
       {/* Stage 2: Interactive Welcome Content */}
       <div className={`relative z-10 flex flex-col items-center transition-all duration-1000 transform ${stage === 'content' ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-8 scale-95 pointer-events-none'}`}>
         {/* App Banner */}
-        <div className="w-full max-w-md mb-10 rounded-3xl overflow-hidden shadow-2xl border border-white/5 group relative">
+        <div className="w-full max-w-md mb-10 rounded-3xl overflow-hidden shadow-2xl border border-white/5 group relative" style={{ maxHeight: '200px' }}>
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-          <img src={appBanner} alt="Banner" className="w-full h-auto transform group-hover:scale-105 transition-transform duration-700" />
+          <img src={appBanner} alt="Banner" className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700" />
         </div>
 
         {/* App logo */}

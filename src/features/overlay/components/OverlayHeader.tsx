@@ -125,9 +125,10 @@ export function OverlayHeader({ hasContent, isLoading, platform, handleDrag }: O
             setBrandMenuOpen(!isBrandMenuOpen);
           }}
           className="w-8 h-8 rounded-lg shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center justify-center overflow-hidden shrink-0 outline-none select-none"
+          style={{ width: '32px', height: '32px', minWidth: '32px', minHeight: '32px' }}
           title="Quickno Menu"
         >
-          <img src={appLogo} alt="Logo" className="w-full h-full object-cover" />
+          <img src={appLogo} alt="Logo" className="w-full h-full object-cover" style={{ maxWidth: '100%', maxHeight: '100%' }} />
         </button>
         <div className="h-4 w-[1px] bg-white/10" />
         <div className="flex-1 min-w-0">
