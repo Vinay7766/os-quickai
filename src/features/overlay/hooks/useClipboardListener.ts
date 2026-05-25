@@ -56,7 +56,7 @@ export function useClipboardListener() {
           
           // Small delay to ensure state updates before submitting
           setTimeout(() => {
-            useAppStore.getState().submitQuery();
+            submitQuery();
           }, 50);
         }
       } catch (err) {

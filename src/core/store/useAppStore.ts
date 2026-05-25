@@ -75,6 +75,12 @@ interface AppState {
   /** Set internal URL */
   setInternalUrl: (url: string | null) => void;
 
+  /** Stored screen capture for OCR context */
+  imageBase64: string | null;
+
+  /** Set screen capture */
+  setImageBase64: (base64: string | null) => void;
+
   /** Submit the current query to the selected AI model */
   submitQuery: () => Promise<void>;
 
@@ -166,6 +172,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   isModelMenuOpen: false,
   isBrandMenuOpen: false,
   internalUrl: null,
+  imageBase64: null,
   installedApps: [],
   appSuggestions: [],
   activeAppIndex: 0,
@@ -215,6 +222,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   setModelMenuOpen: (open: boolean) => set({ isModelMenuOpen: open }),
   setBrandMenuOpen: (open: boolean) => set({ isBrandMenuOpen: open }),
   setInternalUrl: (url: string | null) => set({ internalUrl: url }),
+  setImageBase64: (base64: string | null) => set({ imageBase64: base64 }),
   setActiveAppIndex: (index: number) => set({ activeAppIndex: index }),
 
   loadInstalledApps: async () => {
@@ -242,7 +250,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   },
 
-  clearAnswer: () => set({ answer: '', query: '', error: null, internalUrl: null, isLoading: false, appSuggestions: [], activeAppIndex: 0, pendingCommand: null, pendingMode: null, isConfirmed: false }),
+  clearAnswer: () => set({ answer: '', query: '', error: null, internalUrl: null, imageBase64: null, isLoading: false, appSuggestions: [], activeAppIndex: 0, pendingCommand: null, pendingMode: null, isConfirmed: false }),
 
   confirmCommand: async () => {
     const { pendingCommand, pendingMode } = get();
@@ -256,24 +264,28 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   submitQuery: async () => {
-    const { query, answer, searchMode, isConfirmed, appSuggestions, activeAppIndex } = get();
+    const { query, answer, searchMode, isConfirmed, appSuggestions, activeAppIndex, imageBase64 } = get();
     const settings = useSettingsStore.getState();
 
-    // Don't submit empty queries
-    if (!query.trim()) return;
+    // Don't submit empty queries unless we have an image
+    if (!query.trim() && !imageBase64) return;
+
+    // Provide a default query if none is given but an image is attached
+    const finalQuery = (query.trim() === '' && imageBase64) ? "Please describe this image." : query;
 
     // Reset confirmation flag and save history
-    set({ isConfirmed: false, prevQuery: query, prevAnswer: answer, isLoading: true, error: null, answer: '' });
+    set({ isConfirmed: false, prevQuery: finalQuery, prevAnswer: answer, isLoading: true, error: null, answer: '' });
 
     try {
       const { globalToolRegistry } = await import('../agent/index');
       
       const ctx = {
-        query,
+        query: finalQuery,
         mode: searchMode,
         settings,
         appSuggestions,
         activeAppIndex,
+        imageBase64: imageBase64 || undefined,
         callbacks: {
           setAnswer: (a: string) => set({ answer: a, isLoading: false, error: null }),
           setInternalUrl: (url: string | null) => set({ internalUrl: url, isLoading: false, query: '' }),
@@ -290,7 +302,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             const { invoke } = await import('@tauri-apps/api/core');
             await invoke('launch_app', { name, appId });
           },
-          clearState: () => set({ isLoading: false, query: '', appSuggestions: [], activeAppIndex: 0 })
+          clearState: () => set({ isLoading: false, query: '', appSuggestions: [], activeAppIndex: 0, imageBase64: null })
         }
       };
 

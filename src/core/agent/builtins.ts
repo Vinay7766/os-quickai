@@ -244,8 +244,27 @@ export const llmSearchTool: AgentTool = {
       llmModel,
       apiKey || '',
       mapping?.provider,
-      mapping?.baseUrl
+      mapping?.baseUrl,
+      ctx.imageBase64
     );
+
+    // Parse for UI actions (Ghost Mode)
+    // The LLM should respond with a markdown block like ```json\n[\n  {"action": "move_mouse", "x": 100, "y": 100}\n]\n```
+    const jsonMatch = answer.match(/```(?:json)?\s*(\[\s*\{\s*"action"[\s\S]*?\])\s*```/i);
+    if (jsonMatch && jsonMatch[1]) {
+      try {
+        const actions = JSON.parse(jsonMatch[1]);
+        if (Array.isArray(actions) && actions.length > 0 && actions[0].action) {
+          const { executeUiActions } = await import('../lib/tauriCommands');
+          ctx.callbacks.setAnswer(`Executing UI Automation (${actions.length} steps)...\n\n${answer.replace(jsonMatch[0], '')}`);
+          await executeUiActions(actions);
+          ctx.callbacks.setAnswer(`UI Automation complete.\n\n${answer.replace(jsonMatch[0], '')}`);
+          return { type: 'handled' };
+        }
+      } catch (err) {
+        console.error('Failed to parse UI actions JSON', err);
+      }
+    }
     
     ctx.callbacks.setAnswer(answer);
     return { type: 'handled' };

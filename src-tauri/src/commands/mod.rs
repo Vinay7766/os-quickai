@@ -24,3 +24,5 @@ pub mod settings;
 pub mod window;
 pub mod terminal;
 pub mod automation;
+pub mod ui_automation;
+pub mod vision;

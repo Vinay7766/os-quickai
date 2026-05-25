@@ -5,6 +5,7 @@ export interface AgentContext {
   appSuggestions: any[];
   activeAppIndex: number;
   isConfirmed?: boolean;
+  imageBase64?: string;
   callbacks: {
     setAnswer: (a: string) => void;
     setInternalUrl: (url: string | null) => void;

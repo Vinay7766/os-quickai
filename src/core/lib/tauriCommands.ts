@@ -31,9 +31,10 @@ export async function queryLlm(
   model: string, 
   apiKey: string,
   provider?: string,
-  baseUrl?: string
+  baseUrl?: string,
+  imageBase64?: string
 ): Promise<string> {
-  return await invoke<string>('query_llm', { query, model, apiKey, provider, baseUrl });
+  return await invoke<string>('query_llm', { query, model, apiKey, provider, baseUrl, imageBase64 });
 }
 
 // ── API Key Management ───────────────────────────────────────────────────────
@@ -108,4 +109,27 @@ export async function updateShortcut(newShortcut: string): Promise<void> {
 /** Wipes all settings and API keys, and restarts the app. */
 export async function factoryReset(): Promise<void> {
   return await invoke<void>('factory_reset');
+}
+
+// ── UI Automation (Ghost Mode) ───────────────────────────────────────────────
+
+export interface UIAction {
+  action: string;
+  x?: number;
+  y?: number;
+  text?: string;
+  key?: string;
+  duration_ms?: number;
+}
+
+/** Execute a series of OS-level UI interactions (mouse/keyboard). */
+export async function executeUiActions(actions: UIAction[]): Promise<string> {
+  return await invoke<string>('execute_ui_actions', { actions });
+}
+
+// ── Vision / OCR ─────────────────────────────────────────────────────────────
+
+/** Captures the primary screen and returns it as a base64 encoded PNG string. */
+export async function captureScreen(): Promise<string> {
+  return await invoke<string>('capture_screen');
 }

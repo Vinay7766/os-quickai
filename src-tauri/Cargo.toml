@@ -24,6 +24,9 @@ keyring = { version = "3.6.1", features = ["windows-native"] }
 open = "5.3"
 urlencoding = "2.1"
 tauri-plugin-os = "2.3.0"
+screenshots = "0.8.10"
+base64 = "0.22.1"
+enigo = "0.2.1"
 # Windows AV workaround
 [profile.release]
 codegen-units = 1

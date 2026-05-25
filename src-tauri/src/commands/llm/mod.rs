@@ -32,6 +32,7 @@ pub async fn query_llm(
     api_key: String,
     provider: Option<String>,
     base_url: Option<String>,
+    image_base64: Option<String>,
 ) -> Result<String, AppError> {
     if query.len() > 4000 {
         return Err(AppError::NetworkError(
@@ -64,10 +65,23 @@ pub async fn query_llm(
             .unwrap();
 
         let chat_url = format!("{}/api/chat", url.trim_end_matches('/'));
-        let response = local_client.post(chat_url)
+        let mut message_obj = json!({
+            "role": "user",
+            "content": &query
+        });
+
+        if let Some(ref img) = image_base64 {
+            message_obj = json!({
+                "role": "user",
+                "content": &query,
+                "images": [img]
+            });
+        }
+
+        let response = local_client.post(chat_url.clone())
             .json(&json!({
                 "model": actual_model,
-                "messages": [{"role": "user", "content": &query}],
+                "messages": [message_obj],
                 "stream": false
             }))
             .send()
@@ -111,12 +125,20 @@ pub async fn query_llm(
             format!("{}/chat/completions", base.trim_end_matches('/')) 
         };
 
+        let mut user_content = json!(&query);
+        if let Some(ref img) = image_base64 {
+            user_content = json!([
+                {"type": "text", "text": &query},
+                {"type": "image_url", "image_url": {"url": format!("data:image/png;base64,{}", img)}}
+            ]);
+        }
+
         let response = client
             .post(chat_url)
             .bearer_auth(&api_key)
             .json(&json!({
                 "model": model,
-                "messages": [{"role": "user", "content": &query}]
+                "messages": [{"role": "user", "content": user_content}]
             }))
             .send()
             .await
@@ -154,8 +176,18 @@ pub async fn query_llm(
             "https://generativelanguage.googleapis.com/v1/models/{}:generateContent?key={}",
             model, api_key
         );
+        let mut parts = vec![json!({"text": &query})];
+        if let Some(ref img) = image_base64 {
+            parts.push(json!({
+                "inlineData": {
+                    "mimeType": "image/png",
+                    "data": img
+                }
+            }));
+        }
+
         let res = client.post(&url)
-            .json(&json!({"contents": [{"parts": [{"text": &query}]}]}))
+            .json(&json!({"contents": [{"parts": parts}]}))
             .send().await.map_err(|e| AppError::NetworkError(e.to_string()))?;
 
         if res.status().is_success() {
@@ -165,13 +197,21 @@ pub async fn query_llm(
     }
 
     if is_claude {
+        let mut user_content = json!([{"type": "text", "text": &query}]);
+        if let Some(ref img) = image_base64 {
+            user_content = json!([
+                {"type": "text", "text": &query},
+                {"type": "image", "source": {"type": "base64", "media_type": "image/png", "data": img}}
+            ]);
+        }
+
         let res = client.post("https://api.anthropic.com/v1/messages")
             .header("x-api-key", &api_key)
             .header("anthropic-version", "2023-06-01")
             .json(&json!({
                 "model": model, "max_tokens": 2048,
                 "system": "You are a concise, helpful assistant. Use markdown for code.",
-                "messages": [{"role": "user", "content": &query}]
+                "messages": [{"role": "user", "content": user_content}]
             }))
             .send().await.map_err(|e| AppError::NetworkError(e.to_string()))?;
 
@@ -181,13 +221,20 @@ pub async fn query_llm(
         }
     }
 
-    // Default to OpenAI-compatible
+    let mut user_content = json!(&query);
+    if let Some(ref img) = image_base64 {
+        user_content = json!([
+            {"type": "text", "text": &query},
+            {"type": "image_url", "image_url": {"url": format!("data:image/png;base64,{}", img)}}
+        ]);
+    }
+
     let endpoint = if is_grok { "https://api.x.ai/v1/chat/completions" } else { "https://api.openai.com/v1/chat/completions" };
     let res = client.post(endpoint)
         .bearer_auth(&api_key)
         .json(&json!({
             "model": model,
-            "messages": [{"role": "system", "content": "You are a concise, helpful assistant."}, {"role": "user", "content": &query}]
+            "messages": [{"role": "system", "content": "You are a concise, helpful assistant."}, {"role": "user", "content": user_content}]
         }))
         .send().await.map_err(|e| AppError::NetworkError(e.to_string()))?;
 

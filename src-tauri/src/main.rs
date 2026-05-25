@@ -35,7 +35,7 @@ use std::sync::{
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, TrayIconBuilder, TrayIconEvent},
-    Manager,
+    Manager, Emitter,
 };
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
 #[cfg(target_os = "windows")]
@@ -226,6 +226,8 @@ fn main() {
             commands::settings::factory_reset,
             commands::terminal::execute_terminal_command,
             commands::automation::execute_desktop_command,
+            commands::ui_automation::execute_ui_actions,
+            commands::vision::capture_screen,
         ])
         .setup(move |app| {
             // ── Transparent overlay background ───────────────────────────
