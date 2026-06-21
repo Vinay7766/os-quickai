@@ -25,6 +25,7 @@ import { useClipboardListener } from './hooks/useClipboardListener';
 import { useFileProgressListener } from './hooks/useFileProgressListener';
 import { OverlayHeader } from './components/OverlayHeader';
 import { OverlayContent } from './components/OverlayContent';
+import { VoiceOverlay } from './components/VoiceOverlay';
 
 const SEARCH_BAR_HEIGHT = 52;
 
@@ -37,14 +38,15 @@ const SEARCH_BAR_HEIGHT = 52;
 export default function Overlay() {
   const { 
     answer, isLoading, error, 
-    isModeMenuOpen, isModelMenuOpen, isBrandMenuOpen, internalUrl, searchMode
+    isModeMenuOpen, isModelMenuOpen, isBrandMenuOpen, internalUrl, searchMode, isVoiceMode
   } = useAppStore();
   
   const loadSettings = useSettingsStore((s) => s.loadSettings);
   const refreshModels = useSettingsStore((s) => s.refreshModels);
   
   const [platform, setPlatform] = useState<string>('');
-  const isMenuOpen = isModeMenuOpen || isModelMenuOpen || isBrandMenuOpen;
+  const { isActionMenuOpen } = useAppStore();
+  const isMenuOpen = isModeMenuOpen || isModelMenuOpen || isBrandMenuOpen || isActionMenuOpen;
   const hasContent = (isLoading || !!answer) || !!error || !!internalUrl;
   
   const resultRef = useRef<HTMLDivElement>(null);
@@ -91,18 +93,24 @@ export default function Overlay() {
         }}
       >
         <div className="flex flex-col w-full min-h-full">
-          <OverlayHeader 
-            hasContent={hasContent} 
-            isLoading={isLoading} 
-            platform={platform} 
-            handleDrag={handleDrag} 
-          />
+          {isVoiceMode ? (
+            <VoiceOverlay />
+          ) : (
+            <>
+              <OverlayHeader 
+                hasContent={hasContent} 
+                isLoading={isLoading} 
+                platform={platform} 
+                handleDrag={handleDrag} 
+              />
 
-          {hasContent && (
-            <OverlayContent 
-              handleDrag={handleDrag} 
-              resultRef={resultRef} 
-            />
+              {hasContent && (
+                <OverlayContent 
+                  handleDrag={handleDrag} 
+                  resultRef={resultRef} 
+                />
+              )}
+            </>
           )}
         </div>
       </div>

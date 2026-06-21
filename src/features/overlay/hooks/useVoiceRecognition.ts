@@ -23,6 +23,7 @@ export function useVoiceRecognition() {
       
       recognition.onstart = () => {
         setIsListening(true);
+        useAppStore.getState().setVoiceMode(true);
       };
 
       recognition.onresult = (event: any) => {
@@ -53,7 +54,7 @@ export function useVoiceRecognition() {
         setIsListening(false);
         // Automatically submit when voice stops
         setTimeout(() => {
-          useAppStore.getState().submitQuery();
+          useAppStore.getState().submitQuery(true);
         }, 300);
       };
       
@@ -68,6 +69,7 @@ export function useVoiceRecognition() {
         if (recognitionRef.current && !isListening) {
           useAppStore.getState().setQuery('');
           try {
+            useAppStore.getState().setVoiceMode(true);
             recognitionRef.current.start();
           } catch (e) {
             console.error('Failed to start recognition', e);
@@ -110,6 +112,7 @@ export function useVoiceRecognition() {
     } else {
       useAppStore.getState().setQuery('');
       try {
+        useAppStore.getState().setVoiceMode(true);
         recognitionRef.current.start();
       } catch (e) {}
     }
