@@ -18,6 +18,7 @@ import { useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { API_MODELS } from '../../../core/constants';
 import { factoryReset } from '../../../core/lib/tauriCommands';
+import { useSettingsStore } from '../../../core/store/useSettingsStore';
 
 interface Props {
   llmModel: string;
@@ -44,6 +45,7 @@ export default function AIModelSection({
   setKeyInput, setActiveKeyProvider, handleSaveKey, handleDeleteKey, handleResetAllKeys, handleRefresh, updateSetting,
   customProviders, refreshModels
 }: Props) {
+  const { ollamaModelSizes } = useSettingsStore();
   const [showAddCustom, setShowAddCustom] = useState(false);
   const [newCustom, setNewCustom] = useState({ name: '', baseUrl: '', apiKey: '' });
   const [selectedKeyProvider, setSelectedKeyProvider] = useState(API_MODELS[0].provider);
@@ -269,7 +271,7 @@ export default function AIModelSection({
         <div className="space-y-4">
           <h3 className="text-[9px] font-bold uppercase tracking-widest opacity-20">Ollama (Local)</h3>
           <div className="p-2 rounded-2xl bg-white/[0.02] border border-white/5 space-y-1">
-            {availableModels.length > 0 ? availableModels.map(m => (
+            {availableModels.filter(m => m.startsWith('ollama:')).length > 0 ? availableModels.filter(m => m.startsWith('ollama:')).map(m => (
               <button 
                 key={m} 
                 onClick={() => updateSetting('llmModel', m)} 
@@ -278,12 +280,18 @@ export default function AIModelSection({
               >
                 <div className="flex items-center gap-3">
                   <span className={`text-[14px] ${llmModel === m ? 'font-bold text-[var(--clr-accent)]' : 'text-white/70'}`}>
-                    {m.split('/').pop()?.replace('models/', '') || m}
+                    {m.replace('ollama:', '')}
                   </span>
                   <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-white/5 text-white/20 uppercase tracking-tight">Local</span>
                 </div>
                 <div className="flex items-center gap-3 text-[10px] font-bold text-white/10">
-                  <span>498.4 MB</span>
+                  <span>{(() => {
+                    const sizeBytes = ollamaModelSizes ? ollamaModelSizes[m] || 0 : 0;
+                    if (sizeBytes === 0) return 'UNKNOWN SIZE';
+                    const sizeGB = sizeBytes / (1024 * 1024 * 1024);
+                    if (sizeGB >= 1) return `${sizeGB.toFixed(1)} GB`;
+                    return `${(sizeBytes / (1024 * 1024)).toFixed(1)} MB`;
+                  })()}</span>
                   {llmModel === m && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" className="text-[var(--clr-accent)]"><polyline points="20 6 9 17 4 12" /></svg>}
                 </div>
               </button>

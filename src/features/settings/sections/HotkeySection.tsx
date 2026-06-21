@@ -37,6 +37,7 @@ export default function HotkeySection({
     { label: 'Switch to Site Mode', key: 'Ctrl + 2' },
     { label: 'Switch to App Mode', key: 'Ctrl + 3' },
     { label: 'Switch to Terminal Mode', key: 'Ctrl + 4' },
+    { label: 'Hold for Voice Control', key: 'Alt + V' },
     { label: 'Focus text input', key: '/' },
     { label: 'Close overlay', key: 'Escape' },
   ];

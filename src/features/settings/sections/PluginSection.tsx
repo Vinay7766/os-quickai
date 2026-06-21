@@ -16,7 +16,9 @@
 
 import { useState, useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/core';
+import { listen, emit } from '@tauri-apps/api/event';
 import { type } from '@tauri-apps/plugin-os';
+import { useSettingsStore } from '../../../core/store/useSettingsStore';
 
 interface Props {
   ollamaEnabled: boolean;
@@ -48,22 +50,54 @@ export default function PluginSection({
     }
   }, []);
 
-  // Mocked installed models to match screenshot visual
-  const installedModels = [
-    { name: 'qwen3:0.6b', size: '498.4 MB' }
-  ];
+  const { availableModels, ollamaModelSizes } = useSettingsStore();
+
+  const installedModels = availableModels
+    .filter(m => m.startsWith('ollama:'))
+    .map(m => {
+      const name = m.replace('ollama:', '');
+      const sizeBytes = ollamaModelSizes[m] || 0;
+      let sizeStr = 'UNKNOWN SIZE';
+      if (sizeBytes > 0) {
+        const sizeGB = sizeBytes / (1024 * 1024 * 1024);
+        sizeStr = sizeGB >= 1 ? `${sizeGB.toFixed(1)} GB` : `${(sizeBytes / (1024 * 1024)).toFixed(1)} MB`;
+      }
+      return { name, size: sizeStr };
+    });
+
+  const [pullProgress, setPullProgress] = useState<{ status: string, completed?: number, total?: number } | null>(null);
+
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+    const setupListener = async () => {
+      unlisten = await listen<{status: string, completed?: number, total?: number}>('ollama-pull-progress', (event) => {
+        setPullProgress(event.payload);
+      });
+    };
+    setupListener();
+    return () => { if (unlisten) unlisten(); };
+  }, []);
+
+  const handleCancelPull = async () => {
+    await emit('cancel-ollama-pull');
+    setIsPulling(false);
+    setPullProgress(null);
+  };
 
   const handlePullOllama = async () => {
     if (!ollamaPullInput) return;
     setIsPulling(true);
     setPullError(null);
+    setPullProgress(null);
     try {
       await invoke('pull_ollama_model', { url: ollamaUrl, name: ollamaPullInput });
       setOllamaPullInput('');
       refreshModels();
     } catch (e) {
       const errStr = String(e);
-      if (errStr.includes("file does not exist")) {
+      if (errStr.includes("cancelled")) {
+        setPullError("Pull cancelled.");
+      } else if (errStr.includes("file does not exist") || errStr.includes("not found")) {
         setPullError(`Model "${ollamaPullInput}" not found. Please check spelling.`);
       } else {
         try {
@@ -79,6 +113,7 @@ export default function PluginSection({
       }
     } finally {
       setIsPulling(false);
+      setPullProgress(null);
     }
   };
 
@@ -143,15 +178,40 @@ export default function PluginSection({
                 className="flex-1 px-5 py-3 rounded-xl text-sm border focus:outline-none transition-all focus:border-[var(--clr-accent)]" 
                 style={{ background: 'rgba(0,0,0,0.2)', borderColor: 'var(--clr-border)', color: 'var(--clr-text)' }} 
               />
-              <button 
-                onClick={handlePullOllama} 
-                disabled={isPulling || !ollamaPullInput} 
-                className="px-8 py-3 rounded-xl text-sm font-bold text-white shadow-lg transition-all hover:brightness-110 active:scale-95 disabled:opacity-50" 
-                style={{ background: 'var(--clr-accent)' }}
-              >
-                {isPulling ? 'Pulling...' : 'Pull Model'}
-              </button>
+              {isPulling ? (
+                <button 
+                  onClick={handleCancelPull} 
+                  className="px-8 py-3 rounded-xl text-sm font-bold text-red-500 bg-red-500/10 border border-red-500/20 shadow-lg transition-all hover:bg-red-500/20 active:scale-95" 
+                >
+                  Cancel
+                </button>
+              ) : (
+                <button 
+                  onClick={handlePullOllama} 
+                  disabled={!ollamaPullInput} 
+                  className="px-8 py-3 rounded-xl text-sm font-bold text-white shadow-lg transition-all hover:brightness-110 active:scale-95 disabled:opacity-50" 
+                  style={{ background: 'var(--clr-accent)' }}
+                >
+                  Pull Model
+                </button>
+              )}
             </div>
+            
+            {pullProgress && (
+              <div className="space-y-1">
+                <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest opacity-60">
+                  <span>{pullProgress.status}</span>
+                  {pullProgress.total && pullProgress.completed && (
+                    <span>{((pullProgress.completed / pullProgress.total) * 100).toFixed(1)}%</span>
+                  )}
+                </div>
+                {pullProgress.total && pullProgress.completed && (
+                  <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
+                    <div className="h-full bg-[var(--clr-accent)] transition-all duration-300" style={{ width: `${(pullProgress.completed / pullProgress.total) * 100}%` }} />
+                  </div>
+                )}
+              </div>
+            )}
             {pullError && <p className="text-[10px] text-[var(--clr-danger)] font-bold text-center">{pullError}</p>}
             
             <div className="pt-6 border-t space-y-4" style={{ borderColor: 'var(--clr-border)' }}>
