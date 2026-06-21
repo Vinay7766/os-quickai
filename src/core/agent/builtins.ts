@@ -29,7 +29,7 @@ export const securityInterceptorTool: AgentTool = {
         isDangerous = true;
         dangerReason = 'irreversible file or folder deletion';
       }
-      
+
       const matchesTrigger = (triggersCsv: string, input: string) => {
         for (const trigger of triggersCsv.split(',')) {
           const t = trigger.trim().toLowerCase();
@@ -123,7 +123,7 @@ export const appLauncherTool: AgentTool = {
   execute: async (ctx: AgentContext): Promise<ToolResult> => {
     const trimmed = ctx.query.trim();
     const qLower = trimmed.toLowerCase();
-    
+
     // Explicit App Mode
     if (ctx.mode === 'app') {
       if (!ctx.settings.enableAppLauncher) {
@@ -241,11 +241,27 @@ export const llmSearchTool: AgentTool = {
     const mapping = settings.modelProviderMap[llmModel];
 
     // ReAct Loop System Prompt (Injected into user query)
-    const systemPrompt = `You are Quickno, an Autonomous Windows OS Agent.
-You have access to the following tools:
-1. terminal: Runs PowerShell scripts on Windows to adjust system settings (WiFi, volume, brightness) or perform system tasks.
+    let systemPrompt = query;
 
-If the user asks you to perform a system action or change a setting (e.g. brightness, volume, wifi), you MUST respond ONLY with a JSON block in this exact format:
+    if (settings.enableFullConversationHistory && ctx.conversationHistory && ctx.conversationHistory.length > 0) {
+      const historyStr = ctx.conversationHistory.map(msg => `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`).join('\n\n');
+      systemPrompt = `Conversation History:\n${historyStr}\n\nCurrent Request: ${query}`;
+    } else if (ctx.prevQuery && ctx.prevAnswer) {
+      systemPrompt = `Previous Request: ${ctx.prevQuery}\nPrevious Answer: ${ctx.prevAnswer}\n\nCurrent Request: ${query}`;
+    }
+
+    if (settings.enableTerminalMode) {
+      systemPrompt = `You are Quickno, an Autonomous Windows OS Agent.
+You have access to the following tools:
+
+1. terminal: Runs PowerShell scripts on Windows to perform system tasks, manage files, control media, and automate the OS.
+
+CRITICAL ARCHITECTURE RULES:
+- Standardize execution on PowerShell core.
+- DO NOT feed raw terminal output. You MUST append '| ConvertTo-Json -Compress' to your PowerShell commands when requesting data so that the output is structured JSON. Agents parse JSON significantly better than raw terminal text.
+- Example: \`Get-Process | Select-Object Name, CPU | ConvertTo-Json -Compress\`
+
+To use the terminal tool, you MUST respond ONLY with a JSON block in this exact format:
 \`\`\`json
 {
   "tool": "terminal",
@@ -256,7 +272,8 @@ Do not include any other text. Just the JSON block.
 
 If you do not need to use a tool, answer normally with Markdown.
 
-User Request: ${query}`;
+${settings.enableFullConversationHistory && ctx.conversationHistory && ctx.conversationHistory.length > 0 ? `Conversation History:\n${ctx.conversationHistory.map(msg => `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`).join('\n\n')}\n\n` : (ctx.prevQuery && ctx.prevAnswer ? `Previous Request: ${ctx.prevQuery}\nPrevious Answer: ${ctx.prevAnswer}\n\n` : '')}User Request: ${query}`;
+    }
 
     const answer = await queryLlm(
       systemPrompt,
@@ -264,44 +281,48 @@ User Request: ${query}`;
       apiKey || '',
       mapping?.provider,
       mapping?.baseUrl,
-      ctx.imageBase64
+      ctx.imageBase64,
+      (tokenText) => {
+        // Stream the text to the UI as it generates
+        if (ctx.callbacks.streamAnswer) {
+          ctx.callbacks.streamAnswer(tokenText);
+        }
+      }
     );
 
-    // Parse for Tool Execution (The ReAct Loop)
-    const jsonMatch = answer.match(/```json\s*(\{[\s\S]*?\})\s*```/);
-    if (jsonMatch) {
+    // Unified Tool Parser (ReAct & UI Ghost Mode)
+    const extractJson = (text: string) => {
+      const match = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+      if (!match) return null;
       try {
-        const toolCall = JSON.parse(jsonMatch[1]);
-        if (toolCall.tool === 'terminal' && toolCall.command) {
-          ctx.callbacks.setAnswer(`Executing autonomous action...\n\n\`\`\`bash\n${toolCall.command}\n\`\`\``);
-          const result = await invoke<string>('execute_terminal_command', { command: toolCall.command });
-          const displayResult = result.trim() || 'Action completed successfully.';
-          ctx.callbacks.setAnswer(`**Action Complete:**\n\`\`\`bash\n${displayResult}\n\`\`\``);
-          return { type: 'handled' };
-        }
-      } catch (e) {
-        console.error("Failed to parse agent tool call", e);
+        return JSON.parse(match[1]);
+      } catch {
+        return null;
+      }
+    };
+
+    const parsedData = extractJson(answer);
+
+    if (parsedData) {
+      // 1. Ghost Mode UI Actions (Array of actions)
+      if (Array.isArray(parsedData) && parsedData.length > 0 && parsedData[0].action) {
+        const { executeUiActions } = await import('../lib/tauriCommands');
+        ctx.callbacks.setAnswer(`Executing UI Automation (${parsedData.length} steps)...\n\n${answer.replace(/```(?:json)?\s*[\s\S]*?\s*```/i, '')}`);
+        await executeUiActions(parsedData);
+        ctx.callbacks.setAnswer(`UI Automation complete.\n\n${answer.replace(/```(?:json)?\s*[\s\S]*?\s*```/i, '')}`);
+        return { type: 'handled' };
+      }
+
+      // 2. Terminal Agent Actions (Single object)
+      if (settings.enableTerminalMode && !Array.isArray(parsedData) && parsedData.tool === 'terminal' && parsedData.command) {
+        ctx.callbacks.setAnswer(`Executing autonomous action...\n\n\`\`\`bash\n${parsedData.command}\n\`\`\``);
+        const result = await invoke<string>('execute_terminal_command', { command: parsedData.command });
+        const displayResult = result.trim() || 'Action completed successfully.';
+        ctx.callbacks.setAnswer(`**Action Complete:**\n\`\`\`bash\n${displayResult}\n\`\`\``);
+        return { type: 'handled' };
       }
     }
 
-    // Parse for UI actions (Ghost Mode)
-    // The LLM should respond with a markdown block like ```json\n[\n  {"action": "move_mouse", "x": 100, "y": 100}\n]\n```
-    const ghostMatch = answer.match(/```(?:json)?\s*(\[\s*\{\s*"action"[\s\S]*?\])\s*```/i);
-    if (ghostMatch && ghostMatch[1]) {
-      try {
-        const actions = JSON.parse(ghostMatch[1]);
-        if (Array.isArray(actions) && actions.length > 0 && actions[0].action) {
-          const { executeUiActions } = await import('../lib/tauriCommands');
-          ctx.callbacks.setAnswer(`Executing UI Automation (${actions.length} steps)...\n\n${answer.replace(ghostMatch[0], '')}`);
-          await executeUiActions(actions);
-          ctx.callbacks.setAnswer(`UI Automation complete.\n\n${answer.replace(ghostMatch[0], '')}`);
-          return { type: 'handled' };
-        }
-      } catch (err) {
-        console.error('Failed to parse UI actions JSON', err);
-      }
-    }
-    
     ctx.callbacks.setAnswer(answer);
     return { type: 'handled' };
   }

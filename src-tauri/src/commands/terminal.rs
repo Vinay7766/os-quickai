@@ -16,10 +16,21 @@ use std::os::windows::process::CommandExt;
 #[tauri::command]
 pub async fn execute_terminal_command(command: String) -> Result<String, AppError> {
     let mut cmd = if cfg!(target_os = "windows") {
-        let mut c = Command::new("powershell.exe");
-        c.args(["-NoProfile", "-NonInteractive", "-Command", &command]);
+        // Architecture Strategy: Prefer pwsh (PowerShell Core), fallback to powershell.exe
+        let has_pwsh = Command::new("pwsh")
+            .arg("-Version")
+            .creation_flags(0x08000000) // CREATE_NO_WINDOW
+            .output()
+            .is_ok();
+
+        let exe_name = if has_pwsh { "pwsh" } else { "powershell.exe" };
+        let mut c = Command::new(exe_name);
+        
+        let safe_cmd = format!("$ErrorActionPreference = 'Stop'; {}", command);
+        c.args(["-NoProfile", "-NonInteractive", "-Command", &safe_cmd]);
         #[cfg(target_os = "windows")]
         c.creation_flags(0x08000000); // CREATE_NO_WINDOW
+        
         c
     } else {
         let mut c = Command::new("/bin/sh");
