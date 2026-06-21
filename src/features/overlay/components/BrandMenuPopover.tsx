@@ -17,12 +17,13 @@ import { ShortcutPanel } from './popover/ShortcutPanel';
 import { BrowserPanel } from './popover/BrowserPanel';
 import { SupportPanel } from './popover/SupportPanel';
 import { TermsPanel } from './popover/TermsPanel';
+import { AIPanel } from './popover/AIPanel';
 
 interface BrandMenuPopoverProps {
   onClose: () => void;
 }
 
-type MenuView = 'main' | 'theme' | 'shortcut' | 'browser' | 'support' | 'terms';
+type MenuView = 'main' | 'theme' | 'shortcut' | 'browser' | 'support' | 'terms' | 'ai';
 
 /**
  * Renders the popover router with main lists and conditional sub-panels.
@@ -39,6 +40,8 @@ export function BrandMenuPopover({ onClose }: BrandMenuPopoverProps) {
     hotkey,
     browser,
     searchEngine,
+    llmModel,
+    availableModels,
     updateSetting,
     updateHotkey,
   } = useSettingsStore();
@@ -72,6 +75,10 @@ export function BrandMenuPopover({ onClose }: BrandMenuPopoverProps) {
       }}
     >
       {/* ── Sub-panels ──────────────────────────────────────────────────────── */}
+      {view === 'ai' && (
+        <AIPanel llmModel={llmModel} availableModels={availableModels} updateSetting={updateSetting} onBack={() => setView('main')} />
+      )}
+
       {view === 'theme' && (
         <ThemePanel theme={theme} updateSetting={updateSetting} onBack={() => setView('main')} />
       )}
@@ -81,7 +88,7 @@ export function BrandMenuPopover({ onClose }: BrandMenuPopoverProps) {
       )}
 
       {view === 'browser' && (
-        <BrowserPanel browser={browser} searchEngine={searchEngine} updateSetting={updateSetting} onBack={() => setView('main')} />
+        <BrowserPanel browser={browser} searchEngine={searchEngine} llmModel={llmModel} availableModels={availableModels} updateSetting={updateSetting} onBack={() => setView('main')} />
       )}
 
       {view === 'support' && (
