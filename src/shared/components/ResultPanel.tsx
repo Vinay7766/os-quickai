@@ -54,7 +54,7 @@ export function ResultPanel() {
     <div className="w-full select-text cursor-auto" style={{ color: 'var(--clr-text)' }}>
 
       {/* ── Loading State ─────────────────────────────────────────────── */}
-      {isLoading && (
+      {isLoading && !answer && (
         <div
           className="flex items-center gap-2 h-8 animate-pulse"
           style={{ color: 'var(--clr-text-secondary)' }}
@@ -78,7 +78,7 @@ export function ResultPanel() {
       )}
 
       {/* ── Answer State ──────────────────────────────────────────────── */}
-      {!isLoading && !error && answer && (
+      {!error && answer && (
         <div className="animate-fade-in-up">
           <div
             className="prose prose-sm max-w-none dark:prose-invert leading-relaxed break-words overflow-x-hidden"

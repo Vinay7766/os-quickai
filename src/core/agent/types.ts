@@ -6,8 +6,12 @@ export interface AgentContext {
   activeAppIndex: number;
   isConfirmed?: boolean;
   imageBase64?: string;
+  prevQuery?: string;
+  prevAnswer?: string;
+  conversationHistory?: { role: string; content: string }[];
   callbacks: {
-    setAnswer: (a: string) => void;
+    setAnswer: (answer: string) => void;
+    streamAnswer?: (answer: string) => void;
     setInternalUrl: (url: string | null) => void;
     setPendingCommand: (cmd: string, mode: string, reason: string) => void;
     launchApp: (name: string, appId: string | null) => Promise<void>;

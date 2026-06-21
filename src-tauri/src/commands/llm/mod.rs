@@ -23,10 +23,12 @@ use crate::error::AppError;
 use reqwest::Client;
 use serde_json::{json, Value};
 use self::pollinations::{is_free_model, query_pollinations};
+use tauri::Emitter;
 
 /// Main Tauri command to query AI models.
 #[tauri::command]
 pub async fn query_llm(
+    app: tauri::AppHandle,
     query: String, 
     model: String, 
     api_key: String,
@@ -78,38 +80,58 @@ pub async fn query_llm(
             });
         }
 
-        let response = local_client.post(chat_url.clone())
+        let mut response = local_client.post(chat_url.clone())
             .json(&json!({
                 "model": actual_model,
                 "messages": [message_obj],
-                "stream": false
+                "stream": true
             }))
             .send()
-            .await;
+            .await.map_err(|e| AppError::NetworkError(e.to_string()))?;
 
-        match response {
-            Ok(res) if res.status().is_success() => {
-                let body: Value = res.json().await.map_err(|e| AppError::NetworkError(e.to_string()))?;
-                return Ok(body["message"]["content"].as_str().unwrap_or("(no response)").to_string());
+        let mut full_text = String::new();
+        while let Ok(Some(chunk)) = response.chunk().await {
+            let text = String::from_utf8_lossy(&chunk);
+            for line in text.lines() {
+                if line.trim().is_empty() { continue; }
+                if let Ok(json) = serde_json::from_str::<serde_json::Value>(line) {
+                    if let Some(content) = json["message"]["content"].as_str() {
+                        full_text.push_str(content);
+                        let _ = app.emit("llm-token", content);
+                    }
+                }
             }
-            _ => {
-                // Fallback for localhost -> 127.0.0.1
-                if base_input.contains("localhost") {
-                    let failover_url = base_input.replace("localhost", "127.0.0.1");
-                    let chat_url = format!("{}/api/chat", failover_url.trim_end_matches('/'));
-                    if let Ok(res) = local_client.post(chat_url)
-                        .json(&json!({ "model": actual_model, "messages": [{"role": "user", "content": &query}], "stream": false }))
-                        .send().await 
-                    {
-                        if res.status().is_success() {
-                            let body: Value = res.json().await.map_err(|e| AppError::NetworkError(e.to_string()))?;
-                            return Ok(body["message"]["content"].as_str().unwrap_or("(no response)").to_string());
+        }
+        if !full_text.is_empty() {
+            return Ok(full_text);
+        }
+
+        // Fallback for localhost -> 127.0.0.1
+        if base_input.contains("localhost") {
+            let failover_url = base_input.replace("localhost", "127.0.0.1");
+            let chat_url = format!("{}/api/chat", failover_url.trim_end_matches('/'));
+            if let Ok(mut res) = local_client.post(chat_url)
+                .json(&json!({ "model": actual_model, "messages": [{"role": "user", "content": &query}], "stream": true }))
+                .send().await 
+            {
+                while let Ok(Some(chunk)) = res.chunk().await {
+                    let text = String::from_utf8_lossy(&chunk);
+                    for line in text.lines() {
+                        if line.trim().is_empty() { continue; }
+                        if let Ok(json) = serde_json::from_str::<serde_json::Value>(line) {
+                            if let Some(content) = json["message"]["content"].as_str() {
+                                full_text.push_str(content);
+                                let _ = app.emit("llm-token", content);
+                            }
                         }
                     }
                 }
-                return Err(AppError::NetworkError("Failed to connect to Ollama. Ensure the app is running.".to_string()));
+                if !full_text.is_empty() {
+                    return Ok(full_text);
+                }
             }
         }
+        return Err(AppError::NetworkError("Failed to connect to Ollama. Ensure the app is running.".to_string()));
     }
 
     // ── Custom Provider (BYOK) Routing ──────────────────────────
@@ -133,30 +155,54 @@ pub async fn query_llm(
             ]);
         }
 
-        let response = client
+        let mut response = client
             .post(chat_url)
             .bearer_auth(&api_key)
             .json(&json!({
                 "model": model,
-                "messages": [{"role": "user", "content": user_content}]
+                "messages": [{"role": "user", "content": user_content}],
+                "stream": true
             }))
             .send()
             .await
             .map_err(|e| AppError::NetworkError(e.to_string()))?;
 
-        if response.status().is_success() {
-            let body: Value = response.json().await.map_err(|e| AppError::NetworkError(e.to_string()))?;
-            return Ok(body["choices"][0]["message"]["content"].as_str().unwrap_or("(no response)").to_string());
-        } else {
+        if !response.status().is_success() {
             return Err(AppError::ProviderError {
                 status: response.status().as_u16(),
                 message: response.text().await.unwrap_or_default(),
             });
         }
+
+        let mut full_text = String::new();
+        while let Ok(Some(chunk)) = response.chunk().await {
+            let text = String::from_utf8_lossy(&chunk);
+            for line in text.lines() {
+                let trimmed = line.trim();
+                if trimmed.starts_with("data: ") && trimmed != "data: [DONE]" {
+                    let data = &trimmed[6..];
+                    if let Ok(json) = serde_json::from_str::<serde_json::Value>(data) {
+                        if let Some(choices) = json["choices"].as_array() {
+                            if let Some(delta) = choices.get(0).and_then(|c| c["delta"]["content"].as_str()) {
+                                full_text.push_str(delta);
+                                let _ = app.emit("llm-token", delta);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return Ok(full_text);
     }
 
     // ── Free Models (Pollinations) ──────────────────────────────
     if is_free_model(&model) {
+        if image_base64.is_some() {
+            return Err(AppError::ProviderError { 
+                status: 400, 
+                message: "The Free Model does not support Screen Capture (Vision). Please configure a Gemini API key in Settings to unlock Vision features.".to_string() 
+            });
+        }
         match query_pollinations(&client, &query, "openai-fast").await {
             Ok(answer) => return Ok(answer),
             Err((s, m)) => return Err(AppError::ProviderError { status: s, message: m }),
@@ -173,7 +219,7 @@ pub async fn query_llm(
 
     if is_gemini {
         let url = format!(
-            "https://generativelanguage.googleapis.com/v1/models/{}:generateContent?key={}",
+            "https://generativelanguage.googleapis.com/v1/models/{}:streamGenerateContent?alt=sse&key={}",
             model, api_key
         );
         let mut parts = vec![json!({"text": &query})];
@@ -186,14 +232,37 @@ pub async fn query_llm(
             }));
         }
 
-        let res = client.post(&url)
+        let mut response = client.post(&url)
             .json(&json!({"contents": [{"parts": parts}]}))
             .send().await.map_err(|e| AppError::NetworkError(e.to_string()))?;
 
-        if res.status().is_success() {
-            let body: Value = res.json().await.map_err(|e| AppError::NetworkError(e.to_string()))?;
-            return Ok(body["candidates"][0]["content"]["parts"][0]["text"].as_str().unwrap_or("(no response)").to_string());
+        if !response.status().is_success() {
+            let status = response.status().as_u16();
+            let body = response.text().await.unwrap_or_default();
+            return Err(AppError::ProviderError { status, message: body });
         }
+
+        let mut full_text = String::new();
+        while let Ok(Some(chunk)) = response.chunk().await {
+            let text = String::from_utf8_lossy(&chunk);
+            for line in text.lines() {
+                let trimmed = line.trim();
+                if trimmed.starts_with("data: ") && trimmed != "data: [DONE]" {
+                    let data = &trimmed[6..];
+                    if let Ok(json) = serde_json::from_str::<serde_json::Value>(data) {
+                        if let Some(candidates) = json["candidates"].as_array() {
+                            if let Some(parts) = candidates.get(0).and_then(|c| c["content"]["parts"].as_array()) {
+                                if let Some(delta) = parts.get(0).and_then(|p| p["text"].as_str()) {
+                                    full_text.push_str(delta);
+                                    let _ = app.emit("llm-token", delta);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return Ok(full_text);
     }
 
     if is_claude {
@@ -205,20 +274,42 @@ pub async fn query_llm(
             ]);
         }
 
-        let res = client.post("https://api.anthropic.com/v1/messages")
+        let mut response = client.post("https://api.anthropic.com/v1/messages")
             .header("x-api-key", &api_key)
             .header("anthropic-version", "2023-06-01")
             .json(&json!({
                 "model": model, "max_tokens": 2048,
                 "system": "You are a concise, helpful assistant. Use markdown for code.",
-                "messages": [{"role": "user", "content": user_content}]
+                "messages": [{"role": "user", "content": user_content}],
+                "stream": true
             }))
             .send().await.map_err(|e| AppError::NetworkError(e.to_string()))?;
 
-        if res.status().is_success() {
-            let body: Value = res.json().await.map_err(|e| AppError::NetworkError(e.to_string()))?;
-            return Ok(body["content"][0]["text"].as_str().unwrap_or("(no response)").to_string());
+        if !response.status().is_success() {
+            let status = response.status().as_u16();
+            let body = response.text().await.unwrap_or_default();
+            return Err(AppError::ProviderError { status, message: body });
         }
+
+        let mut full_text = String::new();
+        while let Ok(Some(chunk)) = response.chunk().await {
+            let text = String::from_utf8_lossy(&chunk);
+            for line in text.lines() {
+                let trimmed = line.trim();
+                if trimmed.starts_with("data: ") {
+                    let data = &trimmed[6..];
+                    if let Ok(json) = serde_json::from_str::<serde_json::Value>(data) {
+                        if json["type"] == "content_block_delta" {
+                            if let Some(delta) = json["delta"]["text"].as_str() {
+                                full_text.push_str(delta);
+                                let _ = app.emit("llm-token", delta);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return Ok(full_text);
     }
 
     let mut user_content = json!(&query);
@@ -230,18 +321,38 @@ pub async fn query_llm(
     }
 
     let endpoint = if is_grok { "https://api.x.ai/v1/chat/completions" } else { "https://api.openai.com/v1/chat/completions" };
-    let res = client.post(endpoint)
+    let mut response = client.post(endpoint)
         .bearer_auth(&api_key)
         .json(&json!({
             "model": model,
-            "messages": [{"role": "system", "content": "You are a concise, helpful assistant."}, {"role": "user", "content": user_content}]
+            "messages": [{"role": "system", "content": "You are a concise, helpful assistant."}, {"role": "user", "content": user_content}],
+            "stream": true
         }))
         .send().await.map_err(|e| AppError::NetworkError(e.to_string()))?;
 
-    if res.status().is_success() {
-        let body: Value = res.json().await.map_err(|e| AppError::NetworkError(e.to_string()))?;
-        Ok(body["choices"][0]["message"]["content"].as_str().unwrap_or("(no response)").to_string())
-    } else {
-        Err(AppError::ProviderError { status: res.status().as_u16(), message: res.text().await.unwrap_or_default() })
+    if !response.status().is_success() {
+        let status = response.status().as_u16();
+        let body = response.text().await.unwrap_or_default();
+        return Err(AppError::ProviderError { status, message: body });
     }
+
+    let mut full_text = String::new();
+    while let Ok(Some(chunk)) = response.chunk().await {
+        let text = String::from_utf8_lossy(&chunk);
+        for line in text.lines() {
+            let trimmed = line.trim();
+            if trimmed.starts_with("data: ") && trimmed != "data: [DONE]" {
+                let data = &trimmed[6..];
+                if let Ok(json) = serde_json::from_str::<serde_json::Value>(data) {
+                    if let Some(choices) = json["choices"].as_array() {
+                        if let Some(delta) = choices.get(0).and_then(|c| c["delta"]["content"].as_str()) {
+                            full_text.push_str(delta);
+                            let _ = app.emit("llm-token", delta);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return Ok(full_text);
 }

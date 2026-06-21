@@ -22,6 +22,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { invoke } from '@tauri-apps/api/core';
+import { listen } from '@tauri-apps/api/event';
 
 // ── AI Query ─────────────────────────────────────────────────────────────────
 
@@ -32,9 +33,24 @@ export async function queryLlm(
   apiKey: string,
   provider?: string,
   baseUrl?: string,
-  imageBase64?: string
+  imageBase64?: string,
+  onToken?: (text: string) => void
 ): Promise<string> {
-  return await invoke<string>('query_llm', { query, model, apiKey, provider, baseUrl, imageBase64 });
+  let unlisten: (() => void) | null = null;
+  
+  if (onToken) {
+    let accumulated = '';
+    unlisten = await listen<string>('llm-token', (event) => {
+      accumulated += event.payload;
+      onToken(accumulated);
+    });
+  }
+
+  try {
+    return await invoke<string>('query_llm', { query, model, apiKey, provider, baseUrl, imageBase64 });
+  } finally {
+    if (unlisten) unlisten();
+  }
 }
 
 // ── API Key Management ───────────────────────────────────────────────────────

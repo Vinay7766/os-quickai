@@ -38,6 +38,12 @@ interface AppState {
   /** Previous answer for 'back' functionality */
   prevAnswer: string;
 
+  /** Full conversational memory array */
+  conversationHistory: { role: string; content: string }[];
+
+  /** Current voice session ID for saving history */
+  voiceSessionId: string | null;
+
   /** Whether the mode switcher menu is currently open */
   isModeMenuOpen: boolean;
 
@@ -54,6 +60,9 @@ interface AppState {
   /** Whether the custom brand settings menu is currently open */
   isBrandMenuOpen: boolean;
 
+  /** Whether the action menu (right side dropdown) is currently open */
+  isActionMenuOpen: boolean;
+
   /** Update the query text */
   setQuery: (q: string) => void;
 
@@ -68,6 +77,9 @@ interface AppState {
 
   /** Toggle brand popover menu */
   setBrandMenuOpen: (open: boolean) => void;
+
+  /** Toggle action popover menu */
+  setActionMenuOpen: (open: boolean) => void;
 
   /** URL for internal browser view */
   internalUrl: string | null;
@@ -85,8 +97,7 @@ interface AppState {
   fileProgress: { progress: number; operation: string; file: string } | null;
   setFileProgress: (progress: { progress: number; operation: string; file: string } | null) => void;
 
-  /** Submit the current query to the selected AI model */
-  submitQuery: () => Promise<void>;
+  submitQuery: (isVoice?: boolean) => Promise<void>;
 
   /** Clear all query state (input, answer, error, internalUrl) */
   clearAnswer: () => void;
@@ -97,6 +108,8 @@ interface AppState {
   activeAppIndex: number;
   loadInstalledApps: () => Promise<void>;
   setActiveAppIndex: (index: number) => void;
+  isVoiceMode: boolean;
+  setVoiceMode: (v: boolean) => void;
 }
 
 // Helper to score app query matching (fuzzy, abbreviation/acronym, and substring)
@@ -169,12 +182,15 @@ export const useAppStore = create<AppState>((set, get) => ({
   answer: '',
   prevQuery: '',
   prevAnswer: '',
+  conversationHistory: [],
+  voiceSessionId: null,
   isLoading: false,
   error: null,
   searchMode: 'search',
   isModeMenuOpen: false,
   isModelMenuOpen: false,
   isBrandMenuOpen: false,
+  isActionMenuOpen: false,
   internalUrl: null,
   imageBase64: null,
   fileProgress: null,
@@ -184,6 +200,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   pendingCommand: null,
   pendingMode: null,
   isConfirmed: false,
+  isVoiceMode: false,
 
   setQuery: (q: string) => {
     set({ query: q });
@@ -226,10 +243,12 @@ export const useAppStore = create<AppState>((set, get) => ({
   setModeMenuOpen: (open: boolean) => set({ isModeMenuOpen: open }),
   setModelMenuOpen: (open: boolean) => set({ isModelMenuOpen: open }),
   setBrandMenuOpen: (open: boolean) => set({ isBrandMenuOpen: open }),
+  setActionMenuOpen: (open: boolean) => set({ isActionMenuOpen: open }),
   setInternalUrl: (url: string | null) => set({ internalUrl: url }),
   setImageBase64: (base64: string | null) => set({ imageBase64: base64 }),
   setFileProgress: (p) => set({ fileProgress: p }),
   setActiveAppIndex: (index: number) => set({ activeAppIndex: index }),
+  setVoiceMode: (v: boolean) => set({ isVoiceMode: v }),
 
   loadInstalledApps: async () => {
     try {
@@ -256,7 +275,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   },
 
-  clearAnswer: () => set({ answer: '', query: '', error: null, internalUrl: null, imageBase64: null, isLoading: false, appSuggestions: [], activeAppIndex: 0, pendingCommand: null, pendingMode: null, isConfirmed: false }),
+  clearAnswer: () => set({ answer: '', query: '', error: null, internalUrl: null, imageBase64: null, isLoading: false, appSuggestions: [], activeAppIndex: 0, pendingCommand: null, pendingMode: null, isConfirmed: false, isVoiceMode: false, conversationHistory: [], voiceSessionId: null }),
 
   confirmCommand: async () => {
     const { pendingCommand, pendingMode } = get();
@@ -266,11 +285,11 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   cancelCommand: () => {
-    set({ pendingCommand: null, pendingMode: null, isConfirmed: false, answer: '', isLoading: false, query: '' });
+    set({ pendingCommand: null, pendingMode: null, isConfirmed: false, answer: '', isLoading: false, query: '', isVoiceMode: false });
   },
 
-  submitQuery: async () => {
-    const { query, answer, searchMode, isConfirmed, appSuggestions, activeAppIndex, imageBase64 } = get();
+  submitQuery: async (isVoice?: boolean) => {
+    const { query, answer, searchMode, isConfirmed, appSuggestions, activeAppIndex, imageBase64, prevQuery, prevAnswer, conversationHistory } = get();
     const settings = useSettingsStore.getState();
 
     // Don't submit empty queries unless we have an image
@@ -292,8 +311,79 @@ export const useAppStore = create<AppState>((set, get) => ({
         appSuggestions,
         activeAppIndex,
         imageBase64: imageBase64 || undefined,
+        prevQuery,
+        prevAnswer,
+        conversationHistory,
         callbacks: {
-          setAnswer: (a: string) => set({ answer: a, isLoading: false, error: null }),
+          streamAnswer: (a: string) => {
+            set({ answer: a });
+          },
+          setAnswer: async (a: string) => {
+            const currentHistory = get().conversationHistory;
+            const newHistory = [...currentHistory, { role: 'user', content: finalQuery }, { role: 'assistant', content: a }];
+            let sessionId = get().voiceSessionId;
+            if (!sessionId && isVoice) {
+              sessionId = new Date().toISOString();
+              set({ voiceSessionId: sessionId });
+            }
+            
+            set({ 
+              answer: a, 
+              isLoading: false, 
+              error: null,
+              conversationHistory: newHistory
+            });
+
+            // Save to persistent voice history if in voice mode
+            if (isVoice && sessionId) {
+              try {
+                const data = await invoke<any>('get_setting', { key: 'voiceHistory' });
+                let allHistory = [];
+                if (Array.isArray(data)) allHistory = data;
+                else if (typeof data === 'string') allHistory = JSON.parse(data);
+
+                const existingIndex = allHistory.findIndex((s: any) => s.id === sessionId);
+                if (existingIndex >= 0) {
+                  allHistory[existingIndex].messages = newHistory;
+                } else {
+                  allHistory.push({ id: sessionId, date: sessionId, messages: newHistory });
+                }
+                await invoke('save_setting', { key: 'voiceHistory', value: allHistory });
+              } catch (e) {
+                console.error('Failed to save voice history', e);
+              }
+            } else if (!isVoice) {
+              // Save text history
+              try {
+                const data = await invoke<any>('get_setting', { key: 'textHistory' });
+                let allHistory = [];
+                if (Array.isArray(data)) allHistory = data;
+                else if (typeof data === 'string') allHistory = JSON.parse(data);
+
+                const textSessionId = new Date().toISOString();
+                allHistory.push({ id: textSessionId, date: textSessionId, messages: [{role: 'user', content: finalQuery}, {role: 'assistant', content: a}] });
+                await invoke('save_setting', { key: 'textHistory', value: allHistory });
+              } catch (e) {
+                console.error('Failed to save text history', e);
+              }
+            }
+
+            if (isVoice) {
+              // Strip markdown before speaking
+              const cleanText = a.replace(/[`*#_~\[\]()]/g, '');
+              const utterance = new SpeechSynthesisUtterance(cleanText);
+              utterance.onend = async () => {
+                if (get().isVoiceMode) {
+                  // Continuous Conversation: Clear previous query text but preserve answer for history
+                  set({ query: '' });
+                  const { emit } = await import('@tauri-apps/api/event');
+                  await emit('voice-start');
+                }
+              };
+              window.speechSynthesis.cancel(); // Stop current speech
+              window.speechSynthesis.speak(utterance);
+            }
+          },
           setInternalUrl: (url: string | null) => set({ internalUrl: url, isLoading: false, query: '' }),
           setPendingCommand: (cmd: string, mode: string, reason: string) => {
             set({ 
