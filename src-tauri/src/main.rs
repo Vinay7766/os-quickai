@@ -407,7 +407,7 @@ fn main() {
             }
             // Spawn the high-performance background directory indexer thread
             let app_handle = app.handle().clone();
-            tokio::task::spawn_blocking(move || {
+            std::thread::spawn(move || {
                 let root_dir = if cfg!(target_os = "windows") {
                     std::env::var("USERPROFILE").unwrap_or_else(|_| "C:\\".to_string())
                 } else {
