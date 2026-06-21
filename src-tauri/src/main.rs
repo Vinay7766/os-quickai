@@ -408,6 +408,11 @@ fn main() {
             // Spawn the high-performance background directory indexer thread
             let app_handle = app.handle().clone();
             std::thread::spawn(move || {
+                // IMPORTANT: Delay the heavy disk indexing by 15 seconds!
+                // During Windows logon, starting a massive recursive WalkDir immediately 
+                // causes massive Disk I/O contention, delaying the WebView2 UI initialization.
+                std::thread::sleep(std::time::Duration::from_secs(15));
+
                 let root_dir = if cfg!(target_os = "windows") {
                     std::env::var("USERPROFILE").unwrap_or_else(|_| "C:\\".to_string())
                 } else {
