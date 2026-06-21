@@ -32,23 +32,25 @@ import InterfaceSection from './sections/InterfaceSection';
 import HotkeySection from './sections/HotkeySection';
 import SupportSection from './sections/SupportSection';
 import PluginSection from './sections/PluginSection';
+import VoiceHistorySection from './sections/VoiceHistorySection';
 
 import { API_MODELS } from '../../core/constants';
 
-type Section = 'models' | 'plugins' | 'interface' | 'hotkey' | 'support';
+type Section = 'models' | 'plugins' | 'interface' | 'hotkey' | 'history' | 'support';
 
 const SIDEBAR_NAV: { id: Section; label: string }[] = [
   { id: 'models', label: 'AI Models & APIs' },
   { id: 'plugins', label: 'Plugins' },
   { id: 'interface', label: 'Interface & Browser' },
   { id: 'hotkey', label: 'Shortcuts' },
+  { id: 'history', label: 'Voice History' },
   { id: 'support', label: 'Support & Community' },
 ];
 
 export default function Settings() {
   const {
     hotkey, llmModel, browser, searchEngine, customSearchUrl, llmSite, theme, settingsLoaded,
-    enableSiteLauncher, enableAppLauncher, enableTerminalMode, openLinksInternal, enableLocalFileAccess,
+    enableSiteLauncher, enableAppLauncher, enableTerminalMode, openLinksInternal, enableLocalFileAccess, enableFullConversationHistory, enablePartialScreenCapture,
     customLockCommand, customSleepCommand, customRestartCommand, customShutdownCommand,
     availableModels, customProviders, ollamaEnabled, ollamaUrl,
     loadSettings, updateHotkey, updateSetting, refreshModels
@@ -105,8 +107,20 @@ export default function Settings() {
   };
 
   const handleWelcomeComplete = async () => {
-    try { await invoke('save_setting', { key: 'hasCompletedWelcome_v1_0_1', value: true }); setHasCompletedWelcome(true); }
-    catch (e) { setHasCompletedWelcome(true); }
+    try { 
+      await invoke('save_setting', { key: 'hasCompletedWelcome_v1_0_1', value: true }); 
+      setHasCompletedWelcome(true); 
+      // Automatically show the main overlay for the user
+      const { Window } = await import('@tauri-apps/api/window');
+      const overlayWin = await Window.getByLabel('overlay');
+      if (overlayWin) {
+        await overlayWin.show();
+        await overlayWin.setFocus();
+      }
+    }
+    catch (e) { 
+      setHasCompletedWelcome(true); 
+    }
   };
 
   const handleSaveKey = async (provider?: string) => {
@@ -238,8 +252,9 @@ export default function Settings() {
         <div className="max-w-xl">
           {activeSection === 'models' && <AIModelSection llmModel={llmModel} availableModels={availableModels} storedKeys={storedKeys} activeKeyProvider={activeKeyProvider} keyInput={keyInput} keyStatus={keyStatus} isRefreshingModels={isRefreshingModels} setKeyInput={setKeyInput} setActiveKeyProvider={setActiveKeyProvider} handleSaveKey={handleSaveKey} handleDeleteKey={handleDeleteKey} handleResetAllKeys={handleResetAllKeys} handleRefresh={handleRefresh} updateSetting={handleUpdateSetting} customProviders={customProviders} refreshModels={refreshModels} />}
           {activeSection === 'plugins' && <PluginSection ollamaEnabled={ollamaEnabled} ollamaUrl={ollamaUrl} enableTerminalMode={enableTerminalMode} updateSetting={handleUpdateSetting} refreshModels={refreshModels} />}
-          {activeSection === 'interface' && <InterfaceSection theme={theme} browser={browser} llmSite={llmSite} searchEngine={searchEngine} customSearchUrl={customSearchUrl} enableSiteLauncher={enableSiteLauncher} enableAppLauncher={enableAppLauncher} openLinksInternal={openLinksInternal} enableLocalFileAccess={enableLocalFileAccess} customLockCommand={customLockCommand} customSleepCommand={customSleepCommand} customRestartCommand={customRestartCommand} customShutdownCommand={customShutdownCommand} updateSetting={handleUpdateSetting} handleBrowserChange={handleBrowserChange} />}
+          {activeSection === 'interface' && <InterfaceSection theme={theme} browser={browser} llmSite={llmSite} searchEngine={searchEngine} customSearchUrl={customSearchUrl} enableSiteLauncher={enableSiteLauncher} enableAppLauncher={enableAppLauncher} enableTerminalMode={enableTerminalMode} openLinksInternal={openLinksInternal} enableLocalFileAccess={enableLocalFileAccess} enableFullConversationHistory={enableFullConversationHistory} enablePartialScreenCapture={enablePartialScreenCapture} customLockCommand={customLockCommand} customSleepCommand={customSleepCommand} customRestartCommand={customRestartCommand} customShutdownCommand={customShutdownCommand} updateSetting={handleUpdateSetting} handleBrowserChange={handleBrowserChange} />}
           {activeSection === 'hotkey' && <HotkeySection hotkey={hotkey} hotkeyStatus={hotkeyStatus} updateHotkey={updateHotkey} handleHotkeySave={handleHotkeySave} setHotkeyStatus={setHotkeyStatus} />}
+          {activeSection === 'history' && <VoiceHistorySection />}
           {activeSection === 'support' && <SupportSection updateVersion={updateVersion} />}
         </div>
       </div>
