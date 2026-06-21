@@ -39,6 +39,7 @@ use tauri::{
 };
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
 use enigo::{Enigo, Keyboard, Settings, Direction, Key};
+use walkdir::{WalkDir, DirEntry};
 #[cfg(target_os = "windows")]
 use winreg::enums::*;
 #[cfg(target_os = "windows")]
@@ -132,7 +133,13 @@ fn set_autostart(_exe_path: &str) {}
 
 /// Checks if this is the first time the app has been launched for this version.
 #[cfg(target_os = "windows")]
-fn is_first_run(version: &str) -> bool {
+fn is_first_run(version: &str, app_handle: &tauri::AppHandle) -> bool {
+    use tauri::Manager;
+    let settings_path = app_handle.path().app_data_dir().unwrap_or_default().join("settings.json");
+    if !settings_path.exists() {
+        return true;
+    }
+
     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
     let key_name = format!("v{}_installed", version.replace('.', "_"));
     hkcu.open_subkey(r"SOFTWARE\Quickno")
@@ -141,7 +148,7 @@ fn is_first_run(version: &str) -> bool {
 }
 
 #[cfg(not(target_os = "windows"))]
-fn is_first_run(_version: &str) -> bool { false }
+fn is_first_run(_version: &str, _app_handle: &tauri::AppHandle) -> bool { false }
 
 /// Marks the app as "installed" for this version.
 #[cfg(target_os = "windows")]
@@ -391,25 +398,23 @@ fn main() {
             // We only show the settings/welcome window on the very first run.
             // After that, the app starts silently in the tray.
             let version = app.package_info().version.to_string();
-            if is_first_run(&version) {
+            if is_first_run(&version, app.handle()) {
                 if let Some(s) = app.get_webview_window("settings") {
                     let _ = s.show();
                     let _ = s.set_focus();
                     mark_installed(&version);
                 }
             }
-            // Spawn the low-priority background directory indexer thread
+            // Spawn the high-performance background directory indexer thread
             let app_handle = app.handle().clone();
-            std::thread::spawn(move || {
+            tokio::task::spawn_blocking(move || {
                 let root_dir = if cfg!(target_os = "windows") {
-                    "C:\\".to_string()
+                    std::env::var("USERPROFILE").unwrap_or_else(|_| "C:\\".to_string())
                 } else {
-                    "/".to_string()
+                    std::env::var("HOME").unwrap_or_else(|_| "/".to_string())
                 };
 
-                let root_path = std::path::Path::new(&root_dir);
-                let mut indexed_files = Vec::new();
-                index_user_files_recursive(root_path, 1, &mut indexed_files);
+                let indexed_files = index_user_files_concurrently(&root_dir);
                 
                 if let Some(state) = app_handle.try_state::<FileIndexState>() {
                     if let Ok(mut writer) = state.0.write() {
@@ -436,48 +441,33 @@ fn main() {
         .expect("tauri error");
 }
 
-fn index_user_files_recursive(dir: &std::path::Path, depth: usize, files: &mut Vec<commands::browser::FileInfo>) {
-    if depth > 6 { return; }
-    if let Ok(entries) = std::fs::read_dir(dir) {
-        for entry in entries.flatten() {
-            if let Ok(file_type) = entry.file_type() {
-                let path = entry.path();
-                let file_name = path.file_name().and_then(|n| n.to_str()).unwrap_or_default();
-                
-                // Exclude hidden folders, node_modules, AppData, etc.
-                if file_name.starts_with('.') || 
-                   file_name == "node_modules" || 
-                   file_name == "AppData" ||
-                   file_name == "Local Settings" ||
-                   file_name == "Application Data" ||
-                   file_name == "Cookies" ||
-                   file_name == "SendTo" ||
-                   file_name == "Templates" ||
-                   file_name == "PrintHood" ||
-                   file_name == "NetHood" ||
-                   file_name == "Recent" ||
-                   // Root Drive Exclusions
-                   file_name == "Windows" ||
-                   file_name == "Program Files" ||
-                   file_name == "Program Files (x86)" ||
-                   file_name == "ProgramData" ||
-                   file_name == "System Volume Information" ||
-                   file_name == "$Recycle.Bin" ||
-                   file_name == "Recovery" ||
-                   file_name == "Documents and Settings" ||
-                   file_name == "MSOCache" {
-                    continue;
-                }
+fn is_hidden_or_system(entry: &DirEntry) -> bool {
+    let name = entry.file_name().to_string_lossy();
+    if name.starts_with('.') {
+        return true;
+    }
+    match name.as_ref() {
+        "node_modules" | "AppData" | "Local Settings" | "Application Data" | "Cookies" |
+        "SendTo" | "Templates" | "PrintHood" | "NetHood" | "Recent" | "Windows" |
+        "Program Files" | "Program Files (x86)" | "ProgramData" |
+        "System Volume Information" | "$Recycle.Bin" | "Recovery" |
+        "Documents and Settings" | "MSOCache" => true,
+        _ => false,
+    }
+}
 
-                if file_type.is_dir() {
-                    index_user_files_recursive(&path, depth + 1, files);
-                } else if file_type.is_file() {
-                    files.push(commands::browser::FileInfo {
-                        name: file_name.to_string(),
-                        path: path.to_string_lossy().to_string(),
-                    });
-                }
+fn index_user_files_concurrently(root: &str) -> Vec<commands::browser::FileInfo> {
+    let mut files = Vec::new();
+    let walker = WalkDir::new(root).max_depth(6).into_iter();
+    for entry in walker.filter_entry(|e| !is_hidden_or_system(e)) {
+        if let Ok(e) = entry {
+            if e.file_type().is_file() {
+                files.push(commands::browser::FileInfo {
+                    name: e.file_name().to_string_lossy().to_string(),
+                    path: e.path().to_string_lossy().to_string(),
+                });
             }
         }
     }
+    files
 }

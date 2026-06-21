@@ -18,7 +18,7 @@ tauri-plugin-store = "=2.4.3"
 serde = { version = "1.0.217", features = ["derive"] }
 serde_json = { version = "1.0.137" }
 tokio = { version = "1.43.0", features = ["full"] }
-reqwest = { version = "0.12", default-features = false, features = ["json", "native-tls", "http2"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "native-tls", "http2", "stream"] }
 thiserror = "2.0.11"
 keyring = { version = "3.6.1", features = ["windows-native"] }
 open = "5.3"
@@ -28,6 +28,7 @@ screenshots = "0.8.10"
 base64 = "0.22.1"
 enigo = "0.2.1"
 boa_engine = "0.21.1"
+walkdir = "2.5.0"
 # Windows AV workaround
 [profile.release]
 codegen-units = 1

@@ -58,22 +58,6 @@
         "visible": false,
         "resizable": true,
         "decorations": true
-      },
-      {
-        "label": "pet",
-        "title": "Quickno Pet",
-        "width": 150,
-        "height": 150,
-        "x": 100,
-        "y": 100,
-        "decorations": false,
-        "alwaysOnTop": true,
-        "skipTaskbar": true,
-        "transparent": true,
-        "hiddenTitle": true,
-        "visible": false,
-        "resizable": false,
-        "shadow": false
       }
     ],
     "security": {
