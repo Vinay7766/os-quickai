@@ -14,36 +14,6 @@ export function useClipboardListener() {
   const lastClipboardRef = useRef<string>('');
 
   useEffect(() => {
-    let mounted = true;
-
-    const checkClipboard = async () => {
-      try {
-        const text = await readText();
-        if (!mounted) return;
-        
-        // If the text is valid and different from the last seen text
-        if (text && text.trim().length > 0 && text !== lastClipboardRef.current) {
-          // If the user's current query is empty, auto-paste the clipboard!
-          // (We don't overwrite if they are actively typing something else)
-          if (query.trim() === '') {
-            setQuery(text);
-          }
-          lastClipboardRef.current = text;
-        }
-      } catch (err) {
-        // Clipboard read might fail or be empty, ignore
-      }
-    };
-
-    // Check immediately on mount
-    checkClipboard();
-
-    // Check every time the window regains focus
-    const handleFocus = () => {
-      checkClipboard();
-    };
-
-    window.addEventListener('focus', handleFocus);
 
     // Listen for the "instant-search" global hotkey from Rust
     const unlistenPromise = listen('instant-search', async () => {
@@ -65,8 +35,6 @@ export function useClipboardListener() {
     });
 
     return () => {
-      mounted = false;
-      window.removeEventListener('focus', handleFocus);
       unlistenPromise.then(unlisten => unlisten());
     };
   }, [setQuery, query, setMode]);

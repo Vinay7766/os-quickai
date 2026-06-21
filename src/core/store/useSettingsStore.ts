@@ -59,6 +59,8 @@ interface SettingsState {
   enableTerminalMode: boolean;
   openLinksInternal: boolean;
   enableLocalFileAccess: boolean;
+  enableFullConversationHistory: boolean;
+  enablePartialScreenCapture: boolean;
   
   // Custom power command trigger lists
   customLockCommand: string;
@@ -72,6 +74,7 @@ interface SettingsState {
   ollamaUrl: string;
 
   availableModels: string[];
+  ollamaModelSizes: Record<string, number>;
   modelProviderMap: Record<string, { provider: string; baseUrl?: string }>;
   
   loadSettings: () => Promise<void>;
@@ -122,10 +125,14 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   enableTerminalMode: true,
   openLinksInternal: true,
   enableLocalFileAccess: false,
+  enableFullConversationHistory: false,
+  enablePartialScreenCapture: false,
   customProviders: [],
   ollamaEnabled: false,
   ollamaUrl: 'http://127.0.0.1:11434',
-  availableModels: [],
+  
+  availableModels: ['ollama:llama3'],
+  ollamaModelSizes: {},
   modelProviderMap: {},
   customLockCommand: 'lock, lock pc, lock laptop, lock computer, lock my pc, lock my laptop, lock my computer',
   customSleepCommand: 'sleep, sleep pc, sleep laptop, sleep computer, sleep my pc, sleep my laptop, sleep my computer, hibernate',
@@ -146,15 +153,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       const enableAppLauncher  = (await invoke<string | null>('get_setting', { key: 'enableAppLauncher' }))  !== 'false';
       const openLinksInternal  = (await invoke<string | null>('get_setting', { key: 'openLinksInternal' }))  !== 'false';
 
-      let enableTerminalMode = false;
-      try {
-        const { type } = await import('@tauri-apps/plugin-os');
-        if (type() === 'linux') {
-          enableTerminalMode = (await invoke<string | null>('get_setting', { key: 'enableTerminalMode' })) !== 'false';
-        }
-      } catch (e) {
-        console.error('[Settings] failed to check OS type:', e);
-      }
+      let enableTerminalMode = (await invoke<string | null>('get_setting', { key: 'enableTerminalMode' })) !== 'false';
 
       let theme = await invoke<'light' | 'dark' | 'system' | null>('get_setting', { key: 'theme' });
       if (!theme) {
@@ -172,6 +171,8 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       const ollamaUrl = await invoke<string | null>('get_setting', { key: 'ollamaUrl' }) ?? 'http://127.0.0.1:11434';
 
       const enableLocalFileAccess = (await invoke<string | null>('get_setting', { key: 'enableLocalFileAccess' })) === 'true';
+      const enableFullConversationHistory = (await invoke<string | null>('get_setting', { key: 'enableFullConversationHistory' })) === 'true';
+      const enablePartialScreenCapture = (await invoke<string | null>('get_setting', { key: 'enablePartialScreenCapture' })) === 'true';
 
       const customLockCommand = await invoke<string | null>('get_setting', { key: 'customLockCommand' }) ?? 'lock, lock pc, lock laptop, lock computer, lock my pc, lock my laptop, lock my computer';
       const customSleepCommand = await invoke<string | null>('get_setting', { key: 'customSleepCommand' }) ?? 'sleep, sleep pc, sleep laptop, sleep computer, sleep my pc, sleep my laptop, sleep my computer, hibernate';
@@ -181,7 +182,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       set({ 
         hotkey, llmModel, searchEngine, customSearchUrl, llmSite, browser, theme, 
         enableSiteLauncher, enableAppLauncher, enableTerminalMode, openLinksInternal,
-        enableLocalFileAccess,
+        enableLocalFileAccess, enableFullConversationHistory, enablePartialScreenCapture,
         customProviders, ollamaEnabled, ollamaUrl,
         customLockCommand, customSleepCommand, customRestartCommand, customShutdownCommand,
         settingsLoaded: true 
@@ -242,8 +243,13 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       // 3. Ollama
       if (state.ollamaEnabled) {
         try {
-          const models = await invoke<string[]>('list_ollama_models', { url: state.ollamaUrl });
-          const prefixed = models.map(m => `ollama:${m}`);
+          const models = await invoke<{name: string, size: number}[]>('list_ollama_models', { url: state.ollamaUrl });
+          const sizesMap = get().ollamaModelSizes;
+          const prefixed = models.map(m => {
+            sizesMap[`ollama:${m.name}`] = m.size;
+            return `ollama:${m.name}`;
+          });
+          set({ ollamaModelSizes: sizesMap });
           allModels = [...allModels, ...prefixed];
           prefixed.forEach(m => {
             providerMap[m] = { provider: 'ollama', baseUrl: state.ollamaUrl };
@@ -274,18 +280,6 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 
   // ── Update Any Setting ─────────────────────────────────────────────────
   updateSetting: async (key: string, val: string | boolean | string[] | CustomProvider[]) => {
-    if (key === 'enableTerminalMode') {
-      try {
-        const { type } = await import('@tauri-apps/plugin-os');
-        if (type() !== 'linux') {
-          set({ enableTerminalMode: false });
-          return;
-        }
-      } catch {
-        set({ enableTerminalMode: false });
-        return;
-      }
-    }
 
     // 1. Update local Zustand state immediately
     set({ [key]: val } as any);

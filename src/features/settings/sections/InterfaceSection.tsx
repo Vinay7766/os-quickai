@@ -24,8 +24,11 @@ interface Props {
   customSearchUrl: string;
   enableSiteLauncher: boolean;
   enableAppLauncher: boolean;
+  enableTerminalMode: boolean;
   openLinksInternal: boolean;
   enableLocalFileAccess: boolean;
+  enableFullConversationHistory: boolean;
+  enablePartialScreenCapture: boolean;
   customLockCommand: string;
   customSleepCommand: string;
   customRestartCommand: string;
@@ -35,7 +38,7 @@ interface Props {
 }
 
 export default function InterfaceSection({
-  theme, browser, llmSite, searchEngine, customSearchUrl, enableSiteLauncher, enableAppLauncher, openLinksInternal, enableLocalFileAccess,
+  theme, browser, llmSite, searchEngine, customSearchUrl, enableSiteLauncher, enableAppLauncher, enableTerminalMode, openLinksInternal, enableLocalFileAccess, enableFullConversationHistory, enablePartialScreenCapture,
   customLockCommand, customSleepCommand, customRestartCommand, customShutdownCommand,
   updateSetting, handleBrowserChange
 }: Props) {
@@ -136,8 +139,11 @@ export default function InterfaceSection({
           {[
             { id: 'enableSiteLauncher', label: 'Site Launcher', sub: 'Open URLs directly from the search bar.', state: enableSiteLauncher },
             { id: 'enableAppLauncher', label: 'App Launcher', sub: 'Launch Windows apps by typing their name.', state: enableAppLauncher },
+            { id: 'enableTerminalMode', label: 'Agentic Action Mode', sub: 'Allow AI to securely execute system scripts (Terminal Mode).', state: enableTerminalMode },
             { id: 'enableLocalFileAccess', label: 'Local File Search', sub: 'Enable secure scanning and launching of local files in Desktop, Documents, and Downloads.', state: enableLocalFileAccess },
-            { id: 'openLinksInternal', label: 'Internal Browser', sub: 'Open links within the assistant panel for allowed sites', state: openLinksInternal },
+            { id: 'openLinksInternal', label: 'Internal Browser', sub: 'Open links within the assistant panel for allowed sites.', state: openLinksInternal },
+            { id: 'enableFullConversationHistory', label: 'Full Voice Memory', sub: 'Store complete conversation history in RAM during voice mode for deep follow-ups.', state: enableFullConversationHistory },
+            { id: 'enablePartialScreenCapture', label: 'Partial Screen Capture (Lens)', sub: 'When clicking Lens, freeze the screen and drag to select a specific area instead of capturing the full screen.', state: enablePartialScreenCapture },
           ].map(f => (
             <div key={f.id} className="p-6 rounded-2xl border flex items-center justify-between transition-all hover:bg-white/5" style={{ background: 'var(--clr-surface-secondary)', borderColor: 'var(--clr-border)' }}>
               <div><h4 className="text-sm font-bold">{f.label}</h4><p className="text-[11px] opacity-40 mt-0.5">{f.sub}</p></div>
