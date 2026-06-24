@@ -1,6 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import { AgentTool, AgentContext, ToolResult } from './types';
-import { queryLlm } from '../lib/tauriCommands';
+import { queryLlm, getApiKey, executeUiActions } from '../lib/tauriCommands';
 
 // ── Tool 1: Security Interceptor ───────────────────────────────────────────
 export const securityInterceptorTool: AgentTool = {
@@ -224,21 +224,29 @@ export const llmSearchTool: AgentTool = {
     const FREE_MODELS = ['free-model', 'models/gemini-1.5-flash'];
     const isFree = FREE_MODELS.includes(llmModel) || llmModel.startsWith('ollama:');
 
+    const mapping = settings.modelProviderMap[llmModel];
+
     let apiKey = '';
     if (!isFree) {
-      const provider = llmModel.includes('gemini') ? 'gemini' :
-        llmModel.includes('gpt') ? 'openai' :
-          llmModel.includes('grok') ? 'grok' :
-            llmModel.includes('claude') ? 'claude' : 'openai';
+      if (mapping?.provider === 'custom') {
+        // Retrieve BYOK API key from custom providers list
+        const customProvider = settings.customProviders.find((p: any) => p.baseUrl === mapping.baseUrl);
+        apiKey = customProvider?.apiKey || '';
+        if (!apiKey) {
+          return { type: 'handled', error: `API Key for Custom Provider not found. Please check your settings.` };
+        }
+      } else {
+        const provider = llmModel.includes('gemini') ? 'gemini' :
+          llmModel.includes('gpt') ? 'openai' :
+            llmModel.includes('grok') ? 'grok' :
+              llmModel.includes('claude') ? 'claude' : 'openai';
 
-      const { getApiKey } = await import('../lib/tauriCommands');
-      apiKey = (await getApiKey(provider)) || '';
-      if (!apiKey) {
-        return { type: 'handled', error: `API Key for ${provider.toUpperCase()} not found. Please add it in Settings.` };
+        apiKey = (await getApiKey(provider)) || '';
+        if (!apiKey) {
+          return { type: 'handled', error: `API Key for ${provider.toUpperCase()} not found. Please add it in Settings.` };
+        }
       }
     }
-
-    const mapping = settings.modelProviderMap[llmModel];
 
     // ReAct Loop System Prompt (Injected into user query)
     let systemPrompt = query;
@@ -306,7 +314,6 @@ ${settings.enableFullConversationHistory && ctx.conversationHistory && ctx.conve
     if (parsedData) {
       // 1. Ghost Mode UI Actions (Array of actions)
       if (Array.isArray(parsedData) && parsedData.length > 0 && parsedData[0].action) {
-        const { executeUiActions } = await import('../lib/tauriCommands');
         ctx.callbacks.setAnswer(`Executing UI Automation (${parsedData.length} steps)...\n\n${answer.replace(/```(?:json)?\s*[\s\S]*?\s*```/i, '')}`);
         await executeUiActions(parsedData);
         ctx.callbacks.setAnswer(`UI Automation complete.\n\n${answer.replace(/```(?:json)?\s*[\s\S]*?\s*```/i, '')}`);

@@ -320,8 +320,14 @@ pub async fn query_llm(
         ]);
     }
 
-    let endpoint = if is_grok { "https://api.x.ai/v1/chat/completions" } else { "https://api.openai.com/v1/chat/completions" };
-    let mut response = client.post(endpoint)
+    let endpoint = if let Some(ref url) = base_url {
+        format!("{}/chat/completions", url.trim_end_matches('/'))
+    } else if is_grok { 
+        "https://api.x.ai/v1/chat/completions".to_string()
+    } else { 
+        "https://api.openai.com/v1/chat/completions".to_string()
+    };
+    let mut response = client.post(&endpoint)
         .bearer_auth(&api_key)
         .json(&json!({
             "model": model,
