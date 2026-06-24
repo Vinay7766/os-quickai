@@ -467,10 +467,20 @@ fn index_user_files_concurrently(root: &str) -> Vec<commands::browser::FileInfo>
     for entry in walker.filter_entry(|e| !is_hidden_or_system(e)) {
         if let Ok(e) = entry {
             if e.file_type().is_file() {
-                files.push(commands::browser::FileInfo {
-                    name: e.file_name().to_string_lossy().to_string(),
-                    path: e.path().to_string_lossy().to_string(),
-                });
+                let path_str = e.path().to_string_lossy().to_string();
+                let lower_path = path_str.to_lowercase();
+                if lower_path.ends_with(".exe") || lower_path.ends_with(".lnk") || 
+                   lower_path.ends_with(".pdf") || lower_path.ends_with(".docx") || 
+                   lower_path.ends_with(".xlsx") || lower_path.ends_with(".pptx") || 
+                   lower_path.ends_with(".mp4") || lower_path.ends_with(".png") || 
+                   lower_path.ends_with(".jpg") || lower_path.ends_with(".jpeg") ||
+                   lower_path.ends_with(".mp3") || lower_path.ends_with(".txt") {
+                    
+                    files.push(commands::browser::FileInfo {
+                        name: e.file_name().to_string_lossy().to_string(),
+                        path: path_str,
+                    });
+                }
             }
         }
     }

@@ -244,7 +244,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       if (state.ollamaEnabled) {
         try {
           const models = await invoke<{name: string, size: number}[]>('list_ollama_models', { url: state.ollamaUrl });
-          const sizesMap = get().ollamaModelSizes;
+          const sizesMap = { ...get().ollamaModelSizes };
           const prefixed = models.map(m => {
             sizesMap[`ollama:${m.name}`] = m.size;
             return `ollama:${m.name}`;

@@ -43,7 +43,7 @@ const SIDEBAR_NAV: { id: Section; label: string }[] = [
   { id: 'plugins', label: 'Plugins' },
   { id: 'interface', label: 'Interface & Browser' },
   { id: 'hotkey', label: 'Shortcuts' },
-  { id: 'history', label: 'Voice History' },
+  { id: 'history', label: 'History' },
   { id: 'support', label: 'Support & Community' },
 ];
 

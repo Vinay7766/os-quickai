@@ -22,6 +22,10 @@
     "clipboard-manager:allow-read-text",
     "global-shortcut:default",
     "shell:default",
+    {
+      "identifier": "shell:allow-execute",
+      "allow": [{ "name": "cmd", "cmd": "cmd", "args": ["/C", "start", "ms-screenclip:"] }]
+    },
     "store:default",
     "os:default"
   ]

@@ -43,6 +43,7 @@ export function useWindowResize({
   searchMode
 }: UseWindowResizeProps) {
   const appSuggestions = useAppStore((s) => s.appSuggestions);
+  const isVoiceMode = useAppStore((s) => s.isVoiceMode);
 
   const resizeWindow = useCallback(async (h: number) => {
     try {
@@ -62,7 +63,9 @@ export function useWindowResize({
 
   useEffect(() => {
     const trigger = () => {
-      if (isMenuOpen) {
+      if (isVoiceMode) {
+        resizeWindow(500);
+      } else if (isMenuOpen) {
         resizeWindow(300);
       } else if (internalUrl) {
         resizeWindow(600);
@@ -91,7 +94,7 @@ export function useWindowResize({
     trigger();
     const timers = [10, 50, 100, 200, 500, 1000].map(ms => setTimeout(trigger, ms));
     return () => timers.forEach(t => clearTimeout(t));
-  }, [hasContent, isMenuOpen, internalUrl, answer, error, isLoading, resizeWindow, resultRef, searchMode, appSuggestions]);
+  }, [hasContent, isMenuOpen, internalUrl, answer, error, isLoading, resizeWindow, resultRef, searchMode, appSuggestions, isVoiceMode]);
 
   useEffect(() => {
     loadSettings().then(() => refreshModels());

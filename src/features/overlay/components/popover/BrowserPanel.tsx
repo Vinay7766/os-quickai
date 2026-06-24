@@ -90,7 +90,7 @@ export function BrowserPanel({ browser, searchEngine, llmModel, availableModels,
             >
               {allModels.map((model) => (
                 <option key={model} value={model} className="bg-[#1c1c1c] text-white">
-                  {model.replace('ollama:', '')} {model.startsWith('ollama:') ? '(Local)' : ''}
+                  {model.replace('ollama:', '')}
                 </option>
               ))}
             </select>

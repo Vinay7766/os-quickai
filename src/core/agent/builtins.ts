@@ -316,9 +316,13 @@ ${settings.enableFullConversationHistory && ctx.conversationHistory && ctx.conve
       // 2. Terminal Agent Actions (Single object)
       if (settings.enableTerminalMode && !Array.isArray(parsedData) && parsedData.tool === 'terminal' && parsedData.command) {
         ctx.callbacks.setAnswer(`Executing autonomous action...\n\n\`\`\`bash\n${parsedData.command}\n\`\`\``);
-        const result = await invoke<string>('execute_terminal_command', { command: parsedData.command });
-        const displayResult = result.trim() || 'Action completed successfully.';
-        ctx.callbacks.setAnswer(`**Action Complete:**\n\`\`\`bash\n${displayResult}\n\`\`\``);
+        try {
+          const result = await invoke<string>('execute_terminal_command', { command: parsedData.command });
+          const displayResult = result.trim() || 'Action completed successfully.';
+          ctx.callbacks.setAnswer(`**Action Complete:**\n\`\`\`bash\n${displayResult}\n\`\`\``);
+        } catch (e: any) {
+          ctx.callbacks.setAnswer(`**Action Failed:**\n\`\`\`bash\n${e.toString()}\n\`\`\``);
+        }
         return { type: 'handled' };
       }
     }
