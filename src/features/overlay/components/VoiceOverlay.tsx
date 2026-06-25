@@ -7,12 +7,32 @@ export function VoiceOverlay() {
   const { isListening, toggleListening } = useVoiceRecognition();
   const [isSpeaking, setIsSpeaking] = useState(false);
 
+  const prevSpeaking = useRef(isSpeaking);
+
   useEffect(() => {
-    // Auto-start listening if opened manually
-    if (!isListening && !isLoading && !isSpeaking && !answer) {
+    // Auto-start listening if opened manually and nothing is happening
+    if (!isListening && !isLoading && !isSpeaking && !answer && !query) {
       toggleListening();
     }
   }, []);
+
+  useEffect(() => {
+    // Force stop microphone when AI is thinking or speaking
+    if ((isLoading || isSpeaking) && isListening) {
+      toggleListening();
+    }
+  }, [isLoading, isSpeaking, isListening, toggleListening]);
+
+  useEffect(() => {
+    // Auto-resume microphone when AI finishes speaking
+    if (prevSpeaking.current && !isSpeaking) {
+      useAppStore.getState().setQuery(''); // Clear previous query for fresh input
+      if (!isListening) {
+        toggleListening();
+      }
+    }
+    prevSpeaking.current = isSpeaking;
+  }, [isSpeaking, isListening, toggleListening]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -84,8 +104,13 @@ export function VoiceOverlay() {
           if (isSpeaking) {
             window.speechSynthesis?.cancel();
             setIsSpeaking(false);
-          } else if (!isListening && !isLoading) {
+          } else if (!isLoading) {
+            // Toggle mic manually if not thinking
             toggleListening();
+            if (isListening && query.trim()) {
+              // If we were listening and have text, submit it immediately
+              setTimeout(() => useAppStore.getState().submitQuery(true), 100);
+            }
           }
         }}
         title={isSpeaking ? "Click to stop speaking" : "Click to listen"}
