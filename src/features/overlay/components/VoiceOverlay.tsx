@@ -11,7 +11,8 @@ export function VoiceOverlay() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Enter' && isListening && query.trim()) {
         e.preventDefault();
-        toggleListening(); 
+        toggleListening();
+        setTimeout(() => useAppStore.getState().submitQuery(true), 100);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -106,7 +107,10 @@ export function VoiceOverlay() {
       {/* Submit Override */}
       {isListening && query.trim() && (
         <button
-          onClick={() => toggleListening()}
+          onClick={() => {
+            toggleListening();
+            setTimeout(() => useAppStore.getState().submitQuery(true), 100);
+          }}
           className="mt-8 px-6 py-2.5 bg-gradient-to-r from-purple-500/20 to-indigo-500/20 hover:from-purple-500/40 hover:to-indigo-500/40 border border-purple-500/30 text-white rounded-xl text-xs font-black tracking-widest uppercase transition-all flex items-center gap-3 active:scale-95 shadow-lg shadow-purple-500/10 backdrop-blur-md group"
         >
           <span>Submit Query</span>
