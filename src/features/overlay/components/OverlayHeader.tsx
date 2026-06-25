@@ -196,7 +196,7 @@ export function OverlayHeader({ hasContent, isLoading, platform, handleDrag }: O
                       await writeText("");
                       
                       // Launch native Windows Snipping Tool in drag mode
-                      await Command.create("cmd", ["/C", "start ms-screenclip:"]).spawn();
+                      await Command.create("cmd", ["/C", "start ms-screenclip:"]).execute();
                       
                       // Poll clipboard for up to 15 seconds (30 * 500ms)
                       let attempts = 0;

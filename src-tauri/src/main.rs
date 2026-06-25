@@ -463,7 +463,7 @@ fn is_hidden_or_system(entry: &DirEntry) -> bool {
 
 fn index_user_files_concurrently(root: &str) -> Vec<commands::browser::FileInfo> {
     let mut files = Vec::new();
-    let walker = WalkDir::new(root).max_depth(6).into_iter();
+    let walker = WalkDir::new(root).max_depth(12).into_iter();
     for entry in walker.filter_entry(|e| !is_hidden_or_system(e)) {
         if let Ok(e) = entry {
             if e.file_type().is_file() {

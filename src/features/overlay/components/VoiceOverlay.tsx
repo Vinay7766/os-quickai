@@ -3,9 +3,16 @@ import { useVoiceRecognition } from '../hooks/useVoiceRecognition';
 import { useEffect, useState } from 'react';
 
 export function VoiceOverlay() {
-  const { query, isLoading, clearAnswer } = useAppStore();
+  const { query, answer, isLoading, clearAnswer } = useAppStore();
   const { isListening, toggleListening } = useVoiceRecognition();
   const [isSpeaking, setIsSpeaking] = useState(false);
+
+  useEffect(() => {
+    // Auto-start listening if opened manually
+    if (!isListening && !isLoading && !isSpeaking && !answer) {
+      toggleListening();
+    }
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -71,11 +78,22 @@ export function VoiceOverlay() {
       </button>
 
       {/* Aesthetic Orb */}
-      <div className="relative flex items-center justify-center mb-8 pointer-events-none mt-4">
+      <div 
+        className="relative flex items-center justify-center mb-8 mt-4 cursor-pointer group"
+        onClick={() => {
+          if (isSpeaking) {
+            window.speechSynthesis?.cancel();
+            setIsSpeaking(false);
+          } else if (!isListening && !isLoading) {
+            toggleListening();
+          }
+        }}
+        title={isSpeaking ? "Click to stop speaking" : "Click to listen"}
+      >
         {/* Glow Ring 1 */}
-        <div className={`absolute w-32 h-32 rounded-full blur-2xl transition-all duration-700 ease-in-out mix-blend-screen opacity-70 ${getOrbStyles()}`} />
+        <div className={`absolute w-32 h-32 rounded-full blur-2xl transition-all duration-700 ease-in-out mix-blend-screen opacity-70 group-hover:scale-110 ${getOrbStyles()}`} />
         {/* Glow Ring 2 */}
-        <div className={`absolute w-24 h-24 rounded-full blur-xl transition-all duration-500 ease-in-out mix-blend-screen opacity-90 ${getOrbStyles()} delay-75`} />
+        <div className={`absolute w-24 h-24 rounded-full blur-xl transition-all duration-500 ease-in-out mix-blend-screen opacity-90 group-hover:scale-105 ${getOrbStyles()} delay-75`} />
         {/* Core */}
         <div className={`relative w-16 h-16 rounded-full transition-all duration-300 ease-in-out z-10 border border-white/20 backdrop-blur-sm ${getOrbStyles()}`} />
       </div>
@@ -91,9 +109,13 @@ export function VoiceOverlay() {
         </p>
       </div>
 
-      {/* Query Transcript */}
-      <div className="w-full max-w-lg text-center px-6 min-h-[60px] flex items-center justify-center">
-        {query ? (
+      {/* Transcripts */}
+      <div className="w-full max-w-lg text-center px-6 min-h-[80px] flex items-center justify-center flex-col gap-2">
+        {answer ? (
+          <div className="text-white/80 text-[13px] font-medium leading-relaxed tracking-wide drop-shadow-md animate-in fade-in slide-in-from-bottom-2 max-h-[150px] overflow-y-auto scrollbar-thin px-4">
+            {answer}
+          </div>
+        ) : query ? (
           <p className="text-white/90 text-lg font-medium leading-relaxed tracking-wide drop-shadow-md transition-all duration-300 animate-in fade-in slide-in-from-bottom-2">
             "{query}"
           </p>
