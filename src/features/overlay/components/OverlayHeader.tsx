@@ -189,12 +189,8 @@ export function OverlayHeader({ hasContent, isLoading, platform, handleDrag }: O
                     const { enablePartialScreenCapture } = useSettingsStore.getState();
                     
                     if (enablePartialScreenCapture) {
-                      const { getCurrentWindow } = await import('@tauri-apps/api/window');
                       const { Command } = await import('@tauri-apps/plugin-shell');
                       const { writeText, readImage } = await import('@tauri-apps/plugin-clipboard-manager');
-                      
-                      const appWindow = getCurrentWindow();
-                      await appWindow.hide();
                       
                       // Clear clipboard to detect when snip is done
                       await writeText("");
@@ -231,9 +227,6 @@ export function OverlayHeader({ hasContent, isLoading, platform, handleDrag }: O
                         }
                         attempts++;
                       }
-                      
-                      await appWindow.show();
-                      await appWindow.setFocus();
                       
                       if (capturedBase64) {
                         setImageBase64(capturedBase64);
