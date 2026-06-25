@@ -414,9 +414,9 @@ fn main() {
                 std::thread::sleep(std::time::Duration::from_secs(15));
 
                 let root_dir = if cfg!(target_os = "windows") {
-                    std::env::var("USERPROFILE").unwrap_or_else(|_| "C:\\".to_string())
+                    "C:\\".to_string()
                 } else {
-                    std::env::var("HOME").unwrap_or_else(|_| "/".to_string())
+                    "/".to_string()
                 };
 
                 let indexed_files = index_user_files_concurrently(&root_dir);
