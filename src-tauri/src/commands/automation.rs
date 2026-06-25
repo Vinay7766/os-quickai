@@ -327,17 +327,7 @@ async fn handle_lock_pc() -> Result<String, String> {
 async fn handle_sleep_pc() -> Result<String, String> {
     #[cfg(target_os = "windows")]
     {
-        let ps_cmd = r#"
-Add-Type -TypeDefinition '
-using System;
-using System.Runtime.InteropServices;
-public class Pwr {
-    [DllImport("powrprof.dll", SetLastError = true)]
-    public static extern bool SetSuspendState(bool hibernate, bool forceCritical, bool disableWakeEvent);
-}
-';
-[Pwr]::SetSuspendState($false, $false, $false)
-"#;
+        let ps_cmd = "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.Application]::SetSuspendState('Suspend', $false, $false)";
         let _ = Command::new("powershell")
             .args(["-NoProfile", "-WindowStyle", "Hidden", "-Command", ps_cmd])
             .status();
